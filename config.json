@@ -1,6 +1,6 @@
 {
   "channel_url": "https://www.youtube.com/@ChimChakMan_Data",
-  "check_interval_seconds": 60,
+  "check_interval_seconds": 5,
   "download_directory": "./downloads",
   "log_file": "./live_monitor.log",
   "video_quality": "best",

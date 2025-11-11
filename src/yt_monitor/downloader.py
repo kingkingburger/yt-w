@@ -104,7 +104,10 @@ class StreamDownloader:
                 output_pattern,
             ]
         elif self.split_mode == "size":
-            split_bytes = self.split_size_mb * 1024 * 1024
+            # FFmpeg's segment muxer doesn't support segment_size
+            # Instead, we'll estimate time based on bitrate or use a fixed time
+            # For now, using a fixed segment time of 10 minutes as a workaround
+            # A better approach would be to calculate based on actual bitrate
             cmd = [
                 "ffmpeg",
                 "-i",
@@ -113,8 +116,8 @@ class StreamDownloader:
                 "copy",
                 "-f",
                 "segment",
-                "-segment_size",
-                str(split_bytes),
+                "-segment_time",
+                "600",  # 10 minutes as default for size-based splitting
                 "-reset_timestamps",
                 "1",
                 output_pattern,
@@ -153,7 +156,11 @@ class StreamDownloader:
                 output_pattern,
             ]
         elif self.split_mode == "size":
-            split_bytes = self.split_size_mb * 1024 * 1024
+            # FFmpeg's segment muxer doesn't support segment_size
+            # Estimate segment time based on expected bitrate
+            # Assuming average bitrate of ~5 Mbps for typical streams
+            estimated_bitrate_mbps = 5
+            segment_seconds = int((self.split_size_mb * 8) / estimated_bitrate_mbps)
             cmd = [
                 "ffmpeg",
                 "-i",
@@ -162,8 +169,8 @@ class StreamDownloader:
                 "copy",
                 "-f",
                 "segment",
-                "-segment_size",
-                str(split_bytes),
+                "-segment_time",
+                str(segment_seconds),
                 "-reset_timestamps",
                 "1",
                 "-live_start_index",
@@ -173,7 +180,7 @@ class StreamDownloader:
         else:
             raise ValueError(f"Invalid split_mode: {self.split_mode}")
 
-        result = subprocess.run(cmd, capture_output=False, text=True)
+        result = subprocess.run(cmd, capture_output=False, text=True, shell=True)
 
         if result.returncode != 0:
             raise Exception(

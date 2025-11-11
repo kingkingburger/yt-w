@@ -6,7 +6,8 @@
       "Bash(uv run:*)",
       "Bash(mkdir:*)",
       "Bash(python -m py_compile:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(where:*)"
     ],
     "deny": [],
     "ask": []
