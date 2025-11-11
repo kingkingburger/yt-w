@@ -4,22 +4,13 @@ from src.yt_monitor import ConfigLoader, LiveStreamMonitor, setup_logger
 
 
 def main():
-    """Main entry point."""
     print("=" * 50)
     print("침착맨 라이브 방송 모니터 & 다운로더")
     print("=" * 50)
 
     try:
-        # Load configuration
         config = ConfigLoader.load("config.json")
-
-        # Setup logger
-        logger = setup_logger(
-            log_file=config.log_file,
-            logger_name="yt_monitor"
-        )
-
-        # Create and start monitor
+        logger = setup_logger(log_file=config.log_file, logger_name="yt_monitor")
         monitor = LiveStreamMonitor(config=config, logger=logger)
         monitor.start()
 

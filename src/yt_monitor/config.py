@@ -18,11 +18,9 @@ class Config:
     download_format: str
 
     def __post_init__(self):
-        """Validate configuration after initialization."""
         self._validate()
 
     def _validate(self):
-        """Validate configuration values."""
         if not self.channel_url:
             raise ValueError("channel_url cannot be empty")
 
@@ -74,9 +72,7 @@ class ConfigLoader:
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in configuration file: {e}")
 
-        # Merge with defaults
         config_data = {**cls.DEFAULT_CONFIG, **data}
-
         return Config(**config_data)
 
     @classmethod

@@ -16,7 +16,6 @@ class LiveStreamInfo:
     title: Optional[str] = None
 
     def __post_init__(self):
-        """Ensure URL is properly formatted."""
         if not self.url.startswith('http'):
             self.url = f"https://www.youtube.com/watch?v={self.video_id}"
 
@@ -34,23 +33,6 @@ class YouTubeClient:
         self.logger = logger or logging.getLogger(__name__)
 
     def check_if_live(self, channel_url: str) -> Tuple[bool, Optional[LiveStreamInfo]]:
-        """
-        Check if the channel is currently live streaming.
-
-        This method tries multiple detection strategies:
-        1. Check /live endpoint
-        2. Check /streams tab
-        3. Check main channel page
-
-        Args:
-            channel_url: YouTube channel URL
-
-        Returns:
-            Tuple of (is_live, stream_info)
-            - is_live: True if live stream detected
-            - stream_info: LiveStreamInfo object if live, None otherwise
-        """
-        # Try multiple detection methods
         detection_methods = [
             self._check_live_endpoint,
             self._check_streams_tab,
@@ -68,15 +50,6 @@ class YouTubeClient:
         return False, None
 
     def _check_live_endpoint(self, channel_url: str) -> Optional[LiveStreamInfo]:
-        """
-        Check /live endpoint for active stream.
-
-        Args:
-            channel_url: YouTube channel URL
-
-        Returns:
-            LiveStreamInfo if live stream found, None otherwise
-        """
         live_url = channel_url.rstrip('/') + '/live'
 
         ydl_opts = {
@@ -103,15 +76,6 @@ class YouTubeClient:
         return None
 
     def _check_streams_tab(self, channel_url: str) -> Optional[LiveStreamInfo]:
-        """
-        Check /streams tab for active stream.
-
-        Args:
-            channel_url: YouTube channel URL
-
-        Returns:
-            LiveStreamInfo if live stream found, None otherwise
-        """
         streams_url = channel_url.rstrip('/') + '/streams'
 
         ydl_opts = {
@@ -143,15 +107,6 @@ class YouTubeClient:
         return None
 
     def _check_channel_page(self, channel_url: str) -> Optional[LiveStreamInfo]:
-        """
-        Check main channel page for active stream.
-
-        Args:
-            channel_url: YouTube channel URL
-
-        Returns:
-            LiveStreamInfo if live stream found, None otherwise
-        """
         ydl_opts = {
             'quiet': True,
             'no_warnings': True,

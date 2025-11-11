@@ -145,11 +145,3 @@ yt-w/
 
 ## 참고 링크
 - yt-dlp GitHub: https://github.com/yt-dlp/yt-dlp
-- 침착맨 채널: https://www.youtube.com/@ChimChakMan_Data
-- 테스트 라이브: https://www.youtube.com/watch?v=2qgyQPVu97M
-
-## 개발 일자
-2025-11-11
-
-## 개발 결과
-✅ 성공적으로 라이브 방송 감지 및 다운로드 작동 확인

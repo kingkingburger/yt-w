@@ -19,15 +19,6 @@ class LiveStreamMonitor:
         youtube_client: Optional[YouTubeClient] = None,
         downloader: Optional[StreamDownloader] = None
     ):
-        """
-        Initialize live stream monitor.
-
-        Args:
-            config: Configuration object
-            logger: Logger instance
-            youtube_client: Optional YouTubeClient instance
-            downloader: Optional StreamDownloader instance
-        """
         self.config = config
         self.logger = logger
         self.youtube_client = youtube_client or YouTubeClient(logger)
@@ -39,7 +30,6 @@ class LiveStreamMonitor:
         self.is_downloading = False
 
     def start(self):
-        """Start monitoring for live streams."""
         self._log_startup_info()
 
         while True:
@@ -53,23 +43,17 @@ class LiveStreamMonitor:
                 time.sleep(self.config.check_interval_seconds)
 
     def _log_startup_info(self):
-        """Log startup information."""
         self.logger.info("Starting live stream monitor...")
         self.logger.info(f"Channel URL: {self.config.channel_url}")
-        self.logger.info(
-            f"Check interval: {self.config.check_interval_seconds} seconds"
-        )
+        self.logger.info(f"Check interval: {self.config.check_interval_seconds} seconds")
 
     def _monitor_cycle(self):
-        """Execute one monitoring cycle."""
         if self.is_downloading:
             time.sleep(self.config.check_interval_seconds)
             return
 
         self.logger.info("Checking for live stream...")
-        is_live, stream_info = self.youtube_client.check_if_live(
-            self.config.channel_url
-        )
+        is_live, stream_info = self.youtube_client.check_if_live(self.config.channel_url)
 
         if is_live and stream_info:
             self._handle_live_stream(stream_info.url)
@@ -79,12 +63,6 @@ class LiveStreamMonitor:
         time.sleep(self.config.check_interval_seconds)
 
     def _handle_live_stream(self, stream_url: str):
-        """
-        Handle detected live stream.
-
-        Args:
-            stream_url: URL of the live stream
-        """
         self.logger.info(f"Live stream detected: {stream_url}")
         self.is_downloading = True
 
