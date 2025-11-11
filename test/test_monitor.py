@@ -105,7 +105,7 @@ class TestLiveStreamMonitor:
         mock_youtube_client.check_if_live.assert_called_once()
         mock_downloader.download.assert_called_once_with(
             stream_url=stream_info.url,
-            filename_prefix="침착맨_라이브"
+            filename_prefix="라이브"
         )
         assert monitor.is_downloading is False
 
@@ -132,7 +132,7 @@ class TestLiveStreamMonitor:
 
         mock_downloader.download.assert_called_once_with(
             stream_url=stream_url,
-            filename_prefix="침착맨_라이브"
+            filename_prefix="라이브"
         )
         assert monitor.is_downloading is False
 

@@ -67,7 +67,7 @@ class LiveStreamMonitor:
         try:
             success = self.downloader.download(
                 stream_url=stream_url,
-                filename_prefix="침착맨_라이브"
+                filename_prefix="라이브"
             )
 
             if success:

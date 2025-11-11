@@ -5,7 +5,7 @@ from src.yt_monitor import ConfigLoader, LiveStreamMonitor, Logger
 
 def main():
     print("=" * 50)
-    print("침착맨 라이브 방송 모니터 & 다운로더")
+    print("라이브 방송 모니터 & 다운로더")
     print("=" * 50)
 
     try:
