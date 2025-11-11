@@ -135,50 +135,35 @@ class StreamDownloader:
             ydl.download([stream_url])
 
     def _download_with_realtime_split(self, stream_url: str, output_pattern: str):
-        direct_url = self._get_direct_stream_url(stream_url)
+        # 처음부터 시작하는 스트림 URL 가져오기
+        direct_url = self._get_direct_stream_url(stream_url, from_start=True)
 
         if self.split_mode == "time":
             split_seconds = self.split_time_minutes * 60
-            cmd = [
-                "ffmpeg",
-                "-i",
-                direct_url,
-                "-c",
-                "copy",
-                "-f",
-                "segment",
-                "-segment_time",
-                str(split_seconds),
-                "-reset_timestamps",
-                "1",
-                "-live_start_index",
-                "0",
-                output_pattern,
-            ]
         elif self.split_mode == "size":
-            # FFmpeg's segment muxer doesn't support segment_size
-            # Estimate segment time based on expected bitrate
-            # Assuming average bitrate of ~5 Mbps for typical streams
+            # 사이즈 기반 분할 시 예상 시간 계산
             estimated_bitrate_mbps = 5
-            segment_seconds = int((self.split_size_mb * 8) / estimated_bitrate_mbps)
-            cmd = [
-                "ffmpeg",
-                "-i",
-                direct_url,
-                "-c",
-                "copy",
-                "-f",
-                "segment",
-                "-segment_time",
-                str(segment_seconds),
-                "-reset_timestamps",
-                "1",
-                "-live_start_index",
-                "0",
-                output_pattern,
-            ]
+            split_seconds = int((self.split_size_mb * 8) / estimated_bitrate_mbps)
         else:
             raise ValueError(f"Invalid split_mode: {self.split_mode}")
+
+        # FFmpeg으로 실시간 분할 다운로드
+        cmd = [
+            "ffmpeg",
+            "-i",
+            direct_url,
+            "-c",
+            "copy",
+            "-f",
+            "segment",
+            "-segment_time",
+            str(split_seconds),
+            "-reset_timestamps",
+            "1",
+            "-live_start_index",
+            "0",
+            output_pattern,
+        ]
 
         result = subprocess.run(cmd, capture_output=False, text=True, shell=True)
 
@@ -187,12 +172,15 @@ class StreamDownloader:
                 f"FFmpeg download failed with return code: {result.returncode}"
             )
 
-    def _get_direct_stream_url(self, stream_url: str) -> str:
+    def _get_direct_stream_url(self, stream_url: str, from_start: bool = False) -> str:
         ydl_opts = {
             "format": self.download_format,
             "quiet": True,
             "no_warnings": True,
         }
+
+        if from_start:
+            ydl_opts["live_from_start"] = True
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(stream_url, download=False)
