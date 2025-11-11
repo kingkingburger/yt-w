@@ -1,7 +1,6 @@
 """Tests for logger module."""
 
 import pytest
-from pathlib import Path
 
 from src.yt_monitor.logger import Logger
 

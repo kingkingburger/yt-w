@@ -19,11 +19,17 @@ class TestConfig:
             download_directory="./downloads",
             log_file="./test.log",
             video_quality="best",
-            download_format="best"
+            download_format="best",
+            split_mode="time",
+            split_time_minutes=30,
+            split_size_mb=500
         )
 
         assert config.channel_url == "https://www.youtube.com/@test"
         assert config.check_interval_seconds == 60
+        assert config.split_mode == "time"
+        assert config.split_time_minutes == 30
+        assert config.split_size_mb == 500
 
     def test_empty_channel_url_raises_error(self):
         """Test that empty channel_url raises ValueError."""

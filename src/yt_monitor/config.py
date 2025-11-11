@@ -16,6 +16,9 @@ class Config:
     log_file: str
     video_quality: str
     download_format: str
+    split_mode: str = "time"
+    split_time_minutes: int = 30
+    split_size_mb: int = 500
 
     def __post_init__(self):
         self._validate()
@@ -33,6 +36,15 @@ class Config:
         if not self.log_file:
             raise ValueError("log_file cannot be empty")
 
+        if self.split_mode not in ["time", "size", "none"]:
+            raise ValueError("split_mode must be 'time', 'size', or 'none'")
+
+        if self.split_time_minutes < 1:
+            raise ValueError("split_time_minutes must be at least 1")
+
+        if self.split_size_mb < 1:
+            raise ValueError("split_size_mb must be at least 1")
+
 
 class ConfigLoader:
     """Load and validate configuration from JSON file."""
@@ -43,7 +55,10 @@ class ConfigLoader:
         'download_directory': './downloads',
         'log_file': './live_monitor.log',
         'video_quality': 'best',
-        'download_format': 'bestvideo+bestaudio/best'
+        'download_format': 'bestvideo+bestaudio/best',
+        'split_mode': 'time',
+        'split_time_minutes': 30,
+        'split_size_mb': 500
     }
 
     @classmethod

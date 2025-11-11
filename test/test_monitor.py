@@ -1,7 +1,7 @@
 """Tests for live stream monitor module."""
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 
 from src.yt_monitor.config import Config
 from src.yt_monitor.logger import Logger

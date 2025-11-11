@@ -46,7 +46,10 @@ uv sync
   "download_directory": "./downloads",
   "log_file": "./live_monitor.log",
   "video_quality": "best",
-  "download_format": "bestvideo+bestaudio/best"
+  "download_format": "bestvideo+bestaudio/best",
+  "split_mode": "time",
+  "split_time_minutes": 30,
+  "split_size_mb": 500
 }
 ```
 
@@ -58,6 +61,54 @@ uv sync
 - `log_file`: 로그 파일 경로
 - `video_quality`: 비디오 품질 설정
 - `download_format`: yt-dlp 다운로드 포맷
+- `split_mode`: 비디오 분할 모드
+  - `"time"`: 시간 기준 분할
+  - `"size"`: 파일 크기 기준 분할
+  - `"none"`: 분할하지 않음
+- `split_time_minutes`: 시간 기준 분할 시 분 단위 (기본: 30분)
+- `split_size_mb`: 크기 기준 분할 시 MB 단위 (기본: 500MB)
+
+### 분할 설정 예제
+
+**30분마다 분할:**
+```json
+{
+  "split_mode": "time",
+  "split_time_minutes": 30
+}
+```
+
+**500MB마다 분할:**
+```json
+{
+  "split_mode": "size",
+  "split_size_mb": 500
+}
+```
+
+**100MB마다 분할:**
+```json
+{
+  "split_mode": "size",
+  "split_size_mb": 100
+}
+```
+
+**분할하지 않음:**
+```json
+{
+  "split_mode": "none"
+}
+```
+
+### 실시간 분할 기능
+
+시간 또는 크기 기반 분할을 선택하면, 프로그램은 다운로드와 동시에 실시간으로 비디오를 분할합니다:
+
+- **시간 기반 분할**: 지정한 시간(예: 30분)이 지나면 자동으로 새 파일로 전환됩니다.
+- **크기 기반 분할**: 현재 파일이 지정한 크기(예: 100MB)에 도달하면 자동으로 새 파일로 전환됩니다.
+
+이 방식은 FFmpeg의 segment 기능을 사용하여 라이브 스트림을 다운로드하면서 동시에 분할하므로, 긴 라이브 방송도 효율적으로 관리할 수 있습니다.
 
 ## 프로젝트 구조
 

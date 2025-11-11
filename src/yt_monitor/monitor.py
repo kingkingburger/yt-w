@@ -23,7 +23,10 @@ class LiveStreamMonitor:
         self.youtube_client = youtube_client or YouTubeClient()
         self.downloader = downloader or StreamDownloader(
             download_directory=config.download_directory,
-            download_format=config.download_format
+            download_format=config.download_format,
+            split_mode=config.split_mode,
+            split_time_minutes=config.split_time_minutes,
+            split_size_mb=config.split_size_mb
         )
         self.is_downloading = False
 
