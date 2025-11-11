@@ -2,6 +2,7 @@
 
 import logging
 import os
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -28,28 +29,36 @@ class StreamDownloader:
 
     def download(self, stream_url: str, filename_prefix: str = "stream") -> bool:
         try:
-            output_template = self._generate_output_path(filename_prefix)
-            ydl_opts = self._build_ydl_options(output_template)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            temp_file = os.path.join(self.download_directory, f'{filename_prefix}_{timestamp}_temp.mp4')
+
+            ydl_opts = self._build_ydl_options(temp_file)
 
             self.logger.info(f"Starting download: {stream_url}")
             self._perform_download(stream_url, ydl_opts)
-            self.logger.info("Download completed successfully")
 
+            self.logger.info("Download completed. Splitting into 30-minute segments...")
+            output_pattern = os.path.join(
+                self.download_directory,
+                f'{filename_prefix}_{timestamp}_part%03d.mp4'
+            )
+            self._split_video(temp_file, output_pattern)
+
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+                self.logger.info("Temporary file removed")
+
+            self.logger.info("All segments saved successfully")
             return True
 
         except Exception as e:
             self.logger.error(f"Download failed: {e}")
             return False
 
-    def _generate_output_path(self, filename_prefix: str) -> str:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f'{filename_prefix}_{timestamp}.%(ext)s'
-        return os.path.join(self.download_directory, filename)
-
-    def _build_ydl_options(self, output_template: str) -> dict:
+    def _build_ydl_options(self, output_file: str) -> dict:
         return {
             'format': self.download_format,
-            'outtmpl': output_template,
+            'outtmpl': output_file,
             'quiet': False,
             'no_warnings': False,
             'ignoreerrors': False,
@@ -61,6 +70,22 @@ class StreamDownloader:
                 'preferedformat': 'mp4',
             }],
         }
+
+    def _split_video(self, input_file: str, output_pattern: str):
+        cmd = [
+            'ffmpeg',
+            '-i', input_file,
+            '-c', 'copy',
+            '-f', 'segment',
+            '-segment_time', '1800',
+            '-reset_timestamps', '1',
+            output_pattern
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True)
+
+        if result.returncode != 0:
+            raise Exception(f"FFmpeg split failed: {result.stderr}")
 
     def _perform_download(self, stream_url: str, ydl_opts: dict):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -55,33 +55,29 @@ class TestStreamDownloader:
 
             assert Path(download_dir).exists()
 
-    def test_generate_output_path(self, downloader):
-        """Test output path generation."""
-        output_path = downloader._generate_output_path("test_stream")
-
-        assert "test_stream_" in output_path
-        assert output_path.endswith(".%(ext)s")
-        assert downloader.download_directory in output_path
-
     def test_build_ydl_options(self, downloader):
-        """Test yt-dlp options building."""
-        output_template = "/path/to/output.mp4"
-        options = downloader._build_ydl_options(output_template)
+        output_file = "/path/to/output.mp4"
+        options = downloader._build_ydl_options(output_file)
 
         assert options['format'] == "best"
-        assert options['outtmpl'] == output_template
+        assert options['outtmpl'] == output_file
         assert options['live_from_start'] is True
         assert options['merge_output_format'] == 'mp4'
         assert 'postprocessors' in options
 
+    @patch('src.yt_monitor.downloader.subprocess.run')
+    @patch('src.yt_monitor.downloader.os.path.exists')
+    @patch('src.yt_monitor.downloader.os.remove')
     @patch('src.yt_monitor.downloader.yt_dlp.YoutubeDL')
-    def test_download_success(self, mock_ydl_class, downloader):
-        """Test successful download."""
+    def test_download_success(self, mock_ydl_class, mock_remove, mock_exists, mock_subprocess, downloader):
         mock_ydl = MagicMock()
         mock_ydl.__enter__ = Mock(return_value=mock_ydl)
         mock_ydl.__exit__ = Mock(return_value=False)
         mock_ydl.download.return_value = None
         mock_ydl_class.return_value = mock_ydl
+
+        mock_exists.return_value = True
+        mock_subprocess.return_value = Mock(returncode=0)
 
         result = downloader.download(
             stream_url="https://www.youtube.com/watch?v=test123",
@@ -90,10 +86,11 @@ class TestStreamDownloader:
 
         assert result is True
         mock_ydl.download.assert_called_once()
+        mock_subprocess.assert_called_once()
+        mock_remove.assert_called_once()
 
     @patch('src.yt_monitor.downloader.yt_dlp.YoutubeDL')
     def test_download_failure(self, mock_ydl_class, downloader):
-        """Test download failure."""
         mock_ydl = MagicMock()
         mock_ydl.__enter__ = Mock(return_value=mock_ydl)
         mock_ydl.__exit__ = Mock(return_value=False)
@@ -107,14 +104,19 @@ class TestStreamDownloader:
 
         assert result is False
 
+    @patch('src.yt_monitor.downloader.subprocess.run')
+    @patch('src.yt_monitor.downloader.os.path.exists')
+    @patch('src.yt_monitor.downloader.os.remove')
     @patch('src.yt_monitor.downloader.yt_dlp.YoutubeDL')
-    def test_download_with_custom_prefix(self, mock_ydl_class, downloader):
-        """Test download with custom filename prefix."""
+    def test_download_with_custom_prefix(self, mock_ydl_class, mock_remove, mock_exists, mock_subprocess, downloader):
         mock_ydl = MagicMock()
         mock_ydl.__enter__ = Mock(return_value=mock_ydl)
         mock_ydl.__exit__ = Mock(return_value=False)
         mock_ydl.download.return_value = None
         mock_ydl_class.return_value = mock_ydl
+
+        mock_exists.return_value = True
+        mock_subprocess.return_value = Mock(returncode=0)
 
         result = downloader.download(
             stream_url="https://www.youtube.com/watch?v=test123",
@@ -122,15 +124,12 @@ class TestStreamDownloader:
         )
 
         assert result is True
-
-        # Verify the output template contains custom prefix
         call_args = mock_ydl_class.call_args
         ydl_opts = call_args[0][0]
         assert "custom_prefix" in ydl_opts['outtmpl']
 
     @patch('src.yt_monitor.downloader.yt_dlp.YoutubeDL')
     def test_perform_download(self, mock_ydl_class, downloader):
-        """Test _perform_download method."""
         mock_ydl = MagicMock()
         mock_ydl.__enter__ = Mock(return_value=mock_ydl)
         mock_ydl.__exit__ = Mock(return_value=False)
@@ -142,3 +141,22 @@ class TestStreamDownloader:
         downloader._perform_download(stream_url, ydl_opts)
 
         mock_ydl.download.assert_called_once_with([stream_url])
+
+    @patch('src.yt_monitor.downloader.subprocess.run')
+    def test_split_video_success(self, mock_subprocess, downloader):
+        mock_subprocess.return_value = Mock(returncode=0)
+
+        downloader._split_video('input.mp4', 'output%03d.mp4')
+
+        mock_subprocess.assert_called_once()
+        cmd = mock_subprocess.call_args[0][0]
+        assert 'ffmpeg' in cmd
+        assert '-segment_time' in cmd
+        assert '1800' in cmd
+
+    @patch('src.yt_monitor.downloader.subprocess.run')
+    def test_split_video_failure(self, mock_subprocess, downloader):
+        mock_subprocess.return_value = Mock(returncode=1, stderr="FFmpeg error")
+
+        with pytest.raises(Exception, match="FFmpeg split failed"):
+            downloader._split_video('input.mp4', 'output%03d.mp4')
