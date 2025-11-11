@@ -24,3 +24,17 @@
 2025-11-11 14:17:31,125 - INFO - Starting download of live stream: https://www.youtube.com/watch?v=2qgyQPVu97M
 2025-11-11 14:22:03,331 - ERROR - Error downloading stream: [Errno 22] Invalid argument
 2025-11-11 14:22:03,331 - WARNING - Download failed. Resuming monitoring...
+2025-11-11 14:23:06,661 - INFO - Starting live stream monitor for 침착맨 channel...
+2025-11-11 14:23:06,662 - INFO - Channel URL: https://www.youtube.com/@ChimChakMan_Data
+2025-11-11 14:23:06,662 - INFO - Check interval: 60 seconds
+2025-11-11 14:23:06,662 - INFO - Checking for live stream...
+2025-11-11 14:23:10,899 - INFO - Live stream found via /live endpoint: 2qgyQPVu97M
+2025-11-11 14:23:10,899 - INFO - Live stream detected! URL: https://www.youtube.com/watch?v=2qgyQPVu97M
+2025-11-11 14:23:10,899 - INFO - Starting download of live stream: https://www.youtube.com/watch?v=2qgyQPVu97M
+2025-11-11 14:41:27,398 - INFO - Download completed successfully!
+2025-11-11 14:41:27,399 - INFO - Download finished. Resuming monitoring...
+2025-11-11 14:42:27,399 - INFO - Checking for live stream...
+2025-11-11 14:42:31,268 - INFO - Live stream found via /live endpoint: 2qgyQPVu97M
+2025-11-11 14:42:31,269 - INFO - Live stream detected! URL: https://www.youtube.com/watch?v=2qgyQPVu97M
+2025-11-11 14:42:31,269 - INFO - Starting download of live stream: https://www.youtube.com/watch?v=2qgyQPVu97M
+2025-11-11 14:42:36,738 - INFO - Monitor stopped by user.

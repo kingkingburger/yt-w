@@ -2,6 +2,9 @@
 
 침착맨 채널의 라이브 방송을 자동으로 감지하고 로컬에 다운로드하는 프로그램입니다.
 
+이 프로젝트는 **클린 코드 원칙**과 **SOLID 원칙**을 적용하여 설계되었으며,
+모듈화된 구조로 유지보수와 확장이 용이합니다.
+
 ## 주요 기능
 
 - 침착맨 채널의 라이브 방송 자동 감지
@@ -9,6 +12,8 @@
 - 설정 가능한 체크 주기
 - 로그 기록 기능
 - MP4 형식으로 자동 변환
+- 완전한 테스트 커버리지 (38개 단위 테스트)
+- 모듈화된 아키텍처
 
 ## 필요 사항
 
@@ -54,6 +59,30 @@ uv sync
 - `video_quality`: 비디오 품질 설정
 - `download_format`: yt-dlp 다운로드 포맷
 
+## 프로젝트 구조
+
+```
+yt-w/
+├── src/
+│   └── yt_monitor/          # 메인 패키지
+│       ├── config.py        # 설정 관리
+│       ├── logger.py        # 로깅 설정
+│       ├── youtube_client.py # YouTube API 클라이언트
+│       ├── downloader.py    # 스트림 다운로더
+│       └── monitor.py       # 라이브 스트림 모니터
+├── test/                    # 테스트 디렉토리
+│   ├── test_config.py
+│   ├── test_youtube_client.py
+│   ├── test_downloader.py
+│   └── test_monitor.py
+├── docs/                    # 문서
+│   ├── ARCHITECTURE.md      # 아키텍처 문서
+│   ├── TESTING.md          # 테스트 가이드
+│   └── history.md          # 변경 이력
+├── main.py                  # 엔트리포인트
+└── config.json              # 설정 파일
+```
+
 ## 사용 방법
 
 프로그램을 실행하면 자동으로 채널을 모니터링합니다:
@@ -66,6 +95,19 @@ uv run main.py
 
 ```bash
 python main.py
+```
+
+## 테스트 실행
+
+```bash
+# 모든 테스트 실행
+uv run pytest
+
+# 상세 출력과 함께
+uv run pytest -v
+
+# 특정 테스트 파일만
+uv run pytest test/test_config.py
 ```
 
 프로그램이 실행되면:
@@ -107,6 +149,36 @@ python main.py
 ### 다운로드가 실패하는 경우
 - 로그 파일 (`live_monitor.log`)을 확인하여 에러 메시지를 확인하세요
 - yt-dlp를 최신 버전으로 업데이트해보세요: `uv add yt-dlp --upgrade`
+
+## 개발자 가이드
+
+### 코드 구조
+
+이 프로젝트는 클린 코드 원칙을 따릅니다:
+
+1. **단일 책임 원칙 (SRP)**: 각 모듈은 하나의 책임만 가집니다
+   - `config.py`: 설정 관리
+   - `logger.py`: 로깅 설정
+   - `youtube_client.py`: YouTube API 통신
+   - `downloader.py`: 스트림 다운로드
+   - `monitor.py`: 전체 프로세스 조율
+
+2. **의존성 주입 (DI)**: 테스트와 확장이 용이하도록 의존성을 주입합니다
+
+3. **테스트 가능한 설계**: 모든 모듈이 독립적으로 테스트 가능합니다
+
+### 새로운 기능 추가하기
+
+1. 해당 모듈에 기능 구현
+2. 테스트 코드 작성 (test/ 디렉토리)
+3. 테스트 실행으로 검증
+4. 문서 업데이트
+
+### 문서
+
+- [아키텍처 문서](docs/ARCHITECTURE.md): 전체 시스템 설계 설명
+- [테스트 가이드](docs/TESTING.md): 테스트 작성 및 실행 방법
+- [변경 이력](docs/history.md): 프로젝트 변경 이력
 
 ## 라이선스
 

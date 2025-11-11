@@ -9,4 +9,22 @@ wheels/
 # Virtual environments
 .venv
 
-.downloads/
+# Downloads and logs
+downloads/
+*.log
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
