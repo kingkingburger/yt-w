@@ -5,6 +5,7 @@
   "log_file": "./live_monitor.log",
   "video_quality": "best",
   "download_format": "bestvideo[height<=720]+bestaudio/best[height<=720]",
-  "split_mode": "size",
+  "split_mode": "time",
+  "split_time_minutes": 1,
   "split_size_mb": 50
 }

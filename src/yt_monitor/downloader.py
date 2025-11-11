@@ -135,9 +135,7 @@ class StreamDownloader:
             ydl.download([stream_url])
 
     def _download_with_realtime_split(self, stream_url: str, output_pattern: str):
-        # 처음부터 시작하는 스트림 URL 가져오기
-        direct_url = self._get_direct_stream_url(stream_url, from_start=True)
-
+        # 분할 시간 계산
         if self.split_mode == "time":
             split_seconds = self.split_time_minutes * 60
         elif self.split_mode == "size":
@@ -147,11 +145,31 @@ class StreamDownloader:
         else:
             raise ValueError(f"Invalid split_mode: {self.split_mode}")
 
-        # FFmpeg으로 실시간 분할 다운로드
+        # yt-dlp로 스트림 URL만 가져오기
+        ydl_opts = {
+            "format": self.download_format,
+            "quiet": True,
+            "no_warnings": True,
+            "live_from_start": True,
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(stream_url, download=False)
+
+        # manifest URL 가져오기
+        if "manifest_url" in info:
+            stream_input = info["manifest_url"]
+        elif "url" in info:
+            stream_input = info["url"]
+        else:
+            # bestvideo+bestaudio 형식이면 비디오만 일단 다운로드
+            stream_input = stream_url
+
+        # FFmpeg으로 직접 다운로드 & 분할
         cmd = [
             "ffmpeg",
             "-i",
-            direct_url,
+            stream_input,
             "-c",
             "copy",
             "-f",
@@ -160,12 +178,11 @@ class StreamDownloader:
             str(split_seconds),
             "-reset_timestamps",
             "1",
-            "-live_start_index",
-            "0",
             output_pattern,
         ]
 
-        result = subprocess.run(cmd, capture_output=False, text=True, shell=True)
+        self.logger.info(f"Running FFmpeg command for segmented download")
+        result = subprocess.run(cmd, capture_output=False, text=True)
 
         if result.returncode != 0:
             raise Exception(
@@ -184,4 +201,14 @@ class StreamDownloader:
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(stream_url, download=False)
-            return info["url"]
+
+            # 여러 포맷이 있는 경우 (bestvideo+bestaudio)
+            if "requested_formats" in info:
+                # 비디오 URL 반환 (첫 번째가 보통 비디오)
+                return info["requested_formats"][0]["url"]
+            elif "url" in info:
+                return info["url"]
+            else:
+                # 디버깅을 위해 로그 출력
+                self.logger.error(f"Available keys: {info.keys()}")
+                raise KeyError("Cannot find stream URL in video info")
