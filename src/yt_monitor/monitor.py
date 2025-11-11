@@ -16,7 +16,7 @@ class LiveStreamMonitor:
         self,
         config: Config,
         youtube_client: Optional[YouTubeClient] = None,
-        downloader: Optional[StreamDownloader] = None
+        downloader: Optional[StreamDownloader] = None,
     ):
         self.config = config
         self.logger = Logger.get()
@@ -26,7 +26,7 @@ class LiveStreamMonitor:
             download_format=config.download_format,
             split_mode=config.split_mode,
             split_time_minutes=config.split_time_minutes,
-            split_size_mb=config.split_size_mb
+            split_size_mb=config.split_size_mb,
         )
         self.is_downloading = False
 
@@ -46,7 +46,9 @@ class LiveStreamMonitor:
     def _log_startup_info(self):
         self.logger.info("Starting live stream monitor...")
         self.logger.info(f"Channel URL: {self.config.channel_url}")
-        self.logger.info(f"Check interval: {self.config.check_interval_seconds} seconds")
+        self.logger.info(
+            f"Check interval: {self.config.check_interval_seconds} seconds"
+        )
 
     def _monitor_cycle(self):
         if self.is_downloading:
@@ -54,7 +56,9 @@ class LiveStreamMonitor:
             return
 
         self.logger.info("Checking for live stream...")
-        is_live, stream_info = self.youtube_client.check_if_live(self.config.channel_url)
+        is_live, stream_info = self.youtube_client.check_if_live(
+            self.config.channel_url
+        )
 
         if is_live and stream_info:
             self._handle_live_stream(stream_info.url)
@@ -69,8 +73,7 @@ class LiveStreamMonitor:
 
         try:
             success = self.downloader.download(
-                stream_url=stream_url,
-                filename_prefix="라이브"
+                stream_url=stream_url, filename_prefix="라이브"
             )
 
             if success:

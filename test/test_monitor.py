@@ -30,7 +30,7 @@ class TestLiveStreamMonitor:
             download_directory="./test_downloads",
             log_file="./test.log",
             video_quality="best",
-            download_format="best"
+            download_format="best",
         )
 
     @pytest.fixture
@@ -49,7 +49,7 @@ class TestLiveStreamMonitor:
         return LiveStreamMonitor(
             config=config,
             youtube_client=mock_youtube_client,
-            downloader=mock_downloader
+            downloader=mock_downloader,
         )
 
     def test_initialization(self, config):
@@ -69,13 +69,13 @@ class TestLiveStreamMonitor:
         monitor = LiveStreamMonitor(
             config=config,
             youtube_client=mock_youtube_client,
-            downloader=mock_downloader
+            downloader=mock_downloader,
         )
 
         assert monitor.youtube_client == mock_youtube_client
         assert monitor.downloader == mock_downloader
 
-    @patch('src.yt_monitor.monitor.time.sleep')
+    @patch("src.yt_monitor.monitor.time.sleep")
     def test_monitor_cycle_no_live_stream(
         self, mock_sleep, monitor, mock_youtube_client
     ):
@@ -88,14 +88,13 @@ class TestLiveStreamMonitor:
         mock_sleep.assert_called_once()
         assert monitor.is_downloading is False
 
-    @patch('src.yt_monitor.monitor.time.sleep')
+    @patch("src.yt_monitor.monitor.time.sleep")
     def test_monitor_cycle_live_stream_found(
         self, mock_sleep, monitor, mock_youtube_client, mock_downloader
     ):
         """Test monitor cycle when live stream is found."""
         stream_info = LiveStreamInfo(
-            video_id="test123",
-            url="https://www.youtube.com/watch?v=test123"
+            video_id="test123", url="https://www.youtube.com/watch?v=test123"
         )
         mock_youtube_client.check_if_live.return_value = (True, stream_info)
         mock_downloader.download.return_value = True
@@ -104,12 +103,11 @@ class TestLiveStreamMonitor:
 
         mock_youtube_client.check_if_live.assert_called_once()
         mock_downloader.download.assert_called_once_with(
-            stream_url=stream_info.url,
-            filename_prefix="라이브"
+            stream_url=stream_info.url, filename_prefix="라이브"
         )
         assert monitor.is_downloading is False
 
-    @patch('src.yt_monitor.monitor.time.sleep')
+    @patch("src.yt_monitor.monitor.time.sleep")
     def test_monitor_cycle_skips_when_downloading(
         self, mock_sleep, monitor, mock_youtube_client
     ):
@@ -121,9 +119,7 @@ class TestLiveStreamMonitor:
         mock_youtube_client.check_if_live.assert_not_called()
         mock_sleep.assert_called_once()
 
-    def test_handle_live_stream_successful_download(
-        self, monitor, mock_downloader
-    ):
+    def test_handle_live_stream_successful_download(self, monitor, mock_downloader):
         """Test handling live stream with successful download."""
         stream_url = "https://www.youtube.com/watch?v=test123"
         mock_downloader.download.return_value = True
@@ -131,14 +127,11 @@ class TestLiveStreamMonitor:
         monitor._handle_live_stream(stream_url)
 
         mock_downloader.download.assert_called_once_with(
-            stream_url=stream_url,
-            filename_prefix="라이브"
+            stream_url=stream_url, filename_prefix="라이브"
         )
         assert monitor.is_downloading is False
 
-    def test_handle_live_stream_failed_download(
-        self, monitor, mock_downloader
-    ):
+    def test_handle_live_stream_failed_download(self, monitor, mock_downloader):
         """Test handling live stream with failed download."""
         stream_url = "https://www.youtube.com/watch?v=test123"
         mock_downloader.download.return_value = False
@@ -148,9 +141,7 @@ class TestLiveStreamMonitor:
         mock_downloader.download.assert_called_once()
         assert monitor.is_downloading is False
 
-    def test_handle_live_stream_exception_resets_flag(
-        self, monitor, mock_downloader
-    ):
+    def test_handle_live_stream_exception_resets_flag(self, monitor, mock_downloader):
         """Test that is_downloading flag is reset even on exception."""
         stream_url = "https://www.youtube.com/watch?v=test123"
         mock_downloader.download.side_effect = Exception("Download error")
@@ -160,7 +151,7 @@ class TestLiveStreamMonitor:
 
         assert monitor.is_downloading is False
 
-    @patch('src.yt_monitor.monitor.time.sleep')
+    @patch("src.yt_monitor.monitor.time.sleep")
     def test_start_with_keyboard_interrupt(
         self, mock_sleep, monitor, mock_youtube_client
     ):
@@ -173,14 +164,12 @@ class TestLiveStreamMonitor:
         # Should exit gracefully without raising exception
         assert True
 
-    @patch('src.yt_monitor.monitor.time.sleep')
-    def test_start_handles_exception(
-        self, mock_sleep, monitor, mock_youtube_client
-    ):
+    @patch("src.yt_monitor.monitor.time.sleep")
+    def test_start_handles_exception(self, mock_sleep, monitor, mock_youtube_client):
         """Test that monitor handles exceptions and continues."""
         mock_youtube_client.check_if_live.side_effect = [
             Exception("Network error"),
-            KeyboardInterrupt()
+            KeyboardInterrupt(),
         ]
 
         monitor.start()
@@ -190,7 +179,7 @@ class TestLiveStreamMonitor:
 
     def test_log_startup_info(self, monitor, config):
         """Test that startup information is logged."""
-        with patch.object(monitor.logger, 'info') as mock_info:
+        with patch.object(monitor.logger, "info") as mock_info:
             monitor._log_startup_info()
 
             assert mock_info.call_count >= 3

@@ -50,15 +50,15 @@ class ConfigLoader:
     """Load and validate configuration from JSON file."""
 
     DEFAULT_CONFIG = {
-        'channel_url': '',
-        'check_interval_seconds': 60,
-        'download_directory': './downloads',
-        'log_file': './live_monitor.log',
-        'video_quality': 'best',
-        'download_format': 'bestvideo+bestaudio/best',
-        'split_mode': 'time',
-        'split_time_minutes': 30,
-        'split_size_mb': 500
+        "channel_url": "",
+        "check_interval_seconds": 60,
+        "download_directory": "./downloads",
+        "log_file": "./live_monitor.log",
+        "video_quality": "best",
+        "download_format": "bestvideo+bestaudio/best",
+        "split_mode": "time",
+        "split_time_minutes": 30,
+        "split_size_mb": 500,
     }
 
     @classmethod
@@ -82,7 +82,7 @@ class ConfigLoader:
             raise FileNotFoundError(f"Configuration file not found: {config_path}")
 
         try:
-            with open(path, 'r', encoding='utf-8') as f:
+            with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
         except json.JSONDecodeError as e:
             raise ValueError(f"Invalid JSON in configuration file: {e}")

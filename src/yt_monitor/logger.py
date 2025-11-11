@@ -17,16 +17,15 @@ class Logger:
         log_path = Path(log_file)
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
-        logger = logging.getLogger('yt_monitor')
+        logger = logging.getLogger("yt_monitor")
         logger.setLevel(level)
         logger.handlers.clear()
 
         formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
+            "%(asctime)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S"
         )
 
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler = logging.FileHandler(log_file, encoding="utf-8")
         file_handler.setLevel(level)
         file_handler.setFormatter(formatter)
 
@@ -45,5 +44,7 @@ class Logger:
     @classmethod
     def get(cls) -> logging.Logger:
         if not cls._initialized or cls._instance is None:
-            raise RuntimeError("Logger not initialized. Call Logger.initialize() first.")
+            raise RuntimeError(
+                "Logger not initialized. Call Logger.initialize() first."
+            )
         return cls._instance

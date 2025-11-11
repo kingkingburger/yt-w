@@ -22,7 +22,7 @@ class TestConfig:
             download_format="best",
             split_mode="time",
             split_time_minutes=30,
-            split_size_mb=500
+            split_size_mb=500,
         )
 
         assert config.channel_url == "https://www.youtube.com/@test"
@@ -40,19 +40,21 @@ class TestConfig:
                 download_directory="./downloads",
                 log_file="./test.log",
                 video_quality="best",
-                download_format="best"
+                download_format="best",
             )
 
     def test_invalid_check_interval_raises_error(self):
         """Test that check_interval < 1 raises ValueError."""
-        with pytest.raises(ValueError, match="check_interval_seconds must be at least 1"):
+        with pytest.raises(
+            ValueError, match="check_interval_seconds must be at least 1"
+        ):
             Config(
                 channel_url="https://www.youtube.com/@test",
                 check_interval_seconds=0,
                 download_directory="./downloads",
                 log_file="./test.log",
                 video_quality="best",
-                download_format="best"
+                download_format="best",
             )
 
     def test_empty_download_directory_raises_error(self):
@@ -64,7 +66,7 @@ class TestConfig:
                 download_directory="",
                 log_file="./test.log",
                 video_quality="best",
-                download_format="best"
+                download_format="best",
             )
 
 
@@ -79,10 +81,12 @@ class TestConfigLoader:
             "download_directory": "./test_downloads",
             "log_file": "./test.log",
             "video_quality": "best",
-            "download_format": "best"
+            "download_format": "best",
         }
 
-        with NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
+        with NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             json.dump(config_data, f)
             temp_path = f.name
 
@@ -101,7 +105,9 @@ class TestConfigLoader:
 
     def test_load_invalid_json_raises_error(self):
         """Test that loading invalid JSON raises ValueError."""
-        with NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
+        with NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
             f.write("{ invalid json }")
             temp_path = f.name
 
@@ -115,7 +121,7 @@ class TestConfigLoader:
         """Test loading configuration from dictionary."""
         config_dict = {
             "channel_url": "https://www.youtube.com/@test",
-            "check_interval_seconds": 30
+            "check_interval_seconds": 30,
         }
 
         config = ConfigLoader.load_dict(config_dict)
@@ -127,9 +133,7 @@ class TestConfigLoader:
 
     def test_load_dict_with_defaults(self):
         """Test that defaults are merged correctly."""
-        config_dict = {
-            "channel_url": "https://www.youtube.com/@test"
-        }
+        config_dict = {"channel_url": "https://www.youtube.com/@test"}
 
         config = ConfigLoader.load_dict(config_dict)
         assert config.channel_url == "https://www.youtube.com/@test"
