@@ -1,10 +1,10 @@
 """Tests for YouTube client module."""
 
-import logging
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
 from src.yt_monitor.youtube_client import YouTubeClient, LiveStreamInfo
+from src.yt_monitor.logger import Logger
 
 
 class TestLiveStreamInfo:
@@ -44,28 +44,28 @@ class TestLiveStreamInfo:
 class TestYouTubeClient:
     """Test YouTubeClient class."""
 
+    @pytest.fixture(autouse=True)
+    def setup_logger(self, tmp_path):
+        """Setup logger for tests."""
+        log_file = tmp_path / "test.log"
+        Logger.initialize(str(log_file))
+        yield
+        Logger._initialized = False
+        Logger._instance = None
+
     @pytest.fixture
     def client(self):
         """Create a YouTubeClient instance for testing."""
-        logger = logging.getLogger("test")
-        return YouTubeClient(logger=logger)
+        return YouTubeClient()
 
     @pytest.fixture
     def mock_ydl(self):
         """Create a mock yt_dlp.YoutubeDL instance."""
         return MagicMock()
 
-    def test_initialization_with_logger(self):
-        """Test client initialization with custom logger."""
-        logger = logging.getLogger("custom")
-        client = YouTubeClient(logger=logger)
-
-        assert client.logger == logger
-
-    def test_initialization_without_logger(self):
-        """Test client initialization without logger."""
+    def test_initialization(self):
+        """Test client initialization."""
         client = YouTubeClient()
-
         assert client.logger is not None
 
     @patch('src.yt_monitor.youtube_client.yt_dlp.YoutubeDL')

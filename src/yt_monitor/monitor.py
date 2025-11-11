@@ -1,11 +1,11 @@
 """Live stream monitor module."""
 
-import logging
 import time
 from typing import Optional
 
 from .config import Config
 from .downloader import StreamDownloader
+from .logger import Logger
 from .youtube_client import YouTubeClient
 
 
@@ -15,17 +15,15 @@ class LiveStreamMonitor:
     def __init__(
         self,
         config: Config,
-        logger: logging.Logger,
         youtube_client: Optional[YouTubeClient] = None,
         downloader: Optional[StreamDownloader] = None
     ):
         self.config = config
-        self.logger = logger
-        self.youtube_client = youtube_client or YouTubeClient(logger)
+        self.logger = Logger.get()
+        self.youtube_client = youtube_client or YouTubeClient()
         self.downloader = downloader or StreamDownloader(
             download_directory=config.download_directory,
-            download_format=config.download_format,
-            logger=logger
+            download_format=config.download_format
         )
         self.is_downloading = False
 

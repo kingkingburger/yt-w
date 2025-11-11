@@ -1,10 +1,11 @@
 """YouTube API client module for live stream detection."""
 
-import logging
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
 import yt_dlp
+
+from .logger import Logger
 
 
 @dataclass
@@ -23,14 +24,8 @@ class LiveStreamInfo:
 class YouTubeClient:
     """Client for interacting with YouTube to detect live streams."""
 
-    def __init__(self, logger: Optional[logging.Logger] = None):
-        """
-        Initialize YouTube client.
-
-        Args:
-            logger: Logger instance for logging
-        """
-        self.logger = logger or logging.getLogger(__name__)
+    def __init__(self):
+        self.logger = Logger.get()
 
     def check_if_live(self, channel_url: str) -> Tuple[bool, Optional[LiveStreamInfo]]:
         detection_methods = [

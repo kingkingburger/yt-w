@@ -1,16 +1,25 @@
 """Tests for live stream monitor module."""
 
-import logging
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
 from src.yt_monitor.config import Config
+from src.yt_monitor.logger import Logger
 from src.yt_monitor.monitor import LiveStreamMonitor
 from src.yt_monitor.youtube_client import LiveStreamInfo
 
 
 class TestLiveStreamMonitor:
     """Test LiveStreamMonitor class."""
+
+    @pytest.fixture(autouse=True)
+    def setup_logger(self, tmp_path):
+        """Setup logger for tests."""
+        log_file = tmp_path / "test.log"
+        Logger.initialize(str(log_file))
+        yield
+        Logger._initialized = False
+        Logger._instance = None
 
     @pytest.fixture
     def config(self):
@@ -25,11 +34,6 @@ class TestLiveStreamMonitor:
         )
 
     @pytest.fixture
-    def logger(self):
-        """Create a test logger."""
-        return logging.getLogger("test")
-
-    @pytest.fixture
     def mock_youtube_client(self):
         """Create a mock YouTubeClient."""
         return Mock()
@@ -40,32 +44,30 @@ class TestLiveStreamMonitor:
         return Mock()
 
     @pytest.fixture
-    def monitor(self, config, logger, mock_youtube_client, mock_downloader):
+    def monitor(self, config, mock_youtube_client, mock_downloader):
         """Create a LiveStreamMonitor instance for testing."""
         return LiveStreamMonitor(
             config=config,
-            logger=logger,
             youtube_client=mock_youtube_client,
             downloader=mock_downloader
         )
 
-    def test_initialization(self, config, logger):
+    def test_initialization(self, config):
         """Test monitor initialization."""
-        monitor = LiveStreamMonitor(config=config, logger=logger)
+        monitor = LiveStreamMonitor(config=config)
 
         assert monitor.config == config
-        assert monitor.logger == logger
+        assert monitor.logger is not None
         assert monitor.youtube_client is not None
         assert monitor.downloader is not None
         assert monitor.is_downloading is False
 
     def test_initialization_with_custom_clients(
-        self, config, logger, mock_youtube_client, mock_downloader
+        self, config, mock_youtube_client, mock_downloader
     ):
         """Test monitor initialization with custom clients."""
         monitor = LiveStreamMonitor(
             config=config,
-            logger=logger,
             youtube_client=mock_youtube_client,
             downloader=mock_downloader
         )

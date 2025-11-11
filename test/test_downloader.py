@@ -1,16 +1,25 @@
 """Tests for stream downloader module."""
 
-import logging
 import pytest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch, MagicMock
 
 from src.yt_monitor.downloader import StreamDownloader
+from src.yt_monitor.logger import Logger
 
 
 class TestStreamDownloader:
     """Test StreamDownloader class."""
+
+    @pytest.fixture(autouse=True)
+    def setup_logger(self, tmp_path):
+        """Setup logger for tests."""
+        log_file = tmp_path / "test.log"
+        Logger.initialize(str(log_file))
+        yield
+        Logger._initialized = False
+        Logger._instance = None
 
     @pytest.fixture
     def temp_dir(self):
@@ -21,36 +30,30 @@ class TestStreamDownloader:
     @pytest.fixture
     def downloader(self, temp_dir):
         """Create a StreamDownloader instance for testing."""
-        logger = logging.getLogger("test")
         return StreamDownloader(
             download_directory=temp_dir,
-            download_format="best",
-            logger=logger
+            download_format="best"
         )
 
     def test_initialization(self, temp_dir):
         """Test downloader initialization."""
-        logger = logging.getLogger("test")
         downloader = StreamDownloader(
             download_directory=temp_dir,
-            download_format="bestvideo+bestaudio",
-            logger=logger
+            download_format="bestvideo+bestaudio"
         )
 
         assert downloader.download_directory == temp_dir
         assert downloader.download_format == "bestvideo+bestaudio"
-        assert downloader.logger == logger
+        assert downloader.logger is not None
 
     def test_initialization_creates_directory(self):
         """Test that initialization creates download directory."""
         with TemporaryDirectory() as tmpdir:
             download_dir = str(Path(tmpdir) / "nested" / "downloads")
-            logger = logging.getLogger("test")
 
             downloader = StreamDownloader(
                 download_directory=download_dir,
-                download_format="best",
-                logger=logger
+                download_format="best"
             )
 
             assert Path(download_dir).exists()

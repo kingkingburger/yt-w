@@ -1,6 +1,6 @@
 """Main entry point for YouTube Live Stream Monitor."""
 
-from src.yt_monitor import ConfigLoader, LiveStreamMonitor, setup_logger
+from src.yt_monitor import ConfigLoader, LiveStreamMonitor, Logger
 
 
 def main():
@@ -10,8 +10,8 @@ def main():
 
     try:
         config = ConfigLoader.load("config.json")
-        logger = setup_logger(log_file=config.log_file, logger_name="yt_monitor")
-        monitor = LiveStreamMonitor(config=config, logger=logger)
+        Logger.initialize(log_file=config.log_file)
+        monitor = LiveStreamMonitor(config=config)
         monitor.start()
 
     except FileNotFoundError as e:

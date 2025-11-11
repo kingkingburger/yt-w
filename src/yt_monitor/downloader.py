@@ -1,27 +1,22 @@
 """Stream downloader module."""
 
-import logging
 import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 import yt_dlp
+
+from .logger import Logger
 
 
 class StreamDownloader:
     """Download live streams from YouTube."""
 
-    def __init__(
-        self,
-        download_directory: str,
-        download_format: str,
-        logger: Optional[logging.Logger] = None
-    ):
+    def __init__(self, download_directory: str, download_format: str):
         self.download_directory = download_directory
         self.download_format = download_format
-        self.logger = logger or logging.getLogger(__name__)
+        self.logger = Logger.get()
         self._setup_directory()
 
     def _setup_directory(self):
