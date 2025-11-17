@@ -50,16 +50,6 @@ class StreamDownloader:
                 self.download_directory, f"{filename_prefix}_{timestamp}_part%03d.mp4"
             )
 
-            split_msg = (
-                f"Splitting by {self.split_mode}: {self.split_time_minutes} minutes"
-                if self.split_mode == "time"
-                else f"{self.split_size_mb} MB"
-            )
-            self.logger.info(
-                f"Starting download with real-time splitting: {stream_url}"
-            )
-            self.logger.info(split_msg)
-
             self._download_with_realtime_split(stream_url, output_pattern)
             self.logger.info("All segments saved successfully")
             return True
