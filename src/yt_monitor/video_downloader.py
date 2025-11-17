@@ -44,12 +44,13 @@ class VideoDownloader:
         if self.audio_only:
             return "bestaudio/best"
 
+        # For video downloads, prefer m4a audio (AAC) over opus for Windows compatibility
         if self.quality == "best":
-            return "bestvideo+bestaudio/best"
+            return "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
 
         # Specific quality (e.g., 720, 1080)
         height = self.quality
-        return f"bestvideo[height<={height}]+bestaudio/best[height<={height}]"
+        return f"bestvideo[height<={height}]+bestaudio[ext=m4a]/bestvideo[height<={height}]+bestaudio/best[height<={height}]"
 
     def _build_ydl_options(self, output_path: str) -> dict:
         """
@@ -79,14 +80,33 @@ class VideoDownloader:
                 }
             ]
         else:
-            # Merge video+audio to MP4
+            # Merge video+audio to MP4 - CRITICAL for audio!
             opts["merge_output_format"] = "mp4"
+            opts["prefer_ffmpeg"] = True
+            opts["keepvideo"] = False  # Delete original files after merge
+
+            # Use FFmpegVideoConvertor to ensure audio is AAC (Windows compatible)
+            # This will convert Opus to AAC if needed
             opts["postprocessors"] = [
                 {
                     "key": "FFmpegVideoConvertor",
                     "preferedformat": "mp4",
-                }
+                },
+                {
+                    "key": "FFmpegMetadata",
+                    "add_metadata": True,
+                },
             ]
+
+            # Force audio conversion to AAC for Windows Media Player compatibility
+            opts["postprocessor_args"] = {
+                "FFmpegVideoConvertor": [
+                    "-c:v", "copy",          # Copy video (no re-encoding)
+                    "-c:a", "aac",           # Convert audio to AAC
+                    "-b:a", "192k",          # Audio bitrate
+                    "-ar", "48000",          # Sample rate
+                ]
+            }
 
         return opts
 
