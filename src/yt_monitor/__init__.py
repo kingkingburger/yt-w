@@ -5,6 +5,7 @@ from .logger import Logger
 from .youtube_client import YouTubeClient
 from .downloader import StreamDownloader
 from .monitor import LiveStreamMonitor
+from .video_downloader import VideoDownloader
 
 __all__ = [
     "ConfigLoader",
@@ -12,4 +13,5 @@ __all__ = [
     "YouTubeClient",
     "StreamDownloader",
     "LiveStreamMonitor",
+    "VideoDownloader",
 ]

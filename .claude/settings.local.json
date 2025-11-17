@@ -7,7 +7,8 @@
       "Bash(mkdir:*)",
       "Bash(python -m py_compile:*)",
       "Bash(cat:*)",
-      "Bash(where:*)"
+      "Bash(where:*)",
+      "Bash(python main.py:*)"
     ],
     "deny": [],
     "ask": []

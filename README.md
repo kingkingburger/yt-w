@@ -1,18 +1,28 @@
-+  #  라이브 방송 자동 다운로더
++  #  YouTube 다운로더 (라이브 + 일반 동영상)
 
- 채널의 라이브 방송을 자동으로 감지하고 로컬에 다운로드하는 프로그램입니다.
+YouTube 라이브 방송 자동 모니터링 및 일반 동영상 다운로드를 지원하는 프로그램입니다.
 
 이 프로젝트는 **클린 코드 원칙**과 **SOLID 원칙**을 적용하여 설계되었으며,
 모듈화된 구조로 유지보수와 확장이 용이합니다.
 
 ## 주요 기능
 
--  채널의 라이브 방송 자동 감지
+### 라이브 방송 모니터링
+- 채널의 라이브 방송 자동 감지
 - 라이브 방송 자동 다운로드 (시작부터 끝까지)
 - 설정 가능한 체크 주기
+- 실시간 영상 분할 (시간/크기 기준)
+
+### 일반 동영상 다운로드 (NEW!)
+- YouTube 링크로 즉시 다운로드
+- 화질 선택 (2160p, 1440p, 1080p, 720p, 480p, 360p)
+- 오디오 전용 다운로드 (MP3 추출)
+- CLI 인터페이스
+
+### 공통 기능
 - 로그 기록 기능
 - MP4 형식으로 자동 변환
-- 완전한 테스트 커버리지 (38개 단위 테스트)
+- 완전한 테스트 커버리지 (51개 단위 테스트)
 - 모듈화된 아키텍처
 
 ## 필요 사항
@@ -119,33 +129,91 @@ yt-w/
 │       ├── config.py        # 설정 관리
 │       ├── logger.py        # 로깅 설정
 │       ├── youtube_client.py # YouTube API 클라이언트
-│       ├── downloader.py    # 스트림 다운로더
+│       ├── downloader.py    # 스트림 다운로더 (라이브용)
+│       ├── video_downloader.py # 일반 동영상 다운로더 (NEW!)
 │       └── monitor.py       # 라이브 스트림 모니터
 ├── test/                    # 테스트 디렉토리
 │   ├── test_config.py
 │   ├── test_youtube_client.py
 │   ├── test_downloader.py
+│   ├── test_video_downloader.py  # NEW!
 │   └── test_monitor.py
 ├── docs/                    # 문서
 │   ├── ARCHITECTURE.md      # 아키텍처 문서
 │   ├── TESTING.md          # 테스트 가이드
 │   └── history.md          # 변경 이력
-├── main.py                  # 엔트리포인트
+├── main.py                  # 엔트리포인트 (CLI 지원)
 └── config.json              # 설정 파일
 ```
 
 ## 사용 방법
 
+### 모드 1: 라이브 방송 모니터링 (기본)
+
 프로그램을 실행하면 자동으로 채널을 모니터링합니다:
 
 ```bash
 uv run main.py
+# 또는
+python main.py
 ```
 
-또는
+프로그램이 실행되면:
+1. 설정된 주기마다 채널을 체크합니다
+2. 라이브 방송이 감지되면 자동으로 다운로드를 시작합니다
+3. 다운로드가 완료되면 다시 모니터링을 계속합니다
+4. `Ctrl+C`를 눌러 프로그램을 종료할 수 있습니다
+
+### 모드 2: 일반 동영상 다운로드 (NEW!)
+
+YouTube 링크로 즉시 동영상을 다운로드할 수 있습니다:
 
 ```bash
-python main.py
+# 기본 다운로드 (최고 화질)
+python main.py --url "https://youtube.com/watch?v=VIDEO_ID"
+
+# 화질 선택 (720p)
+python main.py --url "https://youtube.com/watch?v=VIDEO_ID" --quality 720
+
+# 1080p 다운로드
+python main.py -u "URL" -q 1080
+
+# 오디오만 추출 (MP3)
+python main.py --url "URL" --audio-only
+
+# 저장 경로 및 파일명 지정
+python main.py -u "URL" -o "./my_videos" -f "my_video"
+
+# 짧은 옵션 조합
+python main.py -u "URL" -q 720 -o "./downloads"
+```
+
+#### CLI 옵션 설명
+
+| 옵션 | 짧은 형식 | 설명 | 기본값 |
+|------|----------|------|--------|
+| `--url` | `-u` | 다운로드할 YouTube URL | - |
+| `--quality` | `-q` | 화질 선택 (2160/1440/1080/720/480/360/best) | best |
+| `--audio-only` | `-a` | 오디오만 추출 (MP3) | False |
+| `--output` | `-o` | 저장 디렉토리 | ./downloads |
+| `--filename` | `-f` | 파일명 (확장자 제외) | 자동 생성 |
+| `--config` | `-c` | 설정 파일 경로 | config.json |
+
+#### 사용 예시
+
+```bash
+# 음악 다운로드 (MP3)
+python main.py -u "https://youtube.com/watch?v=dQw4w9WgXcQ" -a
+
+# 4K 화질 다운로드
+python main.py -u "URL" -q 2160
+
+# 여러 옵션 조합
+python main.py \
+  -u "https://youtube.com/watch?v=VIDEO_ID" \
+  -q 1080 \
+  -o "./my_downloads" \
+  -f "awesome_video"
 ```
 
 ## 테스트 실행
@@ -161,20 +229,18 @@ uv run pytest -v
 uv run pytest test/test_config.py
 ```
 
-프로그램이 실행되면:
-1. 설정된 주기마다 채널을 체크합니다
-2. 라이브 방송이 감지되면 자동으로 다운로드를 시작합니다
-3. 다운로드가 완료되면 다시 모니터링을 계속합니다
-4. `Ctrl+C`를 눌러 프로그램을 종료할 수 있습니다
-
 ## 다운로드 파일 이름
 
-다운로드된 파일은 다음 형식으로 저장됩니다:
+### 라이브 방송
+다운로드된 라이브 방송 파일은 다음 형식으로 저장됩니다:
 ```
 _라이브_YYYYMMDD_HHMMSS.mp4
 ```
-
 예시: `_라이브_20250111_143000.mp4`
+
+### 일반 동영상
+- 파일명 지정 시: `지정한이름.mp4` 또는 `지정한이름.mp3`
+- 자동 생성 시: `video_YYYYMMDD_HHMMSS.mp4` 또는 `.mp3`
 
 ## 로그
 
