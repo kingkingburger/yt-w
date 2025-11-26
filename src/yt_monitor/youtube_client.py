@@ -28,6 +28,7 @@ class YouTubeClient:
         self.logger = Logger.get()
 
     def check_if_live(self, channel_url: str) -> Tuple[bool, Optional[LiveStreamInfo]]:
+        # 라이브를 확인하는 3가지 방식
         detection_methods = [
             self._check_live_endpoint,
             self._check_streams_tab,
