@@ -1,9 +1,6 @@
 """Tests for VideoDownloader module."""
 
-import os
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from src.yt_monitor.video_downloader import VideoDownloader
 

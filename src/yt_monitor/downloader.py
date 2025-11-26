@@ -158,7 +158,7 @@ class StreamDownloader:
             "merge_output_format": "mp4",
         }
 
-        self.logger.info(f"Starting segmented download with yt-dlp + FFmpeg")
+        self.logger.info("Starting segmented download with yt-dlp + FFmpeg")
         self._perform_download(stream_url, ydl_opts)
 
     def _get_direct_stream_url(self, stream_url: str, from_start: bool = False) -> str:

@@ -25,7 +25,7 @@ def monitor_mode(channels_file: str):
             print("[경고] 활성화된 채널이 없습니다.")
             print(f"'{channels_file}' 파일에 채널을 추가하거나")
             print("다음 명령어를 사용하세요:")
-            print(f"  python main.py --add-channel 'NAME' 'URL'")
+            print("  python main.py --add-channel 'NAME' 'URL'")
             sys.exit(0)
 
         global_settings = channel_manager.get_global_settings()

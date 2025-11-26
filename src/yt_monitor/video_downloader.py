@@ -150,11 +150,11 @@ class VideoDownloader:
             ydl_opts = self._build_ydl_options(output_path)
 
             # Download
-            print(f"\n📥 다운로드 시작...")
+            print("\n📥 다운로드 시작...")
             print(f"   URL: {url}")
             print(f"   화질: {self.quality}")
             if self.audio_only:
-                print(f"   모드: 오디오 전용 (MP3)")
+                print("   모드: 오디오 전용 (MP3)")
             print(f"   저장 위치: {output_path}")
             print()
 

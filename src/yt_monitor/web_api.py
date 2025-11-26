@@ -326,7 +326,7 @@ class WebAPI:
                 }
 
             except asyncio.TimeoutError:
-                self.logger.error(f"Timeout while fetching video info")
+                self.logger.error("Timeout while fetching video info")
                 raise HTTPException(
                     status_code=408,
                     detail="Request timeout - YouTube took too long to respond",
