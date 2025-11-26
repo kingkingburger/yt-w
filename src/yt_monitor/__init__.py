@@ -1,8 +1,8 @@
 """YouTube Live Stream Monitor Package."""
 
 from .logger import Logger
+from .stream_downloader import StreamDownloader
 from .youtube_client import YouTubeClient
-from .downloader import StreamDownloader
 from .video_downloader import VideoDownloader
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
 from .multi_channel_monitor import MultiChannelMonitor

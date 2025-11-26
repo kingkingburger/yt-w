@@ -5,8 +5,8 @@ import threading
 from typing import Dict, Optional
 from pathlib import Path
 
+from . import StreamDownloader
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
-from .downloader import StreamDownloader
 from .logger import Logger
 from .youtube_client import YouTubeClient
 

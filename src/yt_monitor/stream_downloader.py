@@ -135,31 +135,50 @@ class StreamDownloader:
         else:
             raise ValueError(f"Invalid split_mode: {self.split_mode}")
 
-        # yt-dlp로 직접 다운로드하면서 FFmpeg로 분할
         ydl_opts = {
             "format": self.download_format,
-            "outtmpl": output_pattern,
-            "quiet": False,
-            "no_warnings": False,
+            "quiet": True,
             "live_from_start": True,
-            "wait_for_video": (5, 20),
-            # FFmpeg을 사용해서 다운로드하면서 동시에 분할
-            "external_downloader": "ffmpeg",
-            "external_downloader_args": {
-                "ffmpeg_i": [
-                    "-f",
-                    "segment",
-                    "-segment_time",
-                    str(split_seconds),
-                    "-reset_timestamps",
-                    "1",
-                ]
-            },
-            "merge_output_format": "mp4",
         }
 
-        self.logger.info("Starting segmented download with yt-dlp + FFmpeg")
-        self._perform_download(stream_url, ydl_opts)
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(stream_url, download=False)
+
+        if "requested_formats" in info:
+            # 비디오 + 오디오 분리된 경우
+            video_url = info["requested_formats"][0]["url"]
+            audio_url = info["requested_formats"][1]["url"]
+
+            cmd = [
+                "ffmpeg",
+                "-i", video_url,
+                "-i", audio_url,
+                "-c", "copy",
+                "-f", "segment",
+                "-segment_time", str(split_seconds),
+                "-reset_timestamps", "1",
+                "-map", "0:v:0",  # 첫 번째 입력의 비디오 스트림 1개만
+                "-map", "1:a:0",  # 두 번째 입력의 오디오 스트림 1개만
+                output_pattern,
+            ]
+        else:
+            # 단일 스트림
+            direct_url = info["url"]
+            cmd = [
+                "ffmpeg",
+                "-i", direct_url,
+                "-c", "copy",
+                "-f", "segment",
+                "-map", "0:v:0",  # 비디오 1개만
+                "-map", "0:a:0",  # 오디오 1개만
+                "-segment_time", str(split_seconds),
+                "-reset_timestamps", "1",
+                output_pattern,
+            ]
+
+        result = subprocess.run(cmd)
+        if result.returncode != 0:
+            raise Exception("FFmpeg segmented download failed")
 
     def _get_direct_stream_url(self, stream_url: str, from_start: bool = False) -> str:
         ydl_opts = {
