@@ -147,9 +147,12 @@ class StreamDownloader:
             "external_downloader": "ffmpeg",
             "external_downloader_args": {
                 "ffmpeg_i": [
-                    "-f", "segment",
-                    "-segment_time", str(split_seconds),
-                    "-reset_timestamps", "1"
+                    "-f",
+                    "segment",
+                    "-segment_time",
+                    str(split_seconds),
+                    "-reset_timestamps",
+                    "1",
                 ]
             },
             "merge_output_format": "mp4",

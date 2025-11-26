@@ -142,9 +142,7 @@ class ChannelManager:
         data = self._read_data()
         original_count = len(data["channels"])
 
-        data["channels"] = [
-            ch for ch in data["channels"] if ch["id"] != channel_id
-        ]
+        data["channels"] = [ch for ch in data["channels"] if ch["id"] != channel_id]
 
         if len(data["channels"]) < original_count:
             self._write_data(data)

@@ -6,9 +6,7 @@ from src.yt_monitor.web_api import WebAPI
 
 def main():
     """Run the web server."""
-    parser = argparse.ArgumentParser(
-        description="YouTube Live Monitor - Web Interface"
-    )
+    parser = argparse.ArgumentParser(description="YouTube Live Monitor - Web Interface")
 
     parser.add_argument(
         "--host",

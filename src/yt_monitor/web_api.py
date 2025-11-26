@@ -247,9 +247,7 @@ class WebAPI:
             """Get monitoring status."""
             is_running = self.monitor is not None and self.monitor.is_running
             total_channels = len(self.channel_manager.list_channels())
-            active_channels = len(
-                self.channel_manager.list_channels(enabled_only=True)
-            )
+            active_channels = len(self.channel_manager.list_channels(enabled_only=True))
 
             return MonitorStatus(
                 is_running=is_running,
@@ -311,10 +309,12 @@ class WebAPI:
                 # 20초 타임아웃 설정
                 info = await asyncio.wait_for(
                     asyncio.to_thread(downloader.get_video_info, clean_url),
-                    timeout=20.0
+                    timeout=20.0,
                 )
 
-                self.logger.info(f"Video info retrieved: {info.get('title', 'Unknown')}")
+                self.logger.info(
+                    f"Video info retrieved: {info.get('title', 'Unknown')}"
+                )
 
                 return {
                     "success": True,
@@ -327,7 +327,10 @@ class WebAPI:
 
             except asyncio.TimeoutError:
                 self.logger.error(f"Timeout while fetching video info")
-                raise HTTPException(status_code=408, detail="Request timeout - YouTube took too long to respond")
+                raise HTTPException(
+                    status_code=408,
+                    detail="Request timeout - YouTube took too long to respond",
+                )
             except Exception as e:
                 self.logger.error(f"Get video info error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
@@ -340,11 +343,14 @@ class WebAPI:
                 clean_url = sanitize_youtube_url(request.url)
 
                 global_settings = self.channel_manager.get_global_settings()
-                download_dir = Path(global_settings.download_directory) / "web_downloads"
+                download_dir = (
+                    Path(global_settings.download_directory) / "web_downloads"
+                )
                 download_dir.mkdir(parents=True, exist_ok=True)
 
                 # Generate filename
                 from datetime import datetime
+
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 if request.audio_only:
                     filename = f"audio_{timestamp}"
@@ -385,7 +391,9 @@ class WebAPI:
             """Serve downloaded file."""
             try:
                 global_settings = self.channel_manager.get_global_settings()
-                download_dir = Path(global_settings.download_directory) / "web_downloads"
+                download_dir = (
+                    Path(global_settings.download_directory) / "web_downloads"
+                )
                 file_path = download_dir / filename
 
                 if not file_path.exists():

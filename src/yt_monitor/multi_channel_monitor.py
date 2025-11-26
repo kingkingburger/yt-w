@@ -37,7 +37,9 @@ class ChannelMonitorThread:
         self.thread: Optional[threading.Thread] = None
 
         # Create channel-specific download directory
-        channel_download_dir = Path(global_settings.download_directory) / self._sanitize_name(channel.name)
+        channel_download_dir = Path(
+            global_settings.download_directory
+        ) / self._sanitize_name(channel.name)
         channel_download_dir.mkdir(parents=True, exist_ok=True)
 
         self.downloader = StreamDownloader(
@@ -88,9 +90,7 @@ class ChannelMonitorThread:
             try:
                 self._monitor_cycle()
             except Exception as e:
-                self.logger.error(
-                    f"Error monitoring {self.channel.name}: {e}"
-                )
+                self.logger.error(f"Error monitoring {self.channel.name}: {e}")
 
             time.sleep(self.global_settings.check_interval_seconds)
 
@@ -101,9 +101,7 @@ class ChannelMonitorThread:
 
         self.logger.info(f"[{self.channel.name}] Checking for live stream...")
 
-        is_live, stream_info = self.youtube_client.check_if_live(
-            self.channel.url
-        )
+        is_live, stream_info = self.youtube_client.check_if_live(self.channel.url)
 
         if is_live and stream_info:
             self._handle_live_stream(stream_info.url, stream_info.title or "라이브")
@@ -118,25 +116,18 @@ class ChannelMonitorThread:
             stream_url: URL of live stream
             title: Title of live stream
         """
-        self.logger.info(
-            f"[{self.channel.name}] Live stream detected: {stream_url}"
-        )
+        self.logger.info(f"[{self.channel.name}] Live stream detected: {stream_url}")
         self.is_downloading = True
 
         try:
             success = self.downloader.download(
-                stream_url=stream_url,
-                filename_prefix=f"{self.channel.name}_라이브"
+                stream_url=stream_url, filename_prefix=f"{self.channel.name}_라이브"
             )
 
             if success:
-                self.logger.info(
-                    f"[{self.channel.name}] Download finished"
-                )
+                self.logger.info(f"[{self.channel.name}] Download finished")
             else:
-                self.logger.warning(
-                    f"[{self.channel.name}] Download failed"
-                )
+                self.logger.warning(f"[{self.channel.name}] Download failed")
 
         finally:
             self.is_downloading = False
@@ -224,9 +215,7 @@ class MultiChannelMonitor:
             return
 
         if channel.id in self.monitor_threads:
-            self.logger.warning(
-                f"Channel {channel.name} is already being monitored"
-            )
+            self.logger.warning(f"Channel {channel.name} is already being monitored")
             return
 
         global_settings = self.channel_manager.get_global_settings()

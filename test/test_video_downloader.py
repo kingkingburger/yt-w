@@ -50,7 +50,10 @@ class TestVideoDownloader:
         downloader = VideoDownloader(quality="720")
         format_str = downloader._get_format_string()
 
-        assert format_str == "bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]"
+        assert (
+            format_str
+            == "bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]"
+        )
 
     def test_build_ydl_options_video(self, tmp_path):
         """Test yt-dlp options building for video download."""
@@ -59,7 +62,10 @@ class TestVideoDownloader:
 
         opts = downloader._build_ydl_options(output_path)
 
-        assert opts["format"] == "bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+        assert (
+            opts["format"]
+            == "bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+        )
         assert opts["outtmpl"] == output_path
         assert opts["merge_output_format"] == "mp4"
         assert opts["prefer_ffmpeg"] is True
@@ -202,7 +208,10 @@ class TestVideoDownloader:
             format_str = downloader._get_format_string()
 
             if quality == "best":
-                assert format_str == "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+                assert (
+                    format_str
+                    == "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+                )
             else:
                 assert f"height<={quality}" in format_str
                 assert "ext=m4a" in format_str

@@ -108,10 +108,14 @@ class VideoDownloader:
             # Force audio conversion to AAC for Windows Media Player compatibility
             opts["postprocessor_args"] = {
                 "FFmpegVideoConvertor": [
-                    "-c:v", "copy",          # Copy video (no re-encoding)
-                    "-c:a", "aac",           # Convert audio to AAC
-                    "-b:a", "192k",          # Audio bitrate
-                    "-ar", "48000",          # Sample rate
+                    "-c:v",
+                    "copy",  # Copy video (no re-encoding)
+                    "-c:a",
+                    "aac",  # Convert audio to AAC
+                    "-b:a",
+                    "192k",  # Audio bitrate
+                    "-ar",
+                    "48000",  # Sample rate
                 ]
             }
 

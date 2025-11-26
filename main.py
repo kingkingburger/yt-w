@@ -140,8 +140,7 @@ def enable_channel_mode(args):
         channel_manager = ChannelManager(channels_file=args.channels)
 
         channel = channel_manager.update_channel(
-            channel_id=args.channel_id,
-            enabled=True
+            channel_id=args.channel_id, enabled=True
         )
 
         if channel:
@@ -161,8 +160,7 @@ def disable_channel_mode(args):
         channel_manager = ChannelManager(channels_file=args.channels)
 
         channel = channel_manager.update_channel(
-            channel_id=args.channel_id,
-            enabled=False
+            channel_id=args.channel_id, enabled=False
         )
 
         if channel:
@@ -241,9 +239,7 @@ def main():
     )
 
     # Video download arguments
-    parser.add_argument(
-        "--url", "-u", type=str, help="다운로드할 YouTube 동영상 URL"
-    )
+    parser.add_argument("--url", "-u", type=str, help="다운로드할 YouTube 동영상 URL")
 
     parser.add_argument(
         "--quality",
