@@ -1,0 +1,22 @@
+services:
+  yt-monitor:
+    build: .
+    container_name: yt-monitor
+    restart: unless-stopped
+    volumes:
+      - ./channels.json:/app/channels.json
+      - ./downloads:/app/downloads
+      - ./live_monitor.log:/app/live_monitor.log
+    command: ["uv", "run", "python", "main.py"]
+
+  yt-web:
+    build: .
+    container_name: yt-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./channels.json:/app/channels.json
+      - ./downloads:/app/downloads
+      - ./live_monitor.log:/app/live_monitor.log
+    command: ["uv", "run", "python", "web_server.py", "--host", "0.0.0.0", "--port", "8000"]

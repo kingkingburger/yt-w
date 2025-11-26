@@ -1,0 +1,17 @@
+.git
+.gitignore
+.venv
+.pytest_cache
+.ruff_cache
+.idea
+.claude
+__pycache__
+*.pyc
+*.pyo
+test/
+docs/
+*.md
+!README.md
+downloads/
+*.log
+nul
