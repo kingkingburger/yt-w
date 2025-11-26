@@ -1,11 +1,15 @@
 """Web server entry point for YouTube Live Stream Monitor."""
 
 import argparse
+import os
+
 from src.yt_monitor.web_api import WebAPI
 
 
 def main():
     """Run the web server."""
+    default_port = int(os.environ.get("YT_WEB_PORT", "8011"))
+
     parser = argparse.ArgumentParser(description="YouTube Live Monitor - Web Interface")
 
     parser.add_argument(
@@ -18,8 +22,8 @@ def main():
     parser.add_argument(
         "--port",
         type=int,
-        default=8000,
-        help="Port to bind to (default: 8000)",
+        default=default_port,
+        help=f"Port to bind to (default: {default_port}, env: YT_WEB_PORT)",
     )
 
     parser.add_argument(

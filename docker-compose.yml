@@ -14,9 +14,11 @@ services:
     container_name: yt-web
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${YT_WEB_PORT:-8011}:${YT_WEB_PORT:-8011}"
+    environment:
+      - YT_WEB_PORT=${YT_WEB_PORT:-8011}
     volumes:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
       - ./live_monitor.log:/app/live_monitor.log
-    command: ["uv", "run", "python", "web_server.py", "--host", "0.0.0.0", "--port", "8000"]
+    command: ["sh", "-c", "uv run python web_server.py --host 0.0.0.0 --port $YT_WEB_PORT"]
