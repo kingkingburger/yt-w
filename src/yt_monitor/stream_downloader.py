@@ -65,7 +65,7 @@ class StreamDownloader:
             "quiet": False,
             "no_warnings": False,
             "ignoreerrors": False,
-            "live_from_start": True,
+            "live_from_start": False,
             "wait_for_video": (5, 20),
             "merge_output_format": "mp4",
             "postprocessors": [
@@ -138,7 +138,7 @@ class StreamDownloader:
         ydl_opts = {
             "format": self.download_format,
             "quiet": True,
-            "live_from_start": True,
+            "live_from_start": False,
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
