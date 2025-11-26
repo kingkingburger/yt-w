@@ -1,5 +1,3 @@
-"""Web API module for YouTube Live Stream Monitor."""
-
 from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import HTMLResponse, FileResponse
@@ -11,6 +9,7 @@ import asyncio
 
 from .channel_manager import ChannelManager
 from .multi_channel_monitor import MultiChannelMonitor
+from .util.sanitize_url import sanitize_youtube_url
 from .video_downloader import VideoDownloader
 from .logger import Logger
 
@@ -138,9 +137,12 @@ class WebAPI:
         async def create_channel(channel: ChannelCreateRequest):
             """Create a new channel."""
             try:
+                # Sanitize URL to remove playlist parameters
+                clean_url = sanitize_youtube_url(channel.url)
+
                 new_channel = self.channel_manager.add_channel(
                     name=channel.name,
-                    url=channel.url,
+                    url=clean_url,
                     enabled=channel.enabled,
                     download_format=channel.download_format,
                 )
@@ -163,10 +165,13 @@ class WebAPI:
         @self.app.patch("/api/channels/{channel_id}", response_model=Dict[str, Any])
         async def update_channel(channel_id: str, channel: ChannelUpdateRequest):
             """Update a channel."""
+            # Sanitize URL if provided
+            clean_url = sanitize_youtube_url(channel.url) if channel.url else None
+
             updated_channel = self.channel_manager.update_channel(
                 channel_id=channel_id,
                 name=channel.name,
-                url=channel.url,
+                url=clean_url,
                 enabled=channel.enabled,
                 download_format=channel.download_format,
             )
@@ -298,12 +303,14 @@ class WebAPI:
         async def get_video_info(request: VideoDownloadRequest):
             """Get video information."""
             try:
-                self.logger.info(f"Fetching video info for: {request.url}")
+                # Sanitize URL to remove playlist parameters
+                clean_url = sanitize_youtube_url(request.url)
+                self.logger.info(f"Fetching video info for: {clean_url}")
                 downloader = VideoDownloader()
 
                 # 20초 타임아웃 설정
                 info = await asyncio.wait_for(
-                    asyncio.to_thread(downloader.get_video_info, request.url),
+                    asyncio.to_thread(downloader.get_video_info, clean_url),
                     timeout=20.0
                 )
 
@@ -329,6 +336,9 @@ class WebAPI:
         async def download_video(request: VideoDownloadRequest):
             """Download a video."""
             try:
+                # Sanitize URL to remove playlist parameters
+                clean_url = sanitize_youtube_url(request.url)
+
                 global_settings = self.channel_manager.get_global_settings()
                 download_dir = Path(global_settings.download_directory) / "web_downloads"
                 download_dir.mkdir(parents=True, exist_ok=True)
@@ -351,7 +361,7 @@ class WebAPI:
 
                 # Download in background
                 success = await asyncio.to_thread(
-                    downloader.download, request.url, filename=filename
+                    downloader.download, clean_url, filename=filename
                 )
 
                 if success:
