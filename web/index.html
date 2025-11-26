@@ -25,10 +25,10 @@
             transition: background-color 0.3s, color 0.3s;
         }
         .step-section {
-            display: none;
+            display: none !important;
         }
         .step-section.active {
-            display: block;
+            display: flex !important;
         }
         .tab-button {
             transition: all 0.3s;
@@ -136,14 +136,6 @@
             <!-- 결과 영역 (확장 가능) -->
             <div id="result-area" class="w-full max-w-2xl mx-auto">
                 <div class="rounded-2xl shadow-2xl overflow-hidden bg-gray-800 border border-gray-700">
-                    <!-- 닫기 버튼 -->
-                    <div class="p-4 border-b border-gray-700 flex justify-between items-center">
-                        <h3 class="text-lg font-bold">처리 결과</h3>
-                        <button onclick="closeResult()" class="p-2 rounded-lg hover:bg-gray-700 transition-all">
-                            <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
-                        </button>
-                    </div>
-
                     <!-- STEP 2: 분석 중 (Analyzing) -->
                     <div id="step-analyzing" class="step-section p-16 flex flex-col items-center justify-center text-center">
                         <i data-lucide="loader-2" class="w-16 h-16 text-red-500 animate-spin mb-6"></i>
@@ -230,21 +222,10 @@
 
                     <!-- STEP 4: 다운로드 중 (Downloading) -->
                     <div id="step-downloading" class="step-section p-16 flex flex-col items-center justify-center text-center">
-                        <div class="w-full max-w-sm mb-6 relative">
-                            <div class="flex justify-between text-sm font-bold mb-2">
-                                <span>다운로드 중...</span>
-                                <span id="progress-text">0%</span>
-                            </div>
-                            <div class="h-4 bg-gray-700 rounded-full overflow-hidden">
-                                <div
-                                    id="progress-bar"
-                                    class="h-full bg-gradient-to-r from-red-500 to-orange-500 transition-all duration-300 ease-out"
-                                    style="width: 0%"
-                                ></div>
-                            </div>
-                        </div>
-                        <h3 class="text-xl font-bold mb-2">파일을 다운로드하고 있습니다</h3>
-                        <p class="text-gray-500 text-sm">브라우저를 닫지 마세요.</p>
+                        <i data-lucide="download" class="w-16 h-16 text-red-500 animate-bounce mb-6"></i>
+                        <h3 class="text-2xl font-bold mb-2">다운로드 중...</h3>
+                        <p class="text-gray-500">잠시만 기다려주세요. 파일을 다운로드하고 있습니다.</p>
+                        <p class="text-gray-500 text-sm mt-2">브라우저를 닫지 마세요.</p>
                     </div>
 
                     <!-- STEP 5: 완료 (Finished) -->
@@ -515,10 +496,24 @@
 
         // 스텝 관리
         function showStep(stepName) {
+            console.log('Showing step:', stepName);
             const resultArea = document.getElementById('result-area');
             resultArea.classList.add('active');
-            document.querySelectorAll('.step-section').forEach(el => el.classList.remove('active'));
-            document.getElementById(`step-${stepName}`).classList.add('active');
+
+            // 모든 step-section에서 active 제거
+            document.querySelectorAll('.step-section').forEach(el => {
+                el.classList.remove('active');
+            });
+
+            // 선택한 step만 active 추가
+            const targetStep = document.getElementById(`step-${stepName}`);
+            if (targetStep) {
+                targetStep.classList.add('active');
+                console.log('Step displayed:', stepName);
+            } else {
+                console.error('Step not found:', stepName);
+            }
+
             lucide.createIcons();
         }
 
@@ -527,8 +522,6 @@
             const resultArea = document.getElementById('result-area');
             resultArea.classList.remove('active');
             document.getElementById('url-input').value = '';
-            document.getElementById('progress-bar').style.width = '0%';
-            document.getElementById('progress-text').textContent = '0%';
         }
 
         // 다운로드 분석
@@ -597,9 +590,9 @@
             const audioOnly = currentFormat === 'audio';
 
             showStep('downloading');
-            simulateProgress();
 
             try {
+                console.log('Starting download...');
                 const response = await fetch(`${API_BASE}/api/download`, {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
@@ -612,12 +605,22 @@
                 }
 
                 const data = await response.json();
+                console.log('Download completed:', data);
 
-                // 다운로드 완료 후 완료 화면으로
+                // 브라우저에서 자동으로 파일 다운로드
+                const downloadUrl = `${API_BASE}/api/download/file/${data.filename}`;
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = data.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+
+                // 다운로드 완료 화면으로
                 document.getElementById('finish-message').textContent =
-                    `파일이 성공적으로 다운로드되었습니다. 저장 위치: ${data.download_directory}`;
+                    `파일이 브라우저로 다운로드됩니다: ${data.filename}`;
                 showStep('finished');
-                showNotification('성공', '다운로드가 완료되었습니다', 'success');
+                showNotification('성공', '다운로드가 완료되었습니다!', 'success');
 
             } catch (error) {
                 console.error('Download error:', error);
@@ -626,22 +629,6 @@
             }
         }
 
-        function simulateProgress() {
-            let progress = 0;
-            const progressBar = document.getElementById('progress-bar');
-            const progressText = document.getElementById('progress-text');
-
-            const interval = setInterval(() => {
-                progress += Math.random() * 5;
-                if (progress >= 95) {
-                    progress = 95; // 실제 완료될 때까지 95%에서 대기
-                    clearInterval(interval);
-                }
-
-                progressBar.style.width = `${progress}%`;
-                progressText.textContent = `${Math.round(progress)}%`;
-            }, 500);
-        }
 
         // 리셋 (레거시 - closeResult()로 통일)
         function resetApp() {

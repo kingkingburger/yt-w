@@ -10,7 +10,11 @@
       "Bash(where:*)",
       "Bash(python main.py:*)",
       "Bash(ffmpeg:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(taskkill:*)",
+      "Bash(timeout /t 1 /nobreak)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)"
     ],
     "deny": [],
     "ask": []

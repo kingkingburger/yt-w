@@ -68,6 +68,13 @@ class VideoDownloader:
             "quiet": False,
             "no_warnings": False,
             "ignoreerrors": False,
+            # Performance optimizations
+            "concurrent_fragment_downloads": 8,  # Download 8 fragments in parallel
+            "retries": 10,
+            "fragment_retries": 10,
+            "skip_unavailable_fragments": True,
+            "buffersize": 1024 * 1024,  # 1MB buffer
+            "http_chunk_size": 10485760,  # 10MB chunks
         }
 
         if self.audio_only:

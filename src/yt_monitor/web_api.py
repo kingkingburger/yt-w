@@ -2,7 +2,6 @@
 
 from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, HTTPException, BackgroundTasks
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -10,7 +9,7 @@ import threading
 from pathlib import Path
 import asyncio
 
-from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
+from .channel_manager import ChannelManager
 from .multi_channel_monitor import MultiChannelMonitor
 from .video_downloader import VideoDownloader
 from .logger import Logger
@@ -323,6 +322,16 @@ class WebAPI:
                 download_dir = Path(global_settings.download_directory) / "web_downloads"
                 download_dir.mkdir(parents=True, exist_ok=True)
 
+                # Generate filename
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                if request.audio_only:
+                    filename = f"audio_{timestamp}"
+                    extension = "mp3"
+                else:
+                    filename = f"video_{timestamp}"
+                    extension = "mp4"
+
                 downloader = VideoDownloader(
                     output_dir=str(download_dir),
                     quality=request.quality,
@@ -331,20 +340,44 @@ class WebAPI:
 
                 # Download in background
                 success = await asyncio.to_thread(
-                    downloader.download, request.url, filename=None
+                    downloader.download, request.url, filename=filename
                 )
 
                 if success:
+                    file_path = download_dir / f"{filename}.{extension}"
                     return {
                         "success": True,
                         "message": "Download completed successfully",
                         "download_directory": str(download_dir),
+                        "filename": f"{filename}.{extension}",
+                        "file_path": str(file_path),
                     }
                 else:
                     raise HTTPException(status_code=500, detail="Download failed")
 
             except Exception as e:
                 self.logger.error(f"Download error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/download/file/{filename}")
+        async def download_file(filename: str):
+            """Serve downloaded file."""
+            try:
+                global_settings = self.channel_manager.get_global_settings()
+                download_dir = Path(global_settings.download_directory) / "web_downloads"
+                file_path = download_dir / filename
+
+                if not file_path.exists():
+                    raise HTTPException(status_code=404, detail="File not found")
+
+                return FileResponse(
+                    path=str(file_path),
+                    filename=filename,
+                    media_type="application/octet-stream",
+                )
+
+            except Exception as e:
+                self.logger.error(f"File download error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
 
     def run(self, host: str = "0.0.0.0", port: int = 8000):

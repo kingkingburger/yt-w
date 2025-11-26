@@ -135,49 +135,28 @@ class StreamDownloader:
         else:
             raise ValueError(f"Invalid split_mode: {self.split_mode}")
 
-        # yt-dlp로 스트림 URL만 가져오기
+        # yt-dlp로 직접 다운로드하면서 FFmpeg로 분할
         ydl_opts = {
             "format": self.download_format,
-            "quiet": True,
-            "no_warnings": True,
+            "outtmpl": output_pattern,
+            "quiet": False,
+            "no_warnings": False,
             "live_from_start": True,
+            "wait_for_video": (5, 20),
+            # FFmpeg을 사용해서 다운로드하면서 동시에 분할
+            "external_downloader": "ffmpeg",
+            "external_downloader_args": {
+                "ffmpeg_i": [
+                    "-f", "segment",
+                    "-segment_time", str(split_seconds),
+                    "-reset_timestamps", "1"
+                ]
+            },
+            "merge_output_format": "mp4",
         }
 
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(stream_url, download=False)
-
-        # manifest URL 가져오기
-        if "manifest_url" in info:
-            stream_input = info["manifest_url"]
-        elif "url" in info:
-            stream_input = info["url"]
-        else:
-            # bestvideo+bestaudio 형식이면 비디오만 일단 다운로드
-            stream_input = stream_url
-
-        # FFmpeg으로 직접 다운로드 & 분할
-        cmd = [
-            "ffmpeg",
-            "-i",
-            stream_input,
-            "-c",
-            "copy",
-            "-f",
-            "segment",
-            "-segment_time",
-            str(split_seconds),
-            "-reset_timestamps",
-            "1",
-            output_pattern,
-        ]
-
-        self.logger.info(f"Running FFmpeg command for segmented download")
-        result = subprocess.run(cmd, capture_output=False, text=True)
-
-        if result.returncode != 0:
-            raise Exception(
-                f"FFmpeg download failed with return code: {result.returncode}"
-            )
+        self.logger.info(f"Starting segmented download with yt-dlp + FFmpeg")
+        self._perform_download(stream_url, ydl_opts)
 
     def _get_direct_stream_url(self, stream_url: str, from_start: bool = False) -> str:
         ydl_opts = {
