@@ -76,54 +76,6 @@ class StreamDownloader:
             ],
         }
 
-    def _split_video(self, input_file: str, output_pattern: str):
-        if self.split_mode == "time":
-            split_seconds = self.split_time_minutes * 60
-            cmd = [
-                "ffmpeg",
-                "-i",
-                input_file,
-                "-c",
-                "copy",
-                "-f",
-                "segment",
-                "-segment_time",
-                str(split_seconds),
-                "-reset_timestamps",
-                "1",
-                output_pattern,
-            ]
-        elif self.split_mode == "size":
-            # FFmpeg's segment muxer doesn't support segment_size
-            # Instead, we'll estimate time based on bitrate or use a fixed time
-            # For now, using a fixed segment time of 10 minutes as a workaround
-            # A better approach would be to calculate based on actual bitrate
-            cmd = [
-                "ffmpeg",
-                "-i",
-                input_file,
-                "-c",
-                "copy",
-                "-f",
-                "segment",
-                "-segment_time",
-                "600",  # 10 minutes as default for size-based splitting
-                "-reset_timestamps",
-                "1",
-                output_pattern,
-            ]
-        else:
-            raise ValueError(f"Invalid split_mode: {self.split_mode}")
-
-        result = subprocess.run(cmd, capture_output=True, text=True)
-
-        if result.returncode != 0:
-            raise Exception(f"FFmpeg split failed: {result.stderr}")
-
-    def _perform_download(self, stream_url: str, ydl_opts: dict):
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.download([stream_url])
-
     def _download_with_realtime_split(self, stream_url: str, output_pattern: str):
         # 분할 시간 계산
         if self.split_mode == "time":
@@ -180,26 +132,6 @@ class StreamDownloader:
         if result.returncode != 0:
             raise Exception("FFmpeg segmented download failed")
 
-    def _get_direct_stream_url(self, stream_url: str, from_start: bool = False) -> str:
-        ydl_opts = {
-            "format": self.download_format,
-            "quiet": True,
-            "no_warnings": True,
-        }
-
-        if from_start:
-            ydl_opts["live_from_start"] = True
-
+    def _perform_download(self, stream_url: str, ydl_opts: dict):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(stream_url, download=False)
-
-            # 여러 포맷이 있는 경우 (bestvideo+bestaudio)
-            if "requested_formats" in info:
-                # 비디오 URL 반환 (첫 번째가 보통 비디오)
-                return info["requested_formats"][0]["url"]
-            elif "url" in info:
-                return info["url"]
-            else:
-                # 디버깅을 위해 로그 출력
-                self.logger.error(f"Available keys: {info.keys()}")
-                raise KeyError("Cannot find stream URL in video info")
+            ydl.download([stream_url])

@@ -12,8 +12,8 @@
     "check_interval_seconds": 60,
     "download_directory": "./downloads",
     "log_file": "./live_monitor.log",
-    "split_mode": "time",
+    "split_mode": "size",
     "split_time_minutes": 30,
-    "split_size_mb": 500
+    "split_size_mb": 50
   }
 }
