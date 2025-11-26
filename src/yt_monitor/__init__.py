@@ -1,17 +1,21 @@
 """YouTube Live Stream Monitor Package."""
 
-from .config import ConfigLoader
 from .logger import Logger
 from .youtube_client import YouTubeClient
 from .downloader import StreamDownloader
-from .monitor import LiveStreamMonitor
 from .video_downloader import VideoDownloader
+from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
+from .multi_channel_monitor import MultiChannelMonitor
+from .web_api import WebAPI
 
 __all__ = [
-    "ConfigLoader",
     "Logger",
     "YouTubeClient",
     "StreamDownloader",
-    "LiveStreamMonitor",
     "VideoDownloader",
+    "ChannelManager",
+    "ChannelDTO",
+    "GlobalSettingsDTO",
+    "MultiChannelMonitor",
+    "WebAPI",
 ]

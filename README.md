@@ -1,19 +1,24 @@
-+  #  YouTube 다운로더 (라이브 + 일반 동영상)
+#  YouTube 다운로더 (라이브 + 일반 동영상)
 
 YouTube 라이브 방송 자동 모니터링 및 일반 동영상 다운로드를 지원하는 프로그램입니다.
 
-이 프로젝트는 **클린 코드 원칙**과 **SOLID 원칙**을 적용하여 설계되었으며,
-모듈화된 구조로 유지보수와 확장이 용이합니다.
-
 ## 주요 기능
 
-### 라이브 방송 모니터링
-- 채널의 라이브 방송 자동 감지
-- 라이브 방송 자동 다운로드 (시작부터 끝까지)
-- 설정 가능한 체크 주기
-- 실시간 영상 분할 (시간/크기 기준)
+### 웹 인터페이스 (NEW!)
+- **직관적인 웹 UI**: 브라우저에서 모든 기능을 쉽게 사용
+- **실시간 모니터링 상태**: 실행 중인 모니터링 상태를 실시간으로 확인
+- **채널 관리**: 웹에서 채널 추가/삭제/활성화/비활성화
+- **원클릭 시작/중지**: 버튼 하나로 모니터링 시작/중지
+- **반응형 디자인**: 모바일, 태블릿, PC에서 모두 사용 가능
 
-### 일반 동영상 다운로드 (NEW!)
+### 멀티 채널 라이브 방송 모니터링
+- **여러 채널 동시 모니터링**: 여러 YouTube 채널을 동시에 모니터링
+- **채널 관리**: CLI 또는 웹을 통한 채널 추가/삭제/활성화/비활성화
+- **채널별 설정**: 각 채널마다 다운로드 포맷 설정 가능
+- **자동 다운로드**: 라이브 방송 감지 시 자동 다운로드 시작
+- **채널별 디렉토리**: 각 채널의 다운로드를 별도 폴더에 저장
+
+### 일반 동영상 다운로드
 - YouTube 링크로 즉시 다운로드
 - 화질 선택 (2160p, 1440p, 1080p, 720p, 480p, 360p)
 - 오디오 전용 다운로드 (MP3 추출)
@@ -22,7 +27,7 @@ YouTube 라이브 방송 자동 모니터링 및 일반 동영상 다운로드�
 ### 공통 기능
 - 로그 기록 기능
 - MP4 형식으로 자동 변환
-- 완전한 테스트 커버리지 (51개 단위 테스트)
+- 실시간 영상 분할 (시간/크기 기준)
 - 모듈화된 아키텍처
 
 ## 필요 사항
@@ -45,32 +50,173 @@ uv sync
    - macOS: `brew install ffmpeg`
    - Linux: `sudo apt install ffmpeg` 또는 `sudo yum install ffmpeg`
 
-## 설정
+## 사용 방법
 
-`config.json` 파일을 수정하여 설정을 변경할 수 있습니다:
+### 모드 1: 웹 인터페이스 (가장 쉬움, 권장!)
+
+웹 브라우저에서 모든 기능을 사용할 수 있습니다.
+
+#### 1. 웹 서버 시작
+
+```bash
+python web_server.py
+```
+
+또는 포트 변경:
+
+```bash
+python web_server.py --port 3000
+```
+
+#### 2. 브라우저에서 접속
+
+```
+http://localhost:8000
+```
+
+#### 3. 웹 인터페이스 사용법
+
+1. **채널 추가**: 오른쪽 상단의 "채널 추가" 버튼 클릭
+2. **모니터링 시작**: "시작" 버튼 클릭
+3. **채널 관리**: 각 채널의 활성화/비활성화/삭제 버튼 사용
+4. **모니터링 중지**: "중지" 버튼 클릭
+
+웹 인터페이스에서 실시간으로 모니터링 상태와 등록된 채널을 확인할 수 있습니다!
+
+---
+
+### 모드 2: CLI - 멀티 채널 모니터링
+
+#### 1. 채널 추가
+
+```bash
+# 첫 번째 채널 추가
+python main.py --add-channel "침착맨" "https://www.youtube.com/@chimchakman_vod"
+
+# 두 번째 채널 추가
+python main.py --add-channel "우왁굳" "https://www.youtube.com/@woowakgood"
+
+# 추가 채널들...
+python main.py --add-channel "채널이름" "채널URL"
+```
+
+#### 2. 채널 목록 확인
+
+```bash
+python main.py --list-channels
+```
+
+출력 예시:
+```
+등록된 채널 목록 (2개):
+================================================================================
+  [활성화] 침착맨
+    ID: 3ba22a1c-aba7-401c-9abd-3779b508c929
+    URL: https://www.youtube.com/@chimchakman_vod
+    포맷: bestvideo[height<=720]+bestaudio/best[height<=720]
+--------------------------------------------------------------------------------
+  [활성화] 우왁굳
+    ID: 7cd8f2b9-1234-5678-90ab-cdef12345678
+    URL: https://www.youtube.com/@woowakgood
+    포맷: bestvideo[height<=720]+bestaudio/best[height<=720]
+--------------------------------------------------------------------------------
+```
+
+#### 3. 모니터링 시작
+
+```bash
+# 모든 활성화된 채널 모니터링 시작
+python main.py
+```
+
+프로그램이 실행되면:
+1. 등록된 모든 활성화된 채널을 동시에 모니터링합니다
+2. 각 채널에서 라이브 방송이 감지되면 자동으로 다운로드를 시작합니다
+3. 다운로드된 파일은 `./downloads/채널이름/` 디렉토리에 저장됩니다
+4. `Ctrl+C`를 눌러 프로그램을 종료할 수 있습니다
+
+#### 4. 채널 관리
+
+```bash
+# 채널 비활성화 (모니터링 중지, 삭제하지 않음)
+python main.py --disable-channel CHANNEL_ID
+
+# 채널 활성화 (모니터링 재개)
+python main.py --enable-channel CHANNEL_ID
+
+# 채널 삭제
+python main.py --remove-channel CHANNEL_ID
+```
+
+### 모드 3: 일반 동영상 다운로드
+
+YouTube 링크로 즉시 동영상을 다운로드할 수 있습니다:
+
+```bash
+# 기본 다운로드 (최고 화질)
+python main.py --url "https://youtube.com/watch?v=VIDEO_ID"
+
+# 화질 선택 (720p)
+python main.py --url "https://youtube.com/watch?v=VIDEO_ID" --quality 720
+
+# 1080p 다운로드
+python main.py -u "URL" -q 1080
+
+# 오디오만 추출 (MP3)
+python main.py --url "URL" --audio-only
+
+# 저장 경로 및 파일명 지정
+python main.py -u "URL" -o "./my_videos" -f "my_video"
+```
+
+## 설정 파일
+
+### channels.json
+
+`channels.json` 파일은 자동으로 생성되며, CLI 명령어 또는 웹 인터페이스로 관리할 수 있습니다.
 
 ```json
 {
-  "channel_url": "https://www.youtube.com/@chimchakman_vod",
-  "check_interval_seconds": 60,
-  "download_directory": "./downloads",
-  "log_file": "./live_monitor.log",
-  "video_quality": "best",
-  "download_format": "bestvideo+bestaudio/best",
-  "split_mode": "time",
-  "split_time_minutes": 30,
-  "split_size_mb": 500
+  "channels": [
+    {
+      "id": "unique-channel-id-1",
+      "name": "침착맨",
+      "url": "https://www.youtube.com/@chimchakman_vod",
+      "enabled": true,
+      "download_format": "bestvideo[height<=720]+bestaudio/best[height<=720]"
+    },
+    {
+      "id": "unique-channel-id-2",
+      "name": "우왁굳",
+      "url": "https://www.youtube.com/@woowakgood",
+      "enabled": true,
+      "download_format": "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+    }
+  ],
+  "global_settings": {
+    "check_interval_seconds": 60,
+    "download_directory": "./downloads",
+    "log_file": "./live_monitor.log",
+    "split_mode": "time",
+    "split_time_minutes": 30,
+    "split_size_mb": 500
+  }
 }
 ```
 
 ### 설정 항목 설명
 
-- `channel_url`: 모니터링할 유튜브 채널 URL
-- `check_interval_seconds`: 라이브 방송 체크 주기 (초 단위)
-- `download_directory`: 다운로드한 영상을 저장할 디렉토리
-- `log_file`: 로그 파일 경로
-- `video_quality`: 비디오 품질 설정
+#### 채널별 설정
+- `id`: 채널 고유 식별자 (자동 생성)
+- `name`: 채널 표시 이름
+- `url`: YouTube 채널 URL
+- `enabled`: 모니터링 활성화 여부
 - `download_format`: yt-dlp 다운로드 포맷
+
+#### 전역 설정
+- `check_interval_seconds`: 라이브 방송 체크 주기 (초 단위)
+- `download_directory`: 다운로드 기본 디렉토리
+- `log_file`: 로그 파일 경로
 - `split_mode`: 비디오 분할 모드
   - `"time"`: 시간 기준 분할
   - `"size"`: 파일 크기 기준 분할
@@ -96,14 +242,6 @@ uv sync
 }
 ```
 
-**100MB마다 분할:**
-```json
-{
-  "split_mode": "size",
-  "split_size_mb": 100
-}
-```
-
 **분할하지 않음:**
 ```json
 {
@@ -111,132 +249,77 @@ uv sync
 }
 ```
 
-### 실시간 분할 기능
-
-시간 또는 크기 기반 분할을 선택하면, 프로그램은 다운로드와 동시에 실시간으로 비디오를 분할합니다:
-
-- **시간 기반 분할**: 지정한 시간(예: 30분)이 지나면 자동으로 새 파일로 전환됩니다.
-- **크기 기반 분할**: 현재 파일이 지정한 크기(예: 100MB)에 도달하면 자동으로 새 파일로 전환됩니다.
-
-이 방식은 FFmpeg의 segment 기능을 사용하여 라이브 스트림을 다운로드하면서 동시에 분할하므로, 긴 라이브 방송도 효율적으로 관리할 수 있습니다.
-
 ## 프로젝트 구조
 
 ```
 yt-w/
 ├── src/
 │   └── yt_monitor/          # 메인 패키지
-│       ├── config.py        # 설정 관리
 │       ├── logger.py        # 로깅 설정
 │       ├── youtube_client.py # YouTube API 클라이언트
 │       ├── downloader.py    # 스트림 다운로더 (라이브용)
-│       ├── video_downloader.py # 일반 동영상 다운로더 (NEW!)
-│       └── monitor.py       # 라이브 스트림 모니터
+│       ├── video_downloader.py # 일반 동영상 다운로더
+│       ├── channel_manager.py # 채널 관리
+│       ├── multi_channel_monitor.py # 멀티 채널 모니터
+│       └── web_api.py       # 웹 API
+├── web/                     # 웹 인터페이스
+│   └── index.html           # 웹 UI
 ├── test/                    # 테스트 디렉토리
-│   ├── test_config.py
-│   ├── test_youtube_client.py
-│   ├── test_downloader.py
-│   ├── test_video_downloader.py  # NEW!
-│   └── test_monitor.py
 ├── docs/                    # 문서
-│   ├── ARCHITECTURE.md      # 아키텍처 문서
-│   ├── TESTING.md          # 테스트 가이드
-│   └── history.md          # 변경 이력
-├── main.py                  # 엔트리포인트 (CLI 지원)
-└── config.json              # 설정 파일
+├── main.py                  # CLI 엔트리포인트
+├── web_server.py            # 웹 서버 엔트리포인트
+├── channels.json            # 채널 설정 파일
+└── channels.example.json    # 예제 채널 설정 파일
 ```
 
-## 사용 방법
+## 명령어 전체 목록
 
-### 모드 1: 라이브 방송 모니터링 (기본)
-
-프로그램을 실행하면 자동으로 채널을 모니터링합니다:
-
+### 웹 서버
 ```bash
-uv run main.py
-# 또는
-python main.py
+# 웹 서버 시작 (기본 포트: 8000)
+python web_server.py
+
+# 포트 변경
+python web_server.py --port 3000
+
+# 호스트 변경
+python web_server.py --host 127.0.0.1 --port 8080
 ```
 
-프로그램이 실행되면:
-1. 설정된 주기마다 채널을 체크합니다
-2. 라이브 방송이 감지되면 자동으로 다운로드를 시작합니다
-3. 다운로드가 완료되면 다시 모니터링을 계속합니다
-4. `Ctrl+C`를 눌러 프로그램을 종료할 수 있습니다
-
-### 모드 2: 일반 동영상 다운로드 (NEW!)
-
-YouTube 링크로 즉시 동영상을 다운로드할 수 있습니다:
-
+### CLI 명령어
 ```bash
-# 기본 다운로드 (최고 화질)
-python main.py --url "https://youtube.com/watch?v=VIDEO_ID"
+# 채널 관리
+python main.py --add-channel "이름" "URL"        # 채널 추가
+python main.py --list-channels                   # 채널 목록
+python main.py --enable-channel CHANNEL_ID       # 채널 활성화
+python main.py --disable-channel CHANNEL_ID      # 채널 비활성화
+python main.py --remove-channel CHANNEL_ID       # 채널 삭제
 
-# 화질 선택 (720p)
-python main.py --url "https://youtube.com/watch?v=VIDEO_ID" --quality 720
+# 모니터링
+python main.py                                   # 멀티 채널 모니터링 (기본)
 
-# 1080p 다운로드
-python main.py -u "URL" -q 1080
+# 동영상 다운로드
+python main.py --url "URL"                       # 동영상 다운로드
+python main.py --url "URL" --quality 720         # 화질 선택
+python main.py --url "URL" --audio-only          # 오디오만 추출
 
-# 오디오만 추출 (MP3)
-python main.py --url "URL" --audio-only
-
-# 저장 경로 및 파일명 지정
-python main.py -u "URL" -o "./my_videos" -f "my_video"
-
-# 짧은 옵션 조합
-python main.py -u "URL" -q 720 -o "./downloads"
+# 설정 파일 지정
+python main.py --channels channels.json          # 채널 설정 파일 지정
 ```
 
-#### CLI 옵션 설명
+## 다운로드 파일 구조
 
-| 옵션 | 짧은 형식 | 설명 | 기본값 |
-|------|----------|------|--------|
-| `--url` | `-u` | 다운로드할 YouTube URL | - |
-| `--quality` | `-q` | 화질 선택 (2160/1440/1080/720/480/360/best) | best |
-| `--audio-only` | `-a` | 오디오만 추출 (MP3) | False |
-| `--output` | `-o` | 저장 디렉토리 | ./downloads |
-| `--filename` | `-f` | 파일명 (확장자 제외) | 자동 생성 |
-| `--config` | `-c` | 설정 파일 경로 | config.json |
-
-#### 사용 예시
-
-```bash
-# 음악 다운로드 (MP3)
-python main.py -u "https://youtube.com/watch?v=dQw4w9WgXcQ" -a
-
-# 4K 화질 다운로드
-python main.py -u "URL" -q 2160
-
-# 여러 옵션 조합
-python main.py \
-  -u "https://youtube.com/watch?v=VIDEO_ID" \
-  -q 1080 \
-  -o "./my_downloads" \
-  -f "awesome_video"
+### 라이브 방송 (멀티 채널)
 ```
-
-## 테스트 실행
-
-```bash
-# 모든 테스트 실행
-uv run pytest
-
-# 상세 출력과 함께
-uv run pytest -v
-
-# 특정 테스트 파일만
-uv run pytest test/test_config.py
+downloads/
+├── 침착맨/
+│   ├── 침착맨_라이브_20250126_143000.mp4
+│   └── 침착맨_라이브_20250126_200000.mp4
+├── 우왁굳/
+│   ├── 우왁굳_라이브_20250126_150000.mp4
+│   └── 우왁굳_라이브_20250126_210000.mp4
+└── ...
 ```
-
-## 다운로드 파일 이름
-
-### 라이브 방송
-다운로드된 라이브 방송 파일은 다음 형식으로 저장됩니다:
-```
-_라이브_YYYYMMDD_HHMMSS.mp4
-```
-예시: `_라이브_20250111_143000.mp4`
 
 ### 일반 동영상
 - 파일명 지정 시: `지정한이름.mp4` 또는 `지정한이름.mp3`
@@ -267,6 +350,10 @@ _라이브_YYYYMMDD_HHMMSS.mp4
 - 로그 파일 (`live_monitor.log`)을 확인하여 에러 메시지를 확인하세요
 - yt-dlp를 최신 버전으로 업데이트해보세요: `uv add yt-dlp --upgrade`
 
+### 채널이 모니터링되지 않는 경우
+- `--list-channels`로 채널이 활성화되어 있는지 확인하세요
+- 비활성화된 경우 `--enable-channel CHANNEL_ID`로 활성화하세요
+
 ## 개발자 가이드
 
 ### 코드 구조
@@ -274,11 +361,13 @@ _라이브_YYYYMMDD_HHMMSS.mp4
 이 프로젝트는 클린 코드 원칙을 따릅니다:
 
 1. **단일 책임 원칙 (SRP)**: 각 모듈은 하나의 책임만 가집니다
-   - `config.py`: 설정 관리
    - `logger.py`: 로깅 설정
    - `youtube_client.py`: YouTube API 통신
    - `downloader.py`: 스트림 다운로드
-   - `monitor.py`: 전체 프로세스 조율
+   - `video_downloader.py`: 일반 동영상 다운로드
+   - `channel_manager.py`: 채널 관리
+   - `multi_channel_monitor.py`: 멀티 채널 모니터링
+   - `web_api.py`: 웹 API
 
 2. **의존성 주입 (DI)**: 테스트와 확장이 용이하도록 의존성을 주입합니다
 
@@ -290,6 +379,19 @@ _라이브_YYYYMMDD_HHMMSS.mp4
 2. 테스트 코드 작성 (test/ 디렉토리)
 3. 테스트 실행으로 검증
 4. 문서 업데이트
+
+### 테스트 실행
+
+```bash
+# 모든 테스트 실행
+uv run pytest
+
+# 상세 출력과 함께
+uv run pytest -v
+
+# 특정 테스트 파일만
+uv run pytest test/test_channel_manager.py
+```
 
 ### 문서
 

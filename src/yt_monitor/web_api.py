@@ -1,0 +1,287 @@
+"""Web API module for YouTube Live Stream Monitor."""
+
+from typing import Dict, List, Optional, Any
+from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+import threading
+from pathlib import Path
+
+from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
+from .multi_channel_monitor import MultiChannelMonitor
+from .logger import Logger
+
+
+class ChannelCreateRequest(BaseModel):
+    """Request model for creating a channel."""
+
+    name: str
+    url: str
+    enabled: bool = True
+    download_format: str = "bestvideo[height<=720]+bestaudio/best[height<=720]"
+
+
+class ChannelUpdateRequest(BaseModel):
+    """Request model for updating a channel."""
+
+    name: Optional[str] = None
+    url: Optional[str] = None
+    enabled: Optional[bool] = None
+    download_format: Optional[str] = None
+
+
+class GlobalSettingsUpdateRequest(BaseModel):
+    """Request model for updating global settings."""
+
+    check_interval_seconds: Optional[int] = None
+    download_directory: Optional[str] = None
+    log_file: Optional[str] = None
+    split_mode: Optional[str] = None
+    split_time_minutes: Optional[int] = None
+    split_size_mb: Optional[int] = None
+
+
+class MonitorStatus(BaseModel):
+    """Monitor status response model."""
+
+    is_running: bool
+    active_channels: int
+    total_channels: int
+
+
+class WebAPI:
+    """Web API for YouTube Live Stream Monitor."""
+
+    def __init__(self, channels_file: str = "channels.json"):
+        """
+        Initialize Web API.
+
+        Args:
+            channels_file: Path to channels configuration file
+        """
+        self.app = FastAPI(title="YouTube Live Monitor", version="1.0.0")
+        self.channel_manager = ChannelManager(channels_file=channels_file)
+        self.monitor: Optional[MultiChannelMonitor] = None
+        self.monitor_thread: Optional[threading.Thread] = None
+
+        # Initialize logger with global settings
+        global_settings = self.channel_manager.get_global_settings()
+        Logger.initialize(log_file=global_settings.log_file)
+        self.logger = Logger.get()
+
+        # Setup routes
+        self._setup_routes()
+
+    def _setup_routes(self):
+        """Setup API routes."""
+
+        @self.app.get("/")
+        async def root():
+            """Serve the web interface."""
+            html_file = Path(__file__).parent.parent.parent / "web" / "index.html"
+            if html_file.exists():
+                return HTMLResponse(content=html_file.read_text(encoding="utf-8"))
+            return {"message": "YouTube Live Monitor API"}
+
+        @self.app.get("/api/channels", response_model=List[Dict[str, Any]])
+        async def list_channels(enabled_only: bool = False):
+            """Get list of all channels."""
+            channels = self.channel_manager.list_channels(enabled_only=enabled_only)
+            return [
+                {
+                    "id": ch.id,
+                    "name": ch.name,
+                    "url": ch.url,
+                    "enabled": ch.enabled,
+                    "download_format": ch.download_format,
+                }
+                for ch in channels
+            ]
+
+        @self.app.get("/api/channels/{channel_id}", response_model=Dict[str, Any])
+        async def get_channel(channel_id: str):
+            """Get a specific channel by ID."""
+            channel = self.channel_manager.get_channel(channel_id)
+            if not channel:
+                raise HTTPException(status_code=404, detail="Channel not found")
+
+            return {
+                "id": channel.id,
+                "name": channel.name,
+                "url": channel.url,
+                "enabled": channel.enabled,
+                "download_format": channel.download_format,
+            }
+
+        @self.app.post("/api/channels", response_model=Dict[str, Any])
+        async def create_channel(channel: ChannelCreateRequest):
+            """Create a new channel."""
+            try:
+                new_channel = self.channel_manager.add_channel(
+                    name=channel.name,
+                    url=channel.url,
+                    enabled=channel.enabled,
+                    download_format=channel.download_format,
+                )
+
+                # If monitor is running and channel is enabled, start monitoring it
+                if self.monitor and self.monitor.is_running and new_channel.enabled:
+                    self.monitor.add_channel_and_start_monitoring(new_channel)
+
+                return {
+                    "id": new_channel.id,
+                    "name": new_channel.name,
+                    "url": new_channel.url,
+                    "enabled": new_channel.enabled,
+                    "download_format": new_channel.download_format,
+                }
+
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+        @self.app.patch("/api/channels/{channel_id}", response_model=Dict[str, Any])
+        async def update_channel(channel_id: str, channel: ChannelUpdateRequest):
+            """Update a channel."""
+            updated_channel = self.channel_manager.update_channel(
+                channel_id=channel_id,
+                name=channel.name,
+                url=channel.url,
+                enabled=channel.enabled,
+                download_format=channel.download_format,
+            )
+
+            if not updated_channel:
+                raise HTTPException(status_code=404, detail="Channel not found")
+
+            # If monitor is running, handle enable/disable
+            if self.monitor and self.monitor.is_running:
+                if channel.enabled is not None:
+                    if channel.enabled:
+                        self.monitor.add_channel_and_start_monitoring(updated_channel)
+                    else:
+                        self.monitor.remove_channel_and_stop_monitoring(channel_id)
+
+            return {
+                "id": updated_channel.id,
+                "name": updated_channel.name,
+                "url": updated_channel.url,
+                "enabled": updated_channel.enabled,
+                "download_format": updated_channel.download_format,
+            }
+
+        @self.app.delete("/api/channels/{channel_id}")
+        async def delete_channel(channel_id: str):
+            """Delete a channel."""
+            # Stop monitoring if running
+            if self.monitor and self.monitor.is_running:
+                self.monitor.remove_channel_and_stop_monitoring(channel_id)
+
+            success = self.channel_manager.remove_channel(channel_id)
+
+            if not success:
+                raise HTTPException(status_code=404, detail="Channel not found")
+
+            return {"message": "Channel deleted successfully"}
+
+        @self.app.get("/api/settings", response_model=Dict[str, Any])
+        async def get_settings():
+            """Get global settings."""
+            settings = self.channel_manager.get_global_settings()
+            return {
+                "check_interval_seconds": settings.check_interval_seconds,
+                "download_directory": settings.download_directory,
+                "log_file": settings.log_file,
+                "split_mode": settings.split_mode,
+                "split_time_minutes": settings.split_time_minutes,
+                "split_size_mb": settings.split_size_mb,
+            }
+
+        @self.app.patch("/api/settings", response_model=Dict[str, Any])
+        async def update_settings(settings: GlobalSettingsUpdateRequest):
+            """Update global settings."""
+            try:
+                updated_settings = self.channel_manager.update_global_settings(
+                    **settings.model_dump(exclude_none=True)
+                )
+
+                return {
+                    "check_interval_seconds": updated_settings.check_interval_seconds,
+                    "download_directory": updated_settings.download_directory,
+                    "log_file": updated_settings.log_file,
+                    "split_mode": updated_settings.split_mode,
+                    "split_time_minutes": updated_settings.split_time_minutes,
+                    "split_size_mb": updated_settings.split_size_mb,
+                }
+
+            except ValueError as e:
+                raise HTTPException(status_code=400, detail=str(e))
+
+        @self.app.get("/api/monitor/status", response_model=MonitorStatus)
+        async def get_monitor_status():
+            """Get monitoring status."""
+            is_running = self.monitor is not None and self.monitor.is_running
+            total_channels = len(self.channel_manager.list_channels())
+            active_channels = len(
+                self.channel_manager.list_channels(enabled_only=True)
+            )
+
+            return MonitorStatus(
+                is_running=is_running,
+                active_channels=active_channels,
+                total_channels=total_channels,
+            )
+
+        @self.app.post("/api/monitor/start")
+        async def start_monitor(background_tasks: BackgroundTasks):
+            """Start monitoring."""
+            if self.monitor and self.monitor.is_running:
+                raise HTTPException(
+                    status_code=400, detail="Monitor is already running"
+                )
+
+            channels = self.channel_manager.list_channels(enabled_only=True)
+            if not channels:
+                raise HTTPException(
+                    status_code=400, detail="No enabled channels to monitor"
+                )
+
+            # Create and start monitor in background thread
+            self.monitor = MultiChannelMonitor(channel_manager=self.channel_manager)
+
+            def run_monitor():
+                try:
+                    self.monitor.start()
+                except Exception as e:
+                    self.logger.error(f"Monitor error: {e}")
+
+            self.monitor_thread = threading.Thread(target=run_monitor, daemon=True)
+            self.monitor_thread.start()
+
+            return {"message": "Monitor started successfully"}
+
+        @self.app.post("/api/monitor/stop")
+        async def stop_monitor():
+            """Stop monitoring."""
+            if not self.monitor or not self.monitor.is_running:
+                raise HTTPException(status_code=400, detail="Monitor is not running")
+
+            self.monitor.stop()
+
+            # Wait for thread to finish
+            if self.monitor_thread:
+                self.monitor_thread.join(timeout=5.0)
+
+            return {"message": "Monitor stopped successfully"}
+
+    def run(self, host: str = "0.0.0.0", port: int = 8000):
+        """
+        Run the web server.
+
+        Args:
+            host: Host to bind to
+            port: Port to bind to
+        """
+        import uvicorn
+
+        uvicorn.run(self.app, host=host, port=port)

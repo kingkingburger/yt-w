@@ -1,0 +1,33 @@
+{
+  "channels": [
+    {
+      "id": "example-channel-1",
+      "name": "침착맨",
+      "url": "https://www.youtube.com/@ChimChakMan_Data",
+      "enabled": true,
+      "download_format": "bestvideo[height<=720]+bestaudio/best[height<=720]"
+    },
+    {
+      "id": "example-channel-2",
+      "name": "우왁굳",
+      "url": "https://www.youtube.com/@woowakgood",
+      "enabled": true,
+      "download_format": "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
+    },
+    {
+      "id": "example-channel-3",
+      "name": "Example Channel (Disabled)",
+      "url": "https://www.youtube.com/@example",
+      "enabled": false,
+      "download_format": "bestvideo+bestaudio/best"
+    }
+  ],
+  "global_settings": {
+    "check_interval_seconds": 60,
+    "download_directory": "./downloads",
+    "log_file": "./live_monitor.log",
+    "split_mode": "time",
+    "split_time_minutes": 30,
+    "split_size_mb": 500
+  }
+}
