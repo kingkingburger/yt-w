@@ -298,8 +298,16 @@ class WebAPI:
         async def get_video_info(request: VideoDownloadRequest):
             """Get video information."""
             try:
+                self.logger.info(f"Fetching video info for: {request.url}")
                 downloader = VideoDownloader()
-                info = await asyncio.to_thread(downloader.get_video_info, request.url)
+
+                # 20초 타임아웃 설정
+                info = await asyncio.wait_for(
+                    asyncio.to_thread(downloader.get_video_info, request.url),
+                    timeout=20.0
+                )
+
+                self.logger.info(f"Video info retrieved: {info.get('title', 'Unknown')}")
 
                 return {
                     "success": True,
@@ -310,6 +318,9 @@ class WebAPI:
                     "thumbnail": info.get("thumbnail", ""),
                 }
 
+            except asyncio.TimeoutError:
+                self.logger.error(f"Timeout while fetching video info")
+                raise HTTPException(status_code=408, detail="Request timeout - YouTube took too long to respond")
             except Exception as e:
                 self.logger.error(f"Get video info error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
