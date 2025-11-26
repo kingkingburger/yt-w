@@ -9,7 +9,8 @@
       "Bash(cat:*)",
       "Bash(where:*)",
       "Bash(python main.py:*)",
-      "Bash(ffmpeg:*)"
+      "Bash(ffmpeg:*)",
+      "Bash(curl:*)"
     ],
     "deny": [],
     "ask": []

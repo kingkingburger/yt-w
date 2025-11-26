@@ -189,6 +189,7 @@ class VideoDownloader:
             "view_count": info.get("view_count"),
             "upload_date": info.get("upload_date"),
             "description": info.get("description"),
+            "thumbnail": info.get("thumbnail"),
             "formats": [
                 {
                     "format_id": f.get("format_id"),

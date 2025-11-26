@@ -3,13 +3,16 @@
 from typing import Dict, List, Optional, Any
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import threading
 from pathlib import Path
+import asyncio
 
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
 from .multi_channel_monitor import MultiChannelMonitor
+from .video_downloader import VideoDownloader
 from .logger import Logger
 
 
@@ -42,6 +45,14 @@ class GlobalSettingsUpdateRequest(BaseModel):
     split_size_mb: Optional[int] = None
 
 
+class VideoDownloadRequest(BaseModel):
+    """Request model for downloading a video."""
+
+    url: str
+    quality: str = "best"
+    audio_only: bool = False
+
+
 class MonitorStatus(BaseModel):
     """Monitor status response model."""
 
@@ -61,6 +72,16 @@ class WebAPI:
             channels_file: Path to channels configuration file
         """
         self.app = FastAPI(title="YouTube Live Monitor", version="1.0.0")
+
+        # Add CORS middleware
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+
         self.channel_manager = ChannelManager(channels_file=channels_file)
         self.monitor: Optional[MultiChannelMonitor] = None
         self.monitor_thread: Optional[threading.Thread] = None
@@ -273,6 +294,58 @@ class WebAPI:
                 self.monitor_thread.join(timeout=5.0)
 
             return {"message": "Monitor stopped successfully"}
+
+        @self.app.post("/api/video/info")
+        async def get_video_info(request: VideoDownloadRequest):
+            """Get video information."""
+            try:
+                downloader = VideoDownloader()
+                info = await asyncio.to_thread(downloader.get_video_info, request.url)
+
+                return {
+                    "success": True,
+                    "title": info.get("title", "Unknown"),
+                    "uploader": info.get("uploader", "Unknown"),
+                    "duration": info.get("duration", 0),
+                    "view_count": info.get("view_count", 0),
+                    "thumbnail": info.get("thumbnail", ""),
+                }
+
+            except Exception as e:
+                self.logger.error(f"Get video info error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.post("/api/download")
+        async def download_video(request: VideoDownloadRequest):
+            """Download a video."""
+            try:
+                global_settings = self.channel_manager.get_global_settings()
+                download_dir = Path(global_settings.download_directory) / "web_downloads"
+                download_dir.mkdir(parents=True, exist_ok=True)
+
+                downloader = VideoDownloader(
+                    output_dir=str(download_dir),
+                    quality=request.quality,
+                    audio_only=request.audio_only,
+                )
+
+                # Download in background
+                success = await asyncio.to_thread(
+                    downloader.download, request.url, filename=None
+                )
+
+                if success:
+                    return {
+                        "success": True,
+                        "message": "Download completed successfully",
+                        "download_directory": str(download_dir),
+                    }
+                else:
+                    raise HTTPException(status_code=500, detail="Download failed")
+
+            except Exception as e:
+                self.logger.error(f"Download error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
 
     def run(self, host: str = "0.0.0.0", port: int = 8000):
         """
