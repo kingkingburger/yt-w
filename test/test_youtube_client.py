@@ -1,158 +1,267 @@
-"""Tests for YouTube client module."""
+"""Tests for youtube_client module."""
+
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 
 from src.yt_monitor.youtube_client import YouTubeClient, LiveStreamInfo
-from src.yt_monitor.logger import Logger
 
 
 class TestLiveStreamInfo:
-    """Test LiveStreamInfo dataclass."""
+    """Test cases for LiveStreamInfo dataclass."""
 
-    def test_create_with_full_url(self):
-        """Test creating LiveStreamInfo with full URL."""
+    def test_live_stream_info_creation(self):
+        """Test LiveStreamInfo creation with valid data."""
         info = LiveStreamInfo(
-            video_id="test123",
-            url="https://www.youtube.com/watch?v=test123",
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
             title="Test Stream",
         )
 
-        assert info.video_id == "test123"
-        assert info.url == "https://www.youtube.com/watch?v=test123"
+        assert info.video_id == "abc123"
+        assert info.url == "https://www.youtube.com/watch?v=abc123"
         assert info.title == "Test Stream"
 
-    def test_create_with_partial_url(self):
-        """Test that partial URL is converted to full URL."""
-        info = LiveStreamInfo(video_id="test123", url="test123")
-
-        assert info.url == "https://www.youtube.com/watch?v=test123"
-
-    def test_url_already_has_http(self):
-        """Test that full URL is not modified."""
+    def test_live_stream_info_auto_url(self):
+        """Test that URL is auto-generated if not starting with http."""
         info = LiveStreamInfo(
-            video_id="test123", url="https://www.youtube.com/watch?v=test123"
+            video_id="abc123",
+            url="abc123",
         )
 
-        assert info.url == "https://www.youtube.com/watch?v=test123"
+        assert info.url == "https://www.youtube.com/watch?v=abc123"
+
+    def test_live_stream_info_preserves_full_url(self):
+        """Test that full URL is preserved."""
+        full_url = "https://www.youtube.com/watch?v=xyz789"
+        info = LiveStreamInfo(
+            video_id="xyz789",
+            url=full_url,
+        )
+
+        assert info.url == full_url
+
+    def test_live_stream_info_optional_title(self):
+        """Test that title is optional."""
+        info = LiveStreamInfo(
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
+        )
+
+        assert info.title is None
 
 
 class TestYouTubeClient:
-    """Test YouTubeClient class."""
-
-    @pytest.fixture(autouse=True)
-    def setup_logger(self, tmp_path):
-        """Setup logger for tests."""
-        log_file = tmp_path / "test.log"
-        Logger.initialize(str(log_file))
-        yield
-        Logger._initialized = False
-        Logger._instance = None
+    """Test cases for YouTubeClient class."""
 
     @pytest.fixture
-    def client(self):
-        """Create a YouTubeClient instance for testing."""
+    def youtube_client(self, initialized_logger) -> YouTubeClient:
+        """Create YouTubeClient instance with initialized logger."""
         return YouTubeClient()
 
-    @pytest.fixture
-    def mock_ydl(self):
-        """Create a mock yt_dlp.YoutubeDL instance."""
-        return MagicMock()
+    def test_check_if_live_returns_tuple(self, youtube_client: YouTubeClient):
+        """Test that check_if_live returns a tuple."""
+        with patch.object(youtube_client, "_check_live_endpoint", return_value=None):
+            with patch.object(youtube_client, "_check_streams_tab", return_value=None):
+                with patch.object(
+                    youtube_client, "_check_channel_page", return_value=None
+                ):
+                    result = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
-    def test_initialization(self):
-        """Test client initialization."""
-        client = YouTubeClient()
-        assert client.logger is not None
+                    assert isinstance(result, tuple)
+                    assert len(result) == 2
 
-    @patch("src.yt_monitor.youtube_client.yt_dlp.YoutubeDL")
-    def test_check_if_live_endpoint_success(self, mock_ydl_class, client):
-        """Test successful live detection via /live endpoint."""
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = Mock(return_value=mock_ydl)
-        mock_ydl.__exit__ = Mock(return_value=False)
-        mock_ydl.extract_info.return_value = {
-            "is_live": True,
-            "id": "abc123",
-            "title": "Live Stream",
-        }
-        mock_ydl_class.return_value = mock_ydl
+    def test_check_if_live_no_stream(self, youtube_client: YouTubeClient):
+        """Test check_if_live when no stream is found."""
+        with patch.object(youtube_client, "_check_live_endpoint", return_value=None):
+            with patch.object(youtube_client, "_check_streams_tab", return_value=None):
+                with patch.object(
+                    youtube_client, "_check_channel_page", return_value=None
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
-        is_live, info = client.check_if_live("https://www.youtube.com/@test")
+                    assert is_live is False
+                    assert stream_info is None
 
-        assert is_live is True
-        assert info is not None
-        assert info.video_id == "abc123"
-        assert info.title == "Live Stream"
+    def test_check_if_live_found_via_live_endpoint(self, youtube_client: YouTubeClient):
+        """Test check_if_live when stream found via /live endpoint."""
+        mock_info = LiveStreamInfo(
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
+            title="Live Stream",
+        )
 
-    @patch("src.yt_monitor.youtube_client.yt_dlp.YoutubeDL")
-    def test_check_if_live_not_live(self, mock_ydl_class, client):
-        """Test when channel is not live."""
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = Mock(return_value=mock_ydl)
-        mock_ydl.__exit__ = Mock(return_value=False)
-        mock_ydl.extract_info.return_value = {"is_live": False, "id": "abc123"}
-        mock_ydl_class.return_value = mock_ydl
+        with patch.object(
+            youtube_client, "_check_live_endpoint", return_value=mock_info
+        ):
+            is_live, stream_info = youtube_client.check_if_live(
+                "https://www.youtube.com/@TestChannel"
+            )
 
-        is_live, info = client.check_if_live("https://www.youtube.com/@test")
+            assert is_live is True
+            assert stream_info == mock_info
 
-        assert is_live is False
-        assert info is None
+    def test_check_if_live_found_via_streams_tab(self, youtube_client: YouTubeClient):
+        """Test check_if_live when stream found via /streams tab."""
+        mock_info = LiveStreamInfo(
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
+            title="Live Stream",
+        )
 
-    @patch("src.yt_monitor.youtube_client.yt_dlp.YoutubeDL")
-    def test_check_if_live_streams_tab_success(self, mock_ydl_class, client):
-        """Test successful live detection via /streams tab."""
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = Mock(return_value=mock_ydl)
-        mock_ydl.__exit__ = Mock(return_value=False)
+        with patch.object(youtube_client, "_check_live_endpoint", return_value=None):
+            with patch.object(
+                youtube_client, "_check_streams_tab", return_value=mock_info
+            ):
+                is_live, stream_info = youtube_client.check_if_live(
+                    "https://www.youtube.com/@TestChannel"
+                )
 
-        # First call fails (/live endpoint)
-        # Second call succeeds (/streams tab)
-        mock_ydl.extract_info.side_effect = [
-            Exception("Not found"),
-            {"entries": [{"id": "xyz789", "is_live": True, "title": "Stream Title"}]},
-        ]
-        mock_ydl_class.return_value = mock_ydl
+                assert is_live is True
+                assert stream_info == mock_info
 
-        is_live, info = client.check_if_live("https://www.youtube.com/@test")
+    def test_check_if_live_found_via_channel_page(self, youtube_client: YouTubeClient):
+        """Test check_if_live when stream found via channel page."""
+        mock_info = LiveStreamInfo(
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
+            title="Live Stream",
+        )
 
-        assert is_live is True
-        assert info is not None
-        assert info.video_id == "xyz789"
+        with patch.object(youtube_client, "_check_live_endpoint", return_value=None):
+            with patch.object(youtube_client, "_check_streams_tab", return_value=None):
+                with patch.object(
+                    youtube_client, "_check_channel_page", return_value=mock_info
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
-    @patch("src.yt_monitor.youtube_client.yt_dlp.YoutubeDL")
-    def test_check_if_live_all_methods_fail(self, mock_ydl_class, client):
-        """Test when all detection methods fail."""
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = Mock(return_value=mock_ydl)
-        mock_ydl.__exit__ = Mock(return_value=False)
-        mock_ydl.extract_info.side_effect = Exception("Network error")
-        mock_ydl_class.return_value = mock_ydl
+                    assert is_live is True
+                    assert stream_info == mock_info
 
-        is_live, info = client.check_if_live("https://www.youtube.com/@test")
+    def test_check_if_live_handles_exception(self, youtube_client: YouTubeClient):
+        """Test that check_if_live handles exceptions gracefully."""
+        # Create a mock method with __name__ attribute
+        mock_method = MagicMock(side_effect=Exception("API Error"))
+        mock_method.__name__ = "_check_live_endpoint"
 
-        assert is_live is False
-        assert info is None
+        with patch.object(youtube_client, "_check_live_endpoint", mock_method):
+            with patch.object(youtube_client, "_check_streams_tab", return_value=None):
+                with patch.object(
+                    youtube_client, "_check_channel_page", return_value=None
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
-    @patch("src.yt_monitor.youtube_client.yt_dlp.YoutubeDL")
-    def test_check_if_live_skips_invalid_entries(self, mock_ydl_class, client):
-        """Test that invalid entries are skipped."""
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = Mock(return_value=mock_ydl)
-        mock_ydl.__exit__ = Mock(return_value=False)
+                    assert is_live is False
+                    assert stream_info is None
 
-        mock_ydl.extract_info.side_effect = [
-            Exception("Not found"),
-            {
+    def test_check_live_endpoint_constructs_correct_url(
+        self, youtube_client: YouTubeClient
+    ):
+        """Test that _check_live_endpoint constructs the correct /live URL."""
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {"is_live": False}
+            mock_ydl.return_value = mock_instance
+
+            youtube_client._check_live_endpoint("https://www.youtube.com/@TestChannel")
+
+            mock_instance.extract_info.assert_called_once_with(
+                "https://www.youtube.com/@TestChannel/live", download=False
+            )
+
+    def test_check_live_endpoint_strips_trailing_slash(
+        self, youtube_client: YouTubeClient
+    ):
+        """Test that _check_live_endpoint strips trailing slash from URL."""
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {"is_live": False}
+            mock_ydl.return_value = mock_instance
+
+            youtube_client._check_live_endpoint("https://www.youtube.com/@TestChannel/")
+
+            mock_instance.extract_info.assert_called_once_with(
+                "https://www.youtube.com/@TestChannel/live", download=False
+            )
+
+    def test_check_live_endpoint_returns_info_when_live(
+        self, youtube_client: YouTubeClient
+    ):
+        """Test that _check_live_endpoint returns LiveStreamInfo when live."""
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "is_live": True,
+                "id": "abc123",
+                "title": "Test Live Stream",
+            }
+            mock_ydl.return_value = mock_instance
+
+            result = youtube_client._check_live_endpoint(
+                "https://www.youtube.com/@TestChannel"
+            )
+
+            assert result is not None
+            assert result.video_id == "abc123"
+            assert result.title == "Test Live Stream"
+
+    def test_check_streams_tab_returns_none_when_not_live(
+        self, youtube_client: YouTubeClient
+    ):
+        """Test that _check_streams_tab returns None when no live stream."""
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
                 "entries": [
-                    None,  # Invalid entry
-                    {},  # Entry without id
-                    {"id": "valid123", "is_live": True, "title": "Valid Stream"},
+                    {"id": "video1", "is_live": False},
+                    {"id": "video2", "is_live": False},
                 ]
-            },
-        ]
-        mock_ydl_class.return_value = mock_ydl
+            }
+            mock_ydl.return_value = mock_instance
 
-        is_live, info = client.check_if_live("https://www.youtube.com/@test")
+            result = youtube_client._check_streams_tab(
+                "https://www.youtube.com/@TestChannel"
+            )
 
-        assert is_live is True
-        assert info.video_id == "valid123"
+            assert result is None
+
+    def test_check_streams_tab_returns_info_when_live(
+        self, youtube_client: YouTubeClient
+    ):
+        """Test that _check_streams_tab returns LiveStreamInfo when live."""
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "entries": [
+                    {"id": "video1", "is_live": False},
+                    {"id": "live123", "is_live": True, "title": "Live Now"},
+                ]
+            }
+            mock_ydl.return_value = mock_instance
+
+            result = youtube_client._check_streams_tab(
+                "https://www.youtube.com/@TestChannel"
+            )
+
+            assert result is not None
+            assert result.video_id == "live123"
+            assert result.title == "Live Now"

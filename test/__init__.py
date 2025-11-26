@@ -1,1 +1,1 @@
-"""Test package for YouTube Live Stream Monitor."""
+"""Test package for yt_monitor."""
