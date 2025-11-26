@@ -1,7 +1,5 @@
 """Tests for multi_channel_monitor module."""
 
-import threading
-import time
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -267,12 +265,8 @@ class TestMultiChannelMonitor:
 
     def test_init_with_defaults(self, initialized_logger):
         """Test MultiChannelMonitor initialization with defaults."""
-        with patch(
-            "src.yt_monitor.multi_channel_monitor.ChannelManager"
-        ) as mock_manager:
-            with patch(
-                "src.yt_monitor.multi_channel_monitor.YouTubeClient"
-            ) as mock_client:
+        with patch("src.yt_monitor.multi_channel_monitor.ChannelManager"):
+            with patch("src.yt_monitor.multi_channel_monitor.YouTubeClient"):
                 monitor = MultiChannelMonitor()
 
                 assert monitor.channel_manager is not None

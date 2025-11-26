@@ -103,14 +103,22 @@ class StreamDownloader:
 
             cmd = [
                 "ffmpeg",
-                "-i", video_url,
-                "-i", audio_url,
-                "-c", "copy",
-                "-f", "segment",
-                "-segment_time", str(split_seconds),
-                "-reset_timestamps", "1",
-                "-map", "0:v:0",  # 첫 번째 입력의 비디오 스트림 1개만
-                "-map", "1:a:0",  # 두 번째 입력의 오디오 스트림 1개만
+                "-i",
+                video_url,
+                "-i",
+                audio_url,
+                "-c",
+                "copy",
+                "-f",
+                "segment",
+                "-segment_time",
+                str(split_seconds),
+                "-reset_timestamps",
+                "1",
+                "-map",
+                "0:v:0",  # 첫 번째 입력의 비디오 스트림 1개만
+                "-map",
+                "1:a:0",  # 두 번째 입력의 오디오 스트림 1개만
                 output_pattern,
             ]
         else:
@@ -118,13 +126,20 @@ class StreamDownloader:
             direct_url = info["url"]
             cmd = [
                 "ffmpeg",
-                "-i", direct_url,
-                "-c", "copy",
-                "-f", "segment",
-                "-map", "0:v:0",  # 비디오 1개만
-                "-map", "0:a:0",  # 오디오 1개만
-                "-segment_time", str(split_seconds),
-                "-reset_timestamps", "1",
+                "-i",
+                direct_url,
+                "-c",
+                "copy",
+                "-f",
+                "segment",
+                "-map",
+                "0:v:0",  # 비디오 1개만
+                "-map",
+                "0:a:0",  # 오디오 1개만
+                "-segment_time",
+                str(split_seconds),
+                "-reset_timestamps",
+                "1",
                 output_pattern,
             ]
 

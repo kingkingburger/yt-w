@@ -31,7 +31,7 @@ def initialized_logger(temp_log_file: Path) -> Generator[None, None, None]:
     """Initialize logger for tests and reset after."""
     Logger._initialized = False
     Logger._instance = None
-    logger = Logger.initialize(str(temp_log_file))
+    Logger.initialize(str(temp_log_file))
     yield
     # Close all handlers to release file locks on Windows
     if Logger._instance:

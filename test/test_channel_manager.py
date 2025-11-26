@@ -1,6 +1,5 @@
 """Tests for channel_manager module."""
 
-import json
 from pathlib import Path
 
 import pytest
@@ -79,7 +78,9 @@ class TestGlobalSettingsDTO:
 
     def test_global_settings_validation_invalid_check_interval(self):
         """Test that check_interval_seconds < 1 raises ValueError."""
-        with pytest.raises(ValueError, match="check_interval_seconds must be at least 1"):
+        with pytest.raises(
+            ValueError, match="check_interval_seconds must be at least 1"
+        ):
             GlobalSettingsDTO(check_interval_seconds=0)
 
     def test_global_settings_validation_invalid_split_mode(self):

@@ -12,9 +12,7 @@ class TestStreamDownloader:
     """Test cases for StreamDownloader class."""
 
     @pytest.fixture
-    def stream_downloader(
-        self, temp_dir: Path, initialized_logger
-    ) -> StreamDownloader:
+    def stream_downloader(self, temp_dir: Path, initialized_logger) -> StreamDownloader:
         """Create StreamDownloader instance for testing."""
         return StreamDownloader(
             download_directory=str(temp_dir / "downloads"),
@@ -24,9 +22,7 @@ class TestStreamDownloader:
             split_size_mb=500,
         )
 
-    def test_init_creates_download_directory(
-        self, temp_dir: Path, initialized_logger
-    ):
+    def test_init_creates_download_directory(self, temp_dir: Path, initialized_logger):
         """Test that __init__ creates the download directory."""
         download_dir = temp_dir / "new_downloads"
 

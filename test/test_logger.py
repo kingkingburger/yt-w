@@ -47,9 +47,7 @@ class TestLogger:
 
         assert nested_log_file.parent.exists()
 
-    def test_initialize_returns_same_instance_on_second_call(
-        self, temp_log_file: Path
-    ):
+    def test_initialize_returns_same_instance_on_second_call(self, temp_log_file: Path):
         """Test that initialize returns the same instance when called twice."""
         logger1 = Logger.initialize(str(temp_log_file))
         logger2 = Logger.initialize(str(temp_log_file))

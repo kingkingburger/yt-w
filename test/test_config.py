@@ -56,7 +56,9 @@ class TestConfig:
 
     def test_config_validation_invalid_check_interval(self):
         """Test that check_interval_seconds < 1 raises ValueError."""
-        with pytest.raises(ValueError, match="check_interval_seconds must be at least 1"):
+        with pytest.raises(
+            ValueError, match="check_interval_seconds must be at least 1"
+        ):
             Config(
                 channel_url="https://www.youtube.com/@TestChannel",
                 check_interval_seconds=0,
@@ -156,9 +158,9 @@ class TestConfigLoader:
     def test_load_uses_defaults_for_missing_keys(self, temp_dir: Path):
         """Test that missing keys use default values."""
         partial_config = temp_dir / "partial.json"
-        partial_config.write_text(json.dumps({
-            "channel_url": "https://www.youtube.com/@TestChannel"
-        }))
+        partial_config.write_text(
+            json.dumps({"channel_url": "https://www.youtube.com/@TestChannel"})
+        )
 
         config = ConfigLoader.load(str(partial_config))
 

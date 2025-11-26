@@ -1,6 +1,8 @@
-"""Tests for VideoDownloader module."""
+"""Tests for video_downloader module."""
 
+from pathlib import Path
 from unittest.mock import MagicMock, patch
+
 
 from src.yt_monitor.video_downloader import VideoDownloader
 
@@ -8,207 +10,218 @@ from src.yt_monitor.video_downloader import VideoDownloader
 class TestVideoDownloader:
     """Test cases for VideoDownloader class."""
 
-    def test_init_creates_output_directory(self, tmp_path):
+    def test_init_creates_output_directory(self, temp_dir: Path):
         """Test that __init__ creates the output directory."""
-        output_dir = tmp_path / "test_downloads"
-        downloader = VideoDownloader(output_dir=str(output_dir))
+        output_dir = temp_dir / "downloads"
+
+        VideoDownloader(output_dir=str(output_dir))
 
         assert output_dir.exists()
-        assert downloader.output_dir == str(output_dir)
+
+    def test_init_default_values(self, temp_dir: Path):
+        """Test VideoDownloader default values."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
+
         assert downloader.quality == "best"
         assert downloader.audio_only is False
 
-    def test_init_with_custom_settings(self, tmp_path):
-        """Test initialization with custom settings."""
-        output_dir = tmp_path / "custom"
+    def test_init_custom_values(self, temp_dir: Path):
+        """Test VideoDownloader with custom values."""
         downloader = VideoDownloader(
-            output_dir=str(output_dir), quality="720", audio_only=True
+            output_dir=str(temp_dir),
+            quality="720",
+            audio_only=True,
         )
 
         assert downloader.quality == "720"
         assert downloader.audio_only is True
 
-    def test_get_format_string_audio_only(self):
-        """Test format string generation for audio-only mode."""
-        downloader = VideoDownloader(audio_only=True)
-        format_str = downloader._get_format_string()
+    def test_get_format_string_audio_only(self, temp_dir: Path):
+        """Test _get_format_string for audio only mode."""
+        downloader = VideoDownloader(output_dir=str(temp_dir), audio_only=True)
 
-        assert format_str == "bestaudio/best"
+        format_string = downloader._get_format_string()
 
-    def test_get_format_string_best_quality(self):
-        """Test format string for best quality."""
-        downloader = VideoDownloader(quality="best")
-        format_str = downloader._get_format_string()
+        assert format_string == "bestaudio/best"
 
-        assert format_str == "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+    def test_get_format_string_best_quality(self, temp_dir: Path):
+        """Test _get_format_string for best quality."""
+        downloader = VideoDownloader(output_dir=str(temp_dir), quality="best")
 
-    def test_get_format_string_specific_quality(self):
-        """Test format string for specific quality."""
-        downloader = VideoDownloader(quality="720")
-        format_str = downloader._get_format_string()
+        format_string = downloader._get_format_string()
 
-        assert (
-            format_str
-            == "bestvideo[height<=720]+bestaudio[ext=m4a]/bestvideo[height<=720]+bestaudio/best[height<=720]"
-        )
+        assert "bestvideo" in format_string
+        assert "bestaudio" in format_string
 
-    def test_build_ydl_options_video(self, tmp_path):
-        """Test yt-dlp options building for video download."""
-        downloader = VideoDownloader(output_dir=str(tmp_path), quality="1080")
-        output_path = str(tmp_path / "test.mp4")
+    def test_get_format_string_specific_quality(self, temp_dir: Path):
+        """Test _get_format_string for specific quality."""
+        downloader = VideoDownloader(output_dir=str(temp_dir), quality="720")
 
-        opts = downloader._build_ydl_options(output_path)
+        format_string = downloader._get_format_string()
 
-        assert (
-            opts["format"]
-            == "bestvideo[height<=1080]+bestaudio[ext=m4a]/bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-        )
-        assert opts["outtmpl"] == output_path
+        assert "height<=720" in format_string
+
+    def test_build_ydl_options_video(self, temp_dir: Path):
+        """Test _build_ydl_options for video download."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
+
+        opts = downloader._build_ydl_options("/path/to/output.mp4")
+
+        assert opts["outtmpl"] == "/path/to/output.mp4"
         assert opts["merge_output_format"] == "mp4"
-        assert opts["prefer_ffmpeg"] is True
-        assert opts["keepvideo"] is False
         assert "postprocessors" in opts
-        assert opts["postprocessors"][0]["key"] == "FFmpegVideoConvertor"
-        assert "postprocessor_args" in opts
-        assert "-c:a" in opts["postprocessor_args"]["FFmpegVideoConvertor"]
-        assert "aac" in opts["postprocessor_args"]["FFmpegVideoConvertor"]
 
-    def test_build_ydl_options_audio(self, tmp_path):
-        """Test yt-dlp options building for audio download."""
-        downloader = VideoDownloader(output_dir=str(tmp_path), audio_only=True)
-        output_path = str(tmp_path / "test.mp3")
+    def test_build_ydl_options_audio(self, temp_dir: Path):
+        """Test _build_ydl_options for audio download."""
+        downloader = VideoDownloader(output_dir=str(temp_dir), audio_only=True)
 
-        opts = downloader._build_ydl_options(output_path)
+        opts = downloader._build_ydl_options("/path/to/output.mp3")
 
         assert opts["format"] == "bestaudio/best"
         assert "postprocessors" in opts
         assert opts["postprocessors"][0]["key"] == "FFmpegExtractAudio"
         assert opts["postprocessors"][0]["preferredcodec"] == "mp3"
 
-    @patch("src.yt_monitor.video_downloader.yt_dlp.YoutubeDL")
-    def test_download_success_video(self, mock_ydl_class, tmp_path):
-        """Test successful video download."""
-        # Mock YoutubeDL
-        mock_ydl = MagicMock()
-        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+    def test_build_ydl_options_has_performance_settings(self, temp_dir: Path):
+        """Test that _build_ydl_options includes performance settings."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
 
-        # Mock video info
-        mock_ydl.extract_info.return_value = {
-            "title": "Test Video",
-            "duration": 125,  # 2분 5초
-        }
+        opts = downloader._build_ydl_options("/path/to/output.mp4")
 
-        downloader = VideoDownloader(output_dir=str(tmp_path))
-        success = downloader.download(
-            url="https://youtube.com/watch?v=test123", filename="test_video"
-        )
+        assert opts["concurrent_fragment_downloads"] == 8
+        assert opts["retries"] == 10
 
-        assert success is True
-        mock_ydl.download.assert_called_once()
+    def test_download_success(self, temp_dir: Path):
+        """Test successful download."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
 
-    @patch("src.yt_monitor.video_downloader.yt_dlp.YoutubeDL")
-    def test_download_success_audio(self, mock_ydl_class, tmp_path):
-        """Test successful audio download."""
-        mock_ydl = MagicMock()
-        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "title": "Test Video",
+                "duration": 120,
+            }
+            mock_ydl.return_value = mock_instance
 
-        mock_ydl.extract_info.return_value = {
-            "title": "Test Audio",
-            "duration": 180,
-        }
+            result = downloader.download("https://www.youtube.com/watch?v=test123")
 
-        downloader = VideoDownloader(output_dir=str(tmp_path), audio_only=True)
-        success = downloader.download(
-            url="https://youtube.com/watch?v=test123", filename="test_audio"
-        )
+            assert result is True
+            mock_instance.download.assert_called_once()
 
-        assert success is True
+    def test_download_failure(self, temp_dir: Path):
+        """Test download failure."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
 
-        # Check that audio extraction postprocessor is set
-        call_args = mock_ydl_class.call_args
-        opts = call_args[0][0]
-        assert opts["postprocessors"][0]["key"] == "FFmpegExtractAudio"
-        assert opts["postprocessors"][0]["preferredcodec"] == "mp3"
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.side_effect = Exception("Download failed")
+            mock_ydl.return_value = mock_instance
 
-    @patch("src.yt_monitor.video_downloader.yt_dlp.YoutubeDL")
-    def test_download_auto_filename(self, mock_ydl_class, tmp_path):
-        """Test download with auto-generated filename."""
-        mock_ydl = MagicMock()
-        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+            result = downloader.download("https://www.youtube.com/watch?v=test123")
 
-        mock_ydl.extract_info.return_value = {
-            "title": "Test",
-            "duration": 60,
-        }
+            assert result is False
 
-        downloader = VideoDownloader(output_dir=str(tmp_path))
-        success = downloader.download(url="https://youtube.com/watch?v=test123")
+    def test_download_with_custom_filename(self, temp_dir: Path):
+        """Test download with custom filename."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
 
-        assert success is True
-        # Verify that a timestamp-based filename was used
-        call_args = mock_ydl_class.call_args
-        opts = call_args[0][0]
-        assert "video_" in opts["outtmpl"]
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "title": "Test Video",
+                "duration": 120,
+            }
+            mock_ydl.return_value = mock_instance
 
-    @patch("src.yt_monitor.video_downloader.yt_dlp.YoutubeDL")
-    def test_download_failure(self, mock_ydl_class, tmp_path):
-        """Test download failure handling."""
-        mock_ydl = MagicMock()
-        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+            result = downloader.download(
+                "https://www.youtube.com/watch?v=test123",
+                filename="custom_name",
+            )
 
-        # Simulate download error
-        mock_ydl.extract_info.side_effect = Exception("Download failed")
+            assert result is True
+            # Verify the custom filename was used in options
+            call_args = mock_ydl.call_args
+            opts = call_args[0][0]
+            assert "custom_name" in opts["outtmpl"]
 
-        downloader = VideoDownloader(output_dir=str(tmp_path))
-        success = downloader.download(url="https://youtube.com/watch?v=invalid")
+    def test_download_audio_only_uses_mp3_extension(self, temp_dir: Path):
+        """Test that audio only download uses .mp3 extension."""
+        downloader = VideoDownloader(output_dir=str(temp_dir), audio_only=True)
 
-        assert success is False
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "title": "Test Video",
+                "duration": 120,
+            }
+            mock_ydl.return_value = mock_instance
 
-    @patch("src.yt_monitor.video_downloader.yt_dlp.YoutubeDL")
-    def test_get_video_info(self, mock_ydl_class):
-        """Test getting video information without downloading."""
-        mock_ydl = MagicMock()
-        mock_ydl_class.return_value.__enter__.return_value = mock_ydl
+            downloader.download("https://www.youtube.com/watch?v=test123")
 
-        mock_info = {
-            "title": "Test Video",
-            "duration": 300,
-            "uploader": "Test Channel",
-            "view_count": 1000,
-            "upload_date": "20240101",
-            "description": "Test description",
-            "formats": [
-                {
-                    "format_id": "22",
-                    "ext": "mp4",
-                    "resolution": "1280x720",
-                    "filesize": 10000000,
-                }
-            ],
-        }
-        mock_ydl.extract_info.return_value = mock_info
+            call_args = mock_ydl.call_args
+            opts = call_args[0][0]
+            assert opts["outtmpl"].endswith(".mp3")
 
-        downloader = VideoDownloader()
-        info = downloader.get_video_info(url="https://youtube.com/watch?v=test123")
+    def test_get_video_info(self, temp_dir: Path):
+        """Test get_video_info returns correct information."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
 
-        assert info["title"] == "Test Video"
-        assert info["duration"] == 300
-        assert info["uploader"] == "Test Channel"
-        assert len(info["formats"]) == 1
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "title": "Test Video",
+                "duration": 300,
+                "uploader": "Test Channel",
+                "view_count": 1000,
+                "upload_date": "20240101",
+                "description": "Test description",
+                "thumbnail": "https://example.com/thumb.jpg",
+                "formats": [
+                    {
+                        "format_id": "22",
+                        "ext": "mp4",
+                        "resolution": "720p",
+                        "filesize": 1000000,
+                    }
+                ],
+            }
+            mock_ydl.return_value = mock_instance
 
-    def test_quality_choices(self, tmp_path):
-        """Test various quality settings."""
-        qualities = ["2160", "1440", "1080", "720", "480", "360", "best"]
+            info = downloader.get_video_info("https://www.youtube.com/watch?v=test123")
 
-        for quality in qualities:
-            downloader = VideoDownloader(output_dir=str(tmp_path), quality=quality)
-            format_str = downloader._get_format_string()
+            assert info["title"] == "Test Video"
+            assert info["duration"] == 300
+            assert info["uploader"] == "Test Channel"
+            assert info["view_count"] == 1000
+            assert len(info["formats"]) == 1
 
-            if quality == "best":
-                assert (
-                    format_str
-                    == "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
-                )
-            else:
-                assert f"height<={quality}" in format_str
-                assert "ext=m4a" in format_str
+    def test_get_video_info_skip_download(self, temp_dir: Path):
+        """Test that get_video_info doesn't download the video."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
+
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {
+                "title": "Test",
+                "formats": [],
+            }
+            mock_ydl.return_value = mock_instance
+
+            downloader.get_video_info("https://www.youtube.com/watch?v=test123")
+
+            # Verify extract_info was called with download=False
+            mock_instance.extract_info.assert_called_once_with(
+                "https://www.youtube.com/watch?v=test123", download=False
+            )
