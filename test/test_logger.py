@@ -1,6 +1,8 @@
 """Tests for logger module."""
 
 import logging
+import os
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -13,18 +15,11 @@ class TestLogger:
 
     def setup_method(self):
         """Reset logger state before each test."""
-        Logger._initialized = False
-        Logger._instance = None
+        Logger.reset()
 
     def teardown_method(self):
         """Clean up logger state after each test."""
-        # Close all handlers to release file locks on Windows
-        if Logger._instance:
-            for handler in Logger._instance.handlers[:]:
-                handler.close()
-                Logger._instance.removeHandler(handler)
-        Logger._initialized = False
-        Logger._instance = None
+        Logger.reset()
 
     def test_initialize_creates_logger(self, temp_log_file: Path):
         """Test that initialize creates a logger instance."""
@@ -33,12 +28,6 @@ class TestLogger:
         assert logger is not None
         assert isinstance(logger, logging.Logger)
         assert Logger._initialized is True
-
-    def test_initialize_creates_log_file(self, temp_log_file: Path):
-        """Test that initialize creates the log file."""
-        Logger.initialize(str(temp_log_file))
-
-        assert temp_log_file.exists()
 
     def test_initialize_creates_parent_directories(self, temp_dir: Path):
         """Test that initialize creates parent directories if needed."""
@@ -74,6 +63,9 @@ class TestLogger:
 
         logger.info(test_message)
 
+        for handler in logger.handlers:
+            handler.flush()
+
         log_content = temp_log_file.read_text()
         assert test_message in log_content
 
@@ -82,8 +74,10 @@ class TestLogger:
         logger = Logger.initialize(str(temp_log_file))
         logger.info("Format test")
 
+        for handler in logger.handlers:
+            handler.flush()
+
         log_content = temp_log_file.read_text()
-        # Format: "YYYY-MM-DD HH:MM:SS - LEVEL - message"
         assert " - INFO - " in log_content
 
     def test_logger_default_level_is_info(self, temp_log_file: Path):
@@ -91,3 +85,36 @@ class TestLogger:
         logger = Logger.initialize(str(temp_log_file))
 
         assert logger.level == logging.INFO
+
+    def test_cleanup_old_logs(self, temp_dir: Path):
+        """Test that old log files are cleaned up."""
+        log_file = temp_dir / "test.log"
+
+        old_log_file = temp_dir / "test.log.2020-01-01"
+        old_log_file.write_text("old log content")
+        old_time = (datetime.now() - timedelta(days=10)).timestamp()
+        os.utime(old_log_file, (old_time, old_time))
+
+        Logger.initialize(str(log_file), retention_days=7)
+
+        assert not old_log_file.exists()
+
+    def test_recent_logs_not_cleaned(self, temp_dir: Path):
+        """Test that recent log files are not cleaned up."""
+        log_file = temp_dir / "test.log"
+
+        recent_log_file = temp_dir / "test.log.recent"
+        recent_log_file.write_text("recent log content")
+
+        Logger.initialize(str(log_file), retention_days=7)
+
+        assert recent_log_file.exists()
+
+    def test_reset_clears_state(self, temp_log_file: Path):
+        """Test that reset properly clears logger state."""
+        Logger.initialize(str(temp_log_file))
+        Logger.reset()
+
+        assert Logger._initialized is False
+        assert Logger._instance is None
+        assert Logger._log_directory is None

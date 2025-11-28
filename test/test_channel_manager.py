@@ -59,7 +59,7 @@ class TestGlobalSettingsDTO:
 
         assert settings.check_interval_seconds == 60
         assert settings.download_directory == "./downloads"
-        assert settings.log_file == "./live_monitor.log"
+        assert settings.log_file == "./logs/live_monitor.log"
         assert settings.split_mode == "time"
         assert settings.split_time_minutes == 30
         assert settings.split_size_mb == 500
