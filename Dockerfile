@@ -18,12 +18,12 @@ COPY src/ ./src/
 RUN uv sync --frozen --no-dev
 
 # Copy remaining files
-COPY main.py web_server.py ./
+COPY main.py cli.py ./
 COPY web/ ./web/
 COPY channels.example.json ./channels.json
 
 # Expose port for web server (configurable via YT_WEB_PORT env)
 EXPOSE ${YT_WEB_PORT:-8011}
 
-# Default command: run monitor mode
+# Default command: run web server
 CMD ["uv", "run", "python", "main.py"]
