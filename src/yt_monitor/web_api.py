@@ -11,6 +11,7 @@ from .channel_manager import ChannelManager
 from .multi_channel_monitor import MultiChannelMonitor
 from .util.sanitize_url import sanitize_youtube_url
 from .video_downloader import VideoDownloader
+from .file_cleaner import FileCleaner
 from .logger import Logger
 
 
@@ -59,6 +60,13 @@ class MonitorStatus(BaseModel):
     total_channels: int
 
 
+class CleanupRequest(BaseModel):
+    """Request model for cleanup operation."""
+
+    retention_days: int = 7
+    dry_run: bool = False
+
+
 class WebAPI:
     """Web API for YouTube Live Stream Monitor."""
 
@@ -83,6 +91,8 @@ class WebAPI:
         self.channel_manager = ChannelManager(channels_file=channels_file)
         self.monitor: Optional[MultiChannelMonitor] = None
         self.monitor_thread: Optional[threading.Thread] = None
+        self.cleanup_thread: Optional[threading.Thread] = None
+        self.cleanup_running = False
 
         # Initialize logger with global settings
         global_settings = self.channel_manager.get_global_settings()
@@ -91,6 +101,9 @@ class WebAPI:
 
         # Setup routes
         self._setup_routes()
+
+        # Start cleanup scheduler
+        self._start_cleanup_scheduler()
 
     def _setup_routes(self):
         """Setup API routes."""
@@ -408,6 +421,99 @@ class WebAPI:
             except Exception as e:
                 self.logger.error(f"File download error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/cleanup/status")
+        async def get_cleanup_status():
+            """Get cleanup status and summary."""
+            global_settings = self.channel_manager.get_global_settings()
+            cleaner = FileCleaner(
+                download_directory=global_settings.download_directory,
+                retention_days=7,
+            )
+            summary = cleaner.get_cleanup_summary()
+
+            return {
+                "files_to_delete": summary["files_to_delete"],
+                "total_size_mb": round(summary["total_size_mb"], 2),
+                "retention_days": summary["retention_days"],
+                "live_files_preserved": summary["live_files_preserved"],
+                "live_size_mb": round(summary["live_size_mb"], 2),
+            }
+
+        @self.app.post("/api/cleanup")
+        async def run_cleanup(request: CleanupRequest):
+            """Run cleanup to delete old files."""
+            try:
+                global_settings = self.channel_manager.get_global_settings()
+                cleaner = FileCleaner(
+                    download_directory=global_settings.download_directory,
+                    retention_days=request.retention_days,
+                )
+
+                summary = cleaner.get_cleanup_summary()
+
+                if request.dry_run:
+                    old_files = cleaner.find_old_files()
+                    return {
+                        "dry_run": True,
+                        "files_to_delete": summary["files_to_delete"],
+                        "total_size_mb": round(summary["total_size_mb"], 2),
+                        "files": [
+                            {"path": str(f[0]), "age_days": round(f[1], 1)}
+                            for f in old_files
+                        ],
+                    }
+
+                deleted = cleaner.cleanup(dry_run=False)
+
+                return {
+                    "dry_run": False,
+                    "deleted_count": len(deleted),
+                    "deleted_files": [str(f) for f in deleted],
+                }
+
+            except Exception as e:
+                self.logger.error(f"Cleanup error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+    def _start_cleanup_scheduler(self) -> None:
+        """Start background cleanup scheduler (runs daily)."""
+        import time
+
+        def cleanup_loop():
+            self.cleanup_running = True
+            while self.cleanup_running:
+                try:
+                    global_settings = self.channel_manager.get_global_settings()
+                    cleaner = FileCleaner(
+                        download_directory=global_settings.download_directory,
+                        retention_days=7,
+                    )
+
+                    summary = cleaner.get_cleanup_summary()
+                    if summary["files_to_delete"] > 0:
+                        self.logger.info(
+                            f"자동 정리: {summary['files_to_delete']}개 파일 "
+                            f"({summary['total_size_mb']:.2f} MB) 삭제 예정"
+                        )
+                        cleaner.cleanup(dry_run=False)
+
+                except Exception as e:
+                    self.logger.error(f"자동 정리 오류: {e}")
+
+                # Sleep for 24 hours (check daily)
+                for _ in range(24 * 60 * 60):
+                    if not self.cleanup_running:
+                        break
+                    time.sleep(1)
+
+        self.cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
+        self.cleanup_thread.start()
+        self.logger.info("파일 자동 정리 스케줄러 시작됨 (매일 실행)")
+
+    def _stop_cleanup_scheduler(self) -> None:
+        """Stop cleanup scheduler."""
+        self.cleanup_running = False
 
     def run(self, host: str = "0.0.0.0", port: int = 8000):
         """

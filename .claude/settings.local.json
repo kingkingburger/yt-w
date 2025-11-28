@@ -14,7 +14,9 @@
       "Bash(taskkill:*)",
       "Bash(timeout /t 1 /nobreak)",
       "Bash(netstat:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(tree:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

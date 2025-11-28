@@ -36,10 +36,12 @@ class ChannelMonitorThread:
         self.is_downloading = False
         self.thread: Optional[threading.Thread] = None
 
-        # Create channel-specific download directory
-        channel_download_dir = Path(
-            global_settings.download_directory
-        ) / self._sanitize_name(channel.name)
+        # Create channel-specific download directory under 'live' folder
+        channel_download_dir = (
+            Path(global_settings.download_directory)
+            / "live"
+            / self._sanitize_name(channel.name)
+        )
         channel_download_dir.mkdir(parents=True, exist_ok=True)
 
         self.downloader = StreamDownloader(
