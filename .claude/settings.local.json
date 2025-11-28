@@ -16,7 +16,8 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(tree:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(docker compose build:*)"
     ],
     "deny": [],
     "ask": []

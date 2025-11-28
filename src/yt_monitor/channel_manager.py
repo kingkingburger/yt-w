@@ -31,7 +31,7 @@ class GlobalSettingsDTO:
 
     check_interval_seconds: int = 60
     download_directory: str = "./downloads"
-    log_file: str = "./live_monitor.log"
+    log_file: str = "./logs/live_monitor.log"
     split_mode: str = "time"
     split_time_minutes: int = 30
     split_size_mb: int = 500

@@ -6,7 +6,7 @@ services:
     volumes:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
-      - ./live_monitor.log:/app/live_monitor.log
+      - ./logs:/app/logs
     command: ["uv", "run", "python", "monitoring.py"]
 
   yt-web:
@@ -20,5 +20,5 @@ services:
     volumes:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
-      - ./live_monitor.log:/app/live_monitor.log
+      - ./logs:/app/logs
     command: ["sh", "-c", "uv run python main.py --host 0.0.0.0 --port $YT_WEB_PORT"]

@@ -11,7 +11,7 @@
   "global_settings": {
     "check_interval_seconds": 60,
     "download_directory": "./downloads",
-    "log_file": "./live_monitor.log",
+    "log_file": "./logs/live_monitor.log",
     "split_mode": "time",
     "split_time_minutes": 10,
     "split_size_mb": 50
