@@ -18,7 +18,7 @@ COPY src/ ./src/
 RUN uv sync --frozen --no-dev
 
 # Copy remaining files
-COPY main.py cli.py ./
+COPY main.py monitoring.py ./
 COPY web/ ./web/
 COPY channels.example.json ./channels.json
 

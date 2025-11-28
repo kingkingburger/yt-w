@@ -7,7 +7,7 @@ services:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
       - ./live_monitor.log:/app/live_monitor.log
-    command: ["uv", "run", "python", "cli.py"]
+    command: ["uv", "run", "python", "monitoring.py"]
 
   yt-web:
     build: .
