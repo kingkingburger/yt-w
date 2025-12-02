@@ -14,9 +14,9 @@ services:
     container_name: yt-web
     restart: unless-stopped
     ports:
-      - "${YT_WEB_PORT:-8011}:${YT_WEB_PORT:-8011}"
+      - "8088:${YT_WEB_PORT:-8011}"
     environment:
-      - YT_WEB_PORT=${YT_WEB_PORT:-8011}
+      - YT_WEB_PORT=${YT_WEB_PORT}
     volumes:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads

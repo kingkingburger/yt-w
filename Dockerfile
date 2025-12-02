@@ -23,7 +23,7 @@ COPY web/ ./web/
 COPY channels.example.json ./channels.json
 
 # Expose port for web server (configurable via YT_WEB_PORT env)
-EXPOSE ${YT_WEB_PORT:-8011}
+EXPOSE 8088
 
 # Default command: run web server
 CMD ["uv", "run", "python", "main.py"]

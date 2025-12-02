@@ -17,7 +17,12 @@
       "Bash(findstr:*)",
       "Bash(tree:*)",
       "Bash(python:*)",
-      "Bash(docker compose build:*)"
+      "Bash(docker compose build:*)",
+      "Bash(netsh advfirewall firewall:*)",
+      "Bash(ipconfig:*)",
+      "Bash(Get-NetConnectionProfile)",
+      "Bash(Select-Object Name,InterfaceAlias,NetworkCategory)",
+      "Bash(netsh advfirewall:*)"
     ],
     "deny": [],
     "ask": []
