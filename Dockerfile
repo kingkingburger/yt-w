@@ -1,11 +1,9 @@
-FROM python:3.13-slim
+FROM python:3.13-alpine
 
 WORKDIR /app
 
-# Install ffmpeg and other dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+# Install ffmpeg and build dependencies
+RUN apk add --no-cache ffmpeg
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
