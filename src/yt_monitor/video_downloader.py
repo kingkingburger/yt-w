@@ -68,6 +68,7 @@ class VideoDownloader:
             "quiet": False,
             "no_warnings": False,
             "ignoreerrors": False,
+            "cookiesfrombrowser": ("chrome",),
             # Performance optimizations
             "concurrent_fragment_downloads": 8,  # Download 8 fragments in parallel
             "retries": 10,
@@ -195,6 +196,7 @@ class VideoDownloader:
             "skip_download": True,
             "no_check_certificates": True,
             "socket_timeout": 30,
+            "cookiesfrombrowser": ("chrome",),
             # 빠른 추출을 위한 옵션
             "extractor_args": {
                 "youtube": {

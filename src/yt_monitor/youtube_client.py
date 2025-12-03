@@ -53,6 +53,7 @@ class YouTubeClient:
             "no_warnings": True,
             "extract_flat": False,
             "skip_download": True,
+            "cookiesfrombrowser": ("chrome",),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -79,6 +80,7 @@ class YouTubeClient:
             "no_warnings": True,
             "extract_flat": "in_playlist",
             "ignoreerrors": True,
+            "cookiesfrombrowser": ("chrome",),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -108,6 +110,7 @@ class YouTubeClient:
             "no_warnings": True,
             "extract_flat": "in_playlist",
             "ignoreerrors": True,
+            "cookiesfrombrowser": ("chrome",),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
