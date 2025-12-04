@@ -22,7 +22,10 @@
       "Bash(ipconfig:*)",
       "Bash(Get-NetConnectionProfile)",
       "Bash(Select-Object Name,InterfaceAlias,NetworkCategory)",
-      "Bash(netsh advfirewall:*)"
+      "Bash(netsh advfirewall:*)",
+      "Bash(git push:*)",
+      "Bash(yt-dlp:*)",
+      "Bash(pip install:*)"
     ],
     "deny": [],
     "ask": []
