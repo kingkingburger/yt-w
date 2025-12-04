@@ -14,7 +14,7 @@ def get_cookie_options() -> Dict[str, Any]:
     Returns:
         Dictionary with cookie options for yt-dlp
     """
-    cookie_file_path = os.environ.get("YT_COOKIES_FILE", "/app/cookies.txt")
+    cookie_file_path = os.environ.get("YT_COOKIES_FILE", "./cookies.txt")
 
     # Check if running in Docker (cookie file exists) or local environment
     if os.path.exists(cookie_file_path):
