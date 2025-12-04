@@ -199,12 +199,6 @@ class VideoDownloader:
             "no_check_certificates": True,
             "socket_timeout": 30,
             **get_cookie_options(),
-            # 빠른 추출을 위한 옵션
-            "extractor_args": {
-                "youtube": {
-                    "skip": ["hls", "dash"],  # HLS/DASH manifest 스킵 (빠른 추출)
-                }
-            },
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
