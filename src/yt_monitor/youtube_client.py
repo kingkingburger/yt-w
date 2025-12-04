@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 
 import yt_dlp
 
+from .cookie_helper import get_cookie_options
 from .logger import Logger
 
 
@@ -53,7 +54,7 @@ class YouTubeClient:
             "no_warnings": True,
             "extract_flat": False,
             "skip_download": True,
-            "cookiesfrombrowser": ("firefox",),
+            **get_cookie_options(),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -80,7 +81,7 @@ class YouTubeClient:
             "no_warnings": True,
             "extract_flat": "in_playlist",
             "ignoreerrors": True,
-            "cookiesfrombrowser": ("firefox",),
+            **get_cookie_options(),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -110,7 +111,7 @@ class YouTubeClient:
             "no_warnings": True,
             "extract_flat": "in_playlist",
             "ignoreerrors": True,
-            "cookiesfrombrowser": ("firefox",),
+            **get_cookie_options(),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -7,6 +7,8 @@ from typing import Optional
 
 import yt_dlp
 
+from .cookie_helper import get_cookie_options
+
 
 class VideoDownloader:
     """Download regular YouTube videos (non-live)."""
@@ -68,7 +70,7 @@ class VideoDownloader:
             "quiet": False,
             "no_warnings": False,
             "ignoreerrors": False,
-            "cookiesfrombrowser": ("firefox",),
+            **get_cookie_options(),
             # Performance optimizations
             "concurrent_fragment_downloads": 8,  # Download 8 fragments in parallel
             "retries": 10,
@@ -196,13 +198,7 @@ class VideoDownloader:
             "skip_download": True,
             "no_check_certificates": True,
             "socket_timeout": 30,
-            "cookiesfrombrowser": ("firefox",),
-            # 빠른 추출을 위한 옵션
-            "extractor_args": {
-                "youtube": {
-                    "skip": ["hls", "dash"],  # HLS/DASH manifest 스킵 (빠른 추출)
-                }
-            },
+            **get_cookie_options(),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
