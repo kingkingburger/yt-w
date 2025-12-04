@@ -198,6 +198,7 @@ class VideoDownloader:
             "skip_download": True,
             "no_check_certificates": True,
             "socket_timeout": 30,
+            "format": "best",  # Use fallback format to avoid "format not available" errors
             **get_cookie_options(),
         }
 

@@ -25,7 +25,10 @@
       "Bash(netsh advfirewall:*)",
       "Bash(git push:*)",
       "Bash(yt-dlp:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(netsh advfirewall:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []
