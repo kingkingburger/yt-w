@@ -22,7 +22,7 @@ COPY channels.example.json ./channels.json
 
 # Optional: copy cookies.txt if exists (for YouTube auth in Docker)
 # If not present at build time, mount it at runtime: -v /path/to/cookies.txt:/app/cookies.txt
-COPY cookies.tx[t] ./
+COPY cookie.tx[t] ./
 
 # Expose port for web server (configurable via YT_WEB_PORT env)
 EXPOSE 8088
