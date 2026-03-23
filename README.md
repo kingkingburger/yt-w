@@ -93,9 +93,6 @@ http://localhost:8000
 # 첫 번째 채널 추가
 python main.py --add-channel "침착맨" "https://www.youtube.com/@chimchakman_vod"
 
-# 두 번째 채널 추가
-python main.py --add-channel "우왁굳" "https://www.youtube.com/@woowakgood"
-
 # 추가 채널들...
 python main.py --add-channel "채널이름" "채널URL"
 ```
@@ -108,16 +105,11 @@ python main.py --list-channels
 
 출력 예시:
 ```
-등록된 채널 목록 (2개):
+등록된 채널 목록 (1개):
 ================================================================================
   [활성화] 침착맨
     ID: 3ba22a1c-aba7-401c-9abd-3779b508c929
     URL: https://www.youtube.com/@chimchakman_vod
-    포맷: bestvideo[height<=720]+bestaudio/best[height<=720]
---------------------------------------------------------------------------------
-  [활성화] 우왁굳
-    ID: 7cd8f2b9-1234-5678-90ab-cdef12345678
-    URL: https://www.youtube.com/@woowakgood
     포맷: bestvideo[height<=720]+bestaudio/best[height<=720]
 --------------------------------------------------------------------------------
 ```
@@ -185,13 +177,6 @@ python main.py -u "URL" -o "./my_videos" -f "my_video"
       "enabled": true,
       "download_format": "bestvideo[height<=720]+bestaudio/best[height<=720]"
     },
-    {
-      "id": "unique-channel-id-2",
-      "name": "우왁굳",
-      "url": "https://www.youtube.com/@woowakgood",
-      "enabled": true,
-      "download_format": "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-    }
   ],
   "global_settings": {
     "check_interval_seconds": 60,
@@ -315,9 +300,6 @@ downloads/
 ├── 침착맨/
 │   ├── 침착맨_라이브_20250126_143000.mp4
 │   └── 침착맨_라이브_20250126_200000.mp4
-├── 우왁굳/
-│   ├── 우왁굳_라이브_20250126_150000.mp4
-│   └── 우왁굳_라이브_20250126_210000.mp4
 └── ...
 ```
 

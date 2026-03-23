@@ -9,13 +9,6 @@
     },
     {
       "id": "example-channel-2",
-      "name": "우왁굳",
-      "url": "https://www.youtube.com/@woowakgood",
-      "enabled": true,
-      "download_format": "bestvideo[height<=1080]+bestaudio/best[height<=1080]"
-    },
-    {
-      "id": "example-channel-3",
       "name": "Example Channel (Disabled)",
       "url": "https://www.youtube.com/@example",
       "enabled": false,
