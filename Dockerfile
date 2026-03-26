@@ -2,8 +2,8 @@ FROM python:3.13-alpine
 
 WORKDIR /app
 
-# Install ffmpeg and build dependencies
-RUN apk add --no-cache ffmpeg
+# Install ffmpeg and nodejs (required by yt-dlp for YouTube JS challenge)
+RUN apk add --no-cache ffmpeg nodejs
 
 # Install uv
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
