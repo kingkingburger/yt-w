@@ -72,6 +72,30 @@
         </div>
     </header>
 
+    <!-- 쿠키 만료 경고 배너 -->
+    <div id="cookie-warning" class="hidden bg-amber-600/90 text-white">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i>
+                <span class="text-sm font-medium" id="cookie-warning-message">
+                    YouTube 쿠키가 만료되었습니다. 브라우저에서 쿠키를 다시 내보내주세요.
+                </span>
+            </div>
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <button onclick="extractCookies()" id="cookie-extract-btn" class="text-xs bg-white/90 text-amber-700 hover:bg-white px-3 py-1.5 rounded-lg transition-colors font-bold">
+                    쿠키 갱신
+                </button>
+                <input type="file" id="cookie-file-input" accept=".txt" class="hidden" onchange="uploadCookieFile(this)" />
+                <button onclick="document.getElementById('cookie-file-input').click()" id="cookie-upload-btn" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors font-medium">
+                    파일 업로드
+                </button>
+                <button onclick="dismissCookieWarning()" class="p-1 hover:bg-white/20 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- 탭 네비게이션 -->
     <nav class="border-b border-gray-800 bg-gray-900">
         <div class="max-w-6xl mx-auto px-4">
@@ -435,11 +459,15 @@
         let currentFormat = 'video';
         let currentTab = 'download';
 
+        let cookieWarningDismissed = false;
+
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
             loadStatus();
             loadChannels();
+            checkCookieStatus();
             setInterval(loadStatus, 5000);
+            setInterval(checkCookieStatus, 60000); // 1분마다 쿠키 상태 확인
         });
 
         // 탭 전환
@@ -824,6 +852,122 @@
         }
 
         // 알림
+        // 쿠키 상태 확인
+        async function checkCookieStatus() {
+            if (cookieWarningDismissed) return;
+            try {
+                const response = await fetch(`${API_BASE}/api/cookie/status`);
+                const result = await response.json();
+                const banner = document.getElementById('cookie-warning');
+                const message = document.getElementById('cookie-warning-message');
+
+                if (!result.valid) {
+                    message.textContent = result.has_cookies
+                        ? 'YouTube 쿠키가 만료되었습니다. 브라우저에서 쿠키를 다시 내보내주세요.'
+                        : 'cookies.txt 파일이 없습니다. 쿠키 파일을 추가해주세요.';
+                    banner.classList.remove('hidden');
+                    lucide.createIcons();
+                } else {
+                    banner.classList.add('hidden');
+                }
+            } catch (error) {
+                console.error('Cookie status check failed:', error);
+            }
+        }
+
+        async function recheckCookies() {
+            try {
+                const response = await fetch(`${API_BASE}/api/cookie/refresh-check`, { method: 'POST' });
+                const result = await response.json();
+                if (result.valid) {
+                    document.getElementById('cookie-warning').classList.add('hidden');
+                    showNotification('성공', '쿠키가 유효합니다!', 'success');
+                } else {
+                    showNotification('경고', result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('오류', '쿠키 확인 중 오류 발생', 'error');
+            }
+        }
+
+        async function extractCookies() {
+            const btn = document.getElementById('cookie-extract-btn');
+            const originalText = btn.textContent;
+            btn.textContent = '추출 중...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/cookie/extract`, {
+                    method: 'POST',
+                });
+                const result = await response.json();
+
+                if (result.success && result.valid) {
+                    document.getElementById('cookie-warning').classList.add('hidden');
+                    showNotification('성공', '브라우저에서 쿠키 추출 및 검증 완료!', 'success');
+                    cookieWarningDismissed = false;
+                } else if (result.success && !result.valid) {
+                    showNotification('경고', '쿠키가 추출되었지만 유효하지 않습니다.', 'error');
+                } else {
+                    // 추출 실패 (Docker 등) → 파일 업로드 안내
+                    showNotification('안내', 'Docker 환경에서는 자동 추출이 불가합니다. refresh_cookies.bat을 실행하거나 파일을 직접 업로드해주세요.', 'error');
+                }
+            } catch (error) {
+                showNotification('오류', '쿠키 추출 중 오류 발생', 'error');
+            } finally {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function uploadCookieFile(input) {
+            if (!input.files || !input.files[0]) return;
+            const file = input.files[0];
+
+            // Disable button and show uploading state
+            const uploadBtn = document.getElementById('cookie-upload-btn');
+            const originalText = uploadBtn.textContent;
+            uploadBtn.textContent = '검증 중...';
+            uploadBtn.disabled = true;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${API_BASE}/api/cookie/upload`, {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.detail || '업로드 실패');
+                }
+
+                if (result.valid) {
+                    document.getElementById('cookie-warning').classList.add('hidden');
+                    showNotification('성공', `쿠키 업로드 완료! (${result.cookie_count}개 항목, 유효)`, 'success');
+                    cookieWarningDismissed = false;
+                } else {
+                    showNotification('경고', `쿠키가 업로드되었지만 유효하지 않습니다: ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showNotification('오류', error.message || '쿠키 업로드 중 오류 발생', 'error');
+            } finally {
+                uploadBtn.textContent = originalText;
+                uploadBtn.disabled = false;
+                input.value = ''; // Reset file input
+            }
+        }
+
+        function dismissCookieWarning() {
+            document.getElementById('cookie-warning').classList.add('hidden');
+            cookieWarningDismissed = true;
+            // 10분 후 다시 표시 허용
+            setTimeout(() => { cookieWarningDismissed = false; }, 600000);
+        }
+
         function showNotification(title, message, type = 'success') {
             const notification = document.getElementById('notification');
             const notificationTitle = document.getElementById('notification-title');

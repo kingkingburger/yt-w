@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional, Any
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, UploadFile, File
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -12,6 +12,7 @@ from .multi_channel_monitor import MultiChannelMonitor
 from .util.sanitize_url import sanitize_youtube_url
 from .video_downloader import VideoDownloader
 from .file_cleaner import FileCleaner
+from .cookie_helper import validate_cookies, invalidate_cookie_cache, extract_cookies_from_browser
 from .logger import Logger
 
 
@@ -421,6 +422,125 @@ class WebAPI:
             except Exception as e:
                 self.logger.error(f"File download error: {e}")
                 raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.get("/api/cookie/status")
+        async def get_cookie_status(force: bool = False):
+            """Check if YouTube cookies are valid."""
+            try:
+                result = await asyncio.to_thread(validate_cookies, force)
+                if not result["valid"]:
+                    self.logger.warning(f"쿠키 상태: {result['message']}")
+                return result
+            except Exception as e:
+                self.logger.error(f"Cookie validation error: {e}")
+                return {
+                    "valid": False,
+                    "has_cookies": False,
+                    "message": f"검증 오류: {str(e)[:100]}",
+                    "checked_at": 0,
+                    "cached": False,
+                }
+
+        @self.app.post("/api/cookie/refresh-check")
+        async def refresh_cookie_check():
+            """Force re-check cookie validity (after user updates cookies.txt)."""
+            try:
+                invalidate_cookie_cache()
+                result = await asyncio.to_thread(validate_cookies, True)
+                if result["valid"]:
+                    self.logger.info("쿠키 갱신 확인됨 — 유효한 상태")
+                else:
+                    self.logger.warning(f"쿠키 갱신 후에도 무효: {result['message']}")
+                return result
+            except Exception as e:
+                self.logger.error(f"Cookie refresh check error: {e}")
+                return {
+                    "valid": False,
+                    "has_cookies": False,
+                    "message": f"검증 오류: {str(e)[:100]}",
+                    "checked_at": 0,
+                    "cached": False,
+                }
+
+        @self.app.post("/api/cookie/upload")
+        async def upload_cookies(file: UploadFile = File(...)):
+            """Upload a new cookies.txt file, replace existing, and validate."""
+            try:
+                content = await file.read()
+                text = content.decode("utf-8")
+
+                # Basic validation: check Netscape cookie format
+                lines = text.strip().splitlines()
+                cookie_lines = [
+                    line for line in lines
+                    if line.strip() and not line.startswith("#")
+                ]
+                if not cookie_lines:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="유효한 쿠키가 없습니다. Netscape 형식의 cookies.txt 파일을 업로드해주세요.",
+                    )
+
+                # Write to cookies.txt
+                cookie_path = Path("./cookies.txt")
+                cookie_path.write_text(text, encoding="utf-8")
+                self.logger.info(
+                    f"쿠키 파일 업로드됨: {len(cookie_lines)}개 쿠키 항목"
+                )
+
+                # Invalidate cache and validate
+                invalidate_cookie_cache()
+                result = await asyncio.to_thread(validate_cookies, True)
+
+                if result["valid"]:
+                    self.logger.info("업로드된 쿠키 검증 성공")
+                else:
+                    self.logger.warning(
+                        f"업로드된 쿠키 검증 실패: {result['message']}"
+                    )
+
+                return {
+                    "uploaded": True,
+                    "cookie_count": len(cookie_lines),
+                    **result,
+                }
+
+            except HTTPException:
+                raise
+            except UnicodeDecodeError:
+                raise HTTPException(
+                    status_code=400,
+                    detail="파일을 읽을 수 없습니다. UTF-8 텍스트 파일이어야 합니다.",
+                )
+            except Exception as e:
+                self.logger.error(f"Cookie upload error: {e}")
+                raise HTTPException(status_code=500, detail=str(e))
+
+        @self.app.post("/api/cookie/extract")
+        async def extract_cookies(browser: str = "firefox"):
+            """Extract cookies directly from a local browser."""
+            try:
+                self.logger.info(f"브라우저 쿠키 추출 시작: {browser}")
+                result = await asyncio.to_thread(
+                    extract_cookies_from_browser, browser
+                )
+
+                if result["success"]:
+                    self.logger.info(f"쿠키 추출 성공: {browser}")
+                    # Validate the extracted cookies
+                    validation = await asyncio.to_thread(validate_cookies, True)
+                    return {**result, **validation}
+                else:
+                    self.logger.warning(f"쿠키 추출 실패: {result['message']}")
+                    return {**result, "valid": False}
+
+            except Exception as e:
+                self.logger.error(f"Cookie extract error: {e}")
+                return {
+                    "success": False,
+                    "message": f"추출 오류: {str(e)[:100]}",
+                    "valid": False,
+                }
 
         @self.app.get("/api/cleanup/status")
         async def get_cleanup_status():

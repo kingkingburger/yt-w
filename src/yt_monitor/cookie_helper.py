@@ -3,12 +3,19 @@
 import os
 import shutil
 import tempfile
-from typing import Dict, Any, List
+import time
+from typing import Dict, Any, List, Optional
 
 
 _REMOTE_COMPONENTS: List[str] = ["ejs:github"]
 _COOKIE_SOURCE_PATH: str = os.environ.get("YT_COOKIES_FILE", "./cookies.txt")
+_POT_PROVIDER_URL: str = os.environ.get("YT_POT_PROVIDER_URL", "")
 _cookie_temp_path: str = ""
+
+# Cookie validation cache
+_cookie_valid: Optional[bool] = None
+_cookie_checked_at: float = 0.0
+_COOKIE_CHECK_INTERVAL: float = 300.0  # 5 minutes
 
 
 def _is_docker() -> bool:
@@ -69,6 +76,12 @@ def get_cookie_options() -> Dict[str, Any]:
     if _is_docker():
         base_options["js_runtimes"] = {"node": {}}
 
+    # PO Token provider: bypass YouTube bot detection without cookies
+    if _POT_PROVIDER_URL:
+        base_options["extractor_args"] = {
+            "youtubepot-bgutilhttp": {"base_url": [_POT_PROVIDER_URL]},
+        }
+
     # Docker environment: use temp copy of cookies.txt (prevents overwrite)
     if _is_docker():
         writable_path = _get_writable_cookie_path()
@@ -83,3 +96,162 @@ def get_cookie_options() -> Dict[str, Any]:
     # Fallback: use browser cookies directly
     browser = os.environ.get("YT_COOKIE_BROWSER", "firefox")
     return {**base_options, "cookiesfrombrowser": (browser,)}
+
+
+def validate_cookies(force: bool = False) -> Dict[str, Any]:
+    """
+    Validate YouTube cookies by making a lightweight extraction request.
+
+    Uses a cached result for 5 minutes to avoid hammering YouTube.
+
+    Args:
+        force: If True, bypass the cache and check immediately
+
+    Returns:
+        Dictionary with 'valid' (bool), 'message' (str), and 'has_cookies' (bool)
+    """
+    global _cookie_valid, _cookie_checked_at
+
+    # Return cached result if recent enough
+    now = time.time()
+    if not force and _cookie_valid is not None:
+        if (now - _cookie_checked_at) < _COOKIE_CHECK_INTERVAL:
+            return {
+                "valid": _cookie_valid,
+                "has_cookies": os.path.exists(_COOKIE_SOURCE_PATH),
+                "message": "쿠키 유효" if _cookie_valid else "쿠키 만료됨 — 브라우저에서 다시 내보내세요",
+                "checked_at": _cookie_checked_at,
+                "cached": True,
+            }
+
+    # Check if cookies.txt exists at all
+    if not os.path.exists(_COOKIE_SOURCE_PATH):
+        _cookie_valid = False
+        _cookie_checked_at = now
+        return {
+            "valid": False,
+            "has_cookies": False,
+            "message": "cookies.txt 파일이 없습니다",
+            "checked_at": now,
+            "cached": False,
+        }
+
+    # Try a lightweight yt-dlp extraction to validate cookies
+    try:
+        import yt_dlp
+
+        cookie_opts = get_cookie_options()
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "extract_flat": True,
+            "socket_timeout": 15,
+            **cookie_opts,
+        }
+
+        # Use a known public video for validation
+        test_url = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(test_url, download=False)
+
+        if info and info.get("title"):
+            _cookie_valid = True
+            _cookie_checked_at = now
+            return {
+                "valid": True,
+                "has_cookies": True,
+                "message": "쿠키 유효",
+                "checked_at": now,
+                "cached": False,
+            }
+
+        _cookie_valid = False
+        _cookie_checked_at = now
+        return {
+            "valid": False,
+            "has_cookies": True,
+            "message": "쿠키 만료됨 — 브라우저에서 다시 내보내세요",
+            "checked_at": now,
+            "cached": False,
+        }
+
+    except Exception as error:
+        error_message = str(error)
+        _cookie_valid = False
+        _cookie_checked_at = now
+
+        if "Sign in to confirm" in error_message or "cookies" in error_message.lower():
+            message = "쿠키 만료됨 — 브라우저에서 다시 내보내세요"
+        else:
+            message = f"쿠키 검증 실패: {error_message[:100]}"
+
+        return {
+            "valid": False,
+            "has_cookies": True,
+            "message": message,
+            "checked_at": now,
+            "cached": False,
+        }
+
+
+def invalidate_cookie_cache() -> None:
+    """Reset the cookie validation cache so the next check is fresh."""
+    global _cookie_valid, _cookie_checked_at
+    _cookie_valid = None
+    _cookie_checked_at = 0.0
+
+
+def extract_cookies_from_browser(browser: str = "firefox") -> Dict[str, Any]:
+    """
+    Extract cookies from a local browser using yt-dlp and save to cookies.txt.
+
+    This only works when running locally (not in Docker) because the browser
+    must be installed on the same machine.
+
+    Args:
+        browser: Browser to extract from (firefox, chrome, edge, brave)
+
+    Returns:
+        Dictionary with 'success' (bool) and 'message' (str)
+    """
+    try:
+        import yt_dlp
+
+        test_url = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        ydl_opts = {
+            "quiet": True,
+            "no_warnings": True,
+            "skip_download": True,
+            "extract_flat": True,
+            "cookiesfrombrowser": (browser,),
+            "cookiefile": _COOKIE_SOURCE_PATH,
+        }
+
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.extract_info(test_url, download=False)
+
+        # Invalidate cache after fresh extraction
+        invalidate_cookie_cache()
+
+        return {
+            "success": True,
+            "message": f"{browser}에서 쿠키 추출 완료",
+            "browser": browser,
+        }
+
+    except Exception as error:
+        error_message = str(error)
+
+        if "could not find" in error_message.lower() or "no browser" in error_message.lower():
+            message = f"{browser} 브라우저를 찾을 수 없습니다. Docker 환경에서는 파일 업로드를 사용해주세요."
+        elif "permission" in error_message.lower():
+            message = f"{browser} 쿠키 접근 권한이 없습니다. 브라우저를 닫고 다시 시도해주세요."
+        else:
+            message = f"쿠키 추출 실패: {error_message[:150]}"
+
+        return {
+            "success": False,
+            "message": message,
+            "browser": browser,
+        }
