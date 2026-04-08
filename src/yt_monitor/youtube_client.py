@@ -46,6 +46,17 @@ class YouTubeClient:
 
         return False, None
 
+    @staticmethod
+    def _is_entry_live(entry: dict) -> bool:
+        """Check if a playlist entry represents a currently live stream.
+
+        yt-dlp uses 'is_live' for full extraction but 'live_status' for
+        extract_flat mode. Both must be checked.
+        """
+        if entry.get("is_live", False):
+            return True
+        return entry.get("live_status") == "is_live"
+
     def _check_live_endpoint(self, channel_url: str) -> Optional[LiveStreamInfo]:
         live_url = channel_url.rstrip("/") + "/live"
 
@@ -92,7 +103,7 @@ class YouTubeClient:
                     if not entry or "id" not in entry:
                         continue
 
-                    if entry.get("is_live", False):
+                    if self._is_entry_live(entry):
                         video_id = entry.get("id")
                         title = entry.get("title")
                         self.logger.info(f"Live stream found in /streams: {video_id}")
@@ -122,7 +133,7 @@ class YouTubeClient:
                     if not entry or "id" not in entry:
                         continue
 
-                    if entry.get("is_live", False):
+                    if self._is_entry_live(entry):
                         video_id = entry.get("id")
                         title = entry.get("title")
                         self.logger.info(
