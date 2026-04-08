@@ -162,9 +162,14 @@ class StreamDownloader:
                 output_pattern,
             ]
 
-        result = subprocess.run(cmd)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
-            raise Exception("FFmpeg segmented download failed")
+            self.logger.error(
+                f"FFmpeg failed (exit {result.returncode}): {result.stderr[-2000:]}"
+            )
+            raise Exception(
+                f"FFmpeg segmented download failed (rc={result.returncode})"
+            )
 
     def _perform_download(self, stream_url: str, ydl_opts: dict):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:

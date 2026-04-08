@@ -3,6 +3,7 @@
 import os
 import shutil
 import tempfile
+import threading
 import time
 from typing import Dict, Any, List, Optional
 
@@ -16,6 +17,9 @@ _cookie_temp_path: str = ""
 _cookie_valid: Optional[bool] = None
 _cookie_checked_at: float = 0.0
 _COOKIE_CHECK_INTERVAL: float = 300.0  # 5 minutes
+
+# Thread safety for shared mutable state
+_lock: threading.Lock = threading.Lock()
 
 
 def _is_docker() -> bool:
@@ -36,22 +40,23 @@ def _get_writable_cookie_path() -> str:
     """
     global _cookie_temp_path
 
-    if not os.path.exists(_COOKIE_SOURCE_PATH):
-        return ""
+    with _lock:
+        if not os.path.exists(_COOKIE_SOURCE_PATH):
+            return ""
 
-    # Reuse existing temp file if source hasn't changed
-    if _cookie_temp_path and os.path.exists(_cookie_temp_path):
-        source_mtime = os.path.getmtime(_COOKIE_SOURCE_PATH)
-        temp_mtime = os.path.getmtime(_cookie_temp_path)
-        if source_mtime <= temp_mtime:
-            return _cookie_temp_path
+        # Reuse existing temp file if source hasn't changed
+        if _cookie_temp_path and os.path.exists(_cookie_temp_path):
+            source_mtime = os.path.getmtime(_COOKIE_SOURCE_PATH)
+            temp_mtime = os.path.getmtime(_cookie_temp_path)
+            if source_mtime <= temp_mtime:
+                return _cookie_temp_path
 
-    # Create fresh temp copy from original
-    temp_fd, temp_path = tempfile.mkstemp(suffix="_cookies.txt")
-    os.close(temp_fd)
-    shutil.copy2(_COOKIE_SOURCE_PATH, temp_path)
-    _cookie_temp_path = temp_path
-    return temp_path
+        # Create fresh temp copy from original
+        temp_fd, temp_path = tempfile.mkstemp(suffix="_cookies.txt")
+        os.close(temp_fd)
+        shutil.copy2(_COOKIE_SOURCE_PATH, temp_path)
+        _cookie_temp_path = temp_path
+        return temp_path
 
 
 def get_cookie_options() -> Dict[str, Any]:
@@ -114,15 +119,16 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
 
     # Return cached result if recent enough
     now = time.time()
-    if not force and _cookie_valid is not None:
-        if (now - _cookie_checked_at) < _COOKIE_CHECK_INTERVAL:
-            return {
-                "valid": _cookie_valid,
-                "has_cookies": os.path.exists(_COOKIE_SOURCE_PATH),
-                "message": "쿠키 유효" if _cookie_valid else "쿠키 만료됨 — 브라우저에서 다시 내보내세요",
-                "checked_at": _cookie_checked_at,
-                "cached": True,
-            }
+    with _lock:
+        if not force and _cookie_valid is not None:
+            if (now - _cookie_checked_at) < _COOKIE_CHECK_INTERVAL:
+                return {
+                    "valid": _cookie_valid,
+                    "has_cookies": os.path.exists(_COOKIE_SOURCE_PATH),
+                    "message": "쿠키 유효" if _cookie_valid else "쿠키 만료됨 — 브라우저에서 다시 내보내세요",
+                    "checked_at": _cookie_checked_at,
+                    "cached": True,
+                }
 
     # Check if cookies.txt exists at all
     if not os.path.exists(_COOKIE_SOURCE_PATH):
@@ -198,8 +204,9 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
 def invalidate_cookie_cache() -> None:
     """Reset the cookie validation cache so the next check is fresh."""
     global _cookie_valid, _cookie_checked_at
-    _cookie_valid = None
-    _cookie_checked_at = 0.0
+    with _lock:
+        _cookie_valid = None
+        _cookie_checked_at = 0.0
 
 
 def extract_cookies_from_browser(browser: str = "firefox") -> Dict[str, Any]:
