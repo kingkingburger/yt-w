@@ -78,6 +78,15 @@ class StreamDownloader:
             ],
         }
 
+    @staticmethod
+    def _build_ffmpeg_headers(info: dict) -> list[str]:
+        """Extract HTTP headers from yt-dlp info and format for ffmpeg."""
+        http_headers = info.get("http_headers", {})
+        if not http_headers:
+            return []
+        header_str = "".join(f"{k}: {v}\r\n" for k, v in http_headers.items())
+        return ["-headers", header_str]
+
     def _download_with_realtime_split(self, stream_url: str, output_pattern: str):
         # 분할 시간 계산
         if self.split_mode == "time":
@@ -99,15 +108,21 @@ class StreamDownloader:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(stream_url, download=False)
 
+        header_args = self._build_ffmpeg_headers(info)
+
         if "requested_formats" in info:
             # 비디오 + 오디오 분리된 경우
             video_url = info["requested_formats"][0]["url"]
             audio_url = info["requested_formats"][1]["url"]
+            video_headers = self._build_ffmpeg_headers(info["requested_formats"][0])
+            audio_headers = self._build_ffmpeg_headers(info["requested_formats"][1])
 
             cmd = [
                 "ffmpeg",
+                *video_headers,
                 "-i",
                 video_url,
+                *audio_headers,
                 "-i",
                 audio_url,
                 "-c",
@@ -129,6 +144,7 @@ class StreamDownloader:
             direct_url = info["url"]
             cmd = [
                 "ffmpeg",
+                *header_args,
                 "-i",
                 direct_url,
                 "-c",
