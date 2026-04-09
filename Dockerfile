@@ -27,5 +27,9 @@ COPY cookies.tx[t] ./
 # Expose port for web server (configurable via YT_WEB_PORT env)
 EXPOSE 8088
 
+# Health check for yt-web container (wget available in Alpine by default)
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget -q --spider http://localhost:${YT_WEB_PORT:-8011}/health || exit 1
+
 # Default command: run web server
 CMD ["uv", "run", "python", "main.py"]

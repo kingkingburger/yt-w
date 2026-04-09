@@ -8,6 +8,8 @@ import time
 from typing import Dict, Any, List, Optional
 
 
+from .discord_notifier import get_notifier
+
 _REMOTE_COMPONENTS: List[str] = ["ejs:github"]
 _COOKIE_SOURCE_PATH: str = os.environ.get("YT_COOKIES_FILE", "./cookies.txt")
 _POT_PROVIDER_URL: str = os.environ.get("YT_POT_PROVIDER_URL", "")
@@ -134,6 +136,7 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
     if not os.path.exists(_COOKIE_SOURCE_PATH):
         _cookie_valid = False
         _cookie_checked_at = now
+        get_notifier().notify_cookie_expired(message="cookies.txt 파일이 없습니다")
         return {
             "valid": False,
             "has_cookies": False,
@@ -174,6 +177,7 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
 
         _cookie_valid = False
         _cookie_checked_at = now
+        get_notifier().notify_cookie_expired(message="쿠키 만료됨 — 브라우저에서 다시 내보내세요")
         return {
             "valid": False,
             "has_cookies": True,
@@ -192,6 +196,7 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
         else:
             message = f"쿠키 검증 실패: {error_message[:100]}"
 
+        get_notifier().notify_cookie_expired(message=message)
         return {
             "valid": False,
             "has_cookies": True,

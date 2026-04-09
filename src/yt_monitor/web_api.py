@@ -109,6 +109,11 @@ class WebAPI:
     def _setup_routes(self):
         """Setup API routes."""
 
+        @self.app.get("/health")
+        async def health_check():
+            """Docker healthcheck용 엔드포인트."""
+            return {"status": "ok"}
+
         @self.app.get("/")
         async def root():
             """Serve the web interface."""

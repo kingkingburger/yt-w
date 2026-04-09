@@ -15,6 +15,10 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 - 채널별 다운로드 포맷 설정
 - 실시간 영상 분할 (시간/크기 기준)
 
+### Discord 알림
+- 라이브 감지 / 다운로드 완료·실패 / 쿠키 만료 / 모니터 시작·종료 알림
+- `.env`에 Webhook URL 설정만으로 활성화 (외부 라이브러리 불필요)
+
 ### 일반 동영상 다운로드
 - 화질 선택 (2160p ~ 360p)
 - 오디오 전용 다운로드 (MP3)
@@ -25,8 +29,24 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 - **Python 3.13** + **uv** (패키지 매니저)
 - **FastAPI** + **Uvicorn** (웹 서버)
 - **yt-dlp** (YouTube 다운로드 엔진)
+- **Node.js** (yt-dlp JavaScript challenge solver)
 - **ffmpeg** (비디오 변환)
 - **Docker Compose** (배포)
+
+## 환경변수 (.env)
+
+| 변수 | 설명 | 기본값 |
+|------|------|--------|
+| `DISCORD_WEBHOOK_URL` | Discord 알림 Webhook URL | (미설정 시 알림 비활성화) |
+| `YT_WEB_PORT` | 웹 서버 내부 포트 | `8011` |
+| `YT_POT_PROVIDER_URL` | PO Token provider 주소 | `http://pot-provider:4416` |
+| `YT_COOKIES_FILE` | 쿠키 파일 경로 | `./cookies.txt` |
+
+```bash
+cp .env.example .env
+# DISCORD_WEBHOOK_URL= 에 Discord Webhook URL 입력
+# Discord 서버 설정 → 연동 → 웹후크 → 새 웹후크 → URL 복사
+```
 
 ## 빠른 시작
 
@@ -62,12 +82,27 @@ python monitoring.py
 |--------|------|------|
 | `yt-web` | 웹 API + UI | 8088 (외부) → 8011 (내부) |
 | `yt-monitor` | 채널 모니터링 데몬 | - |
+| `pot-provider` | PO Token provider (YouTube 봇 감지 우회) | - |
 
 ```bash
 docker compose ps          # 상태 확인
 docker compose logs -f     # 실시간 로그
 docker compose down        # 정지
 docker compose up -d --build  # 재빌드 + 실행
+```
+
+### Healthcheck
+
+`yt-web`은 `/health` 엔드포인트, `yt-monitor`는 프로세스 생존 여부로 상태를 확인합니다.
+
+```bash
+# 헬스 상태 확인
+docker inspect --format='{{.State.Health.Status}}' yt-web
+docker inspect --format='{{.State.Health.Status}}' yt-monitor
+
+# 직접 확인
+curl http://localhost:8088/health
+# → {"status": "ok"}
 ```
 
 ## CLI 사용법
@@ -135,9 +170,19 @@ python main.py --cleanup --days 14    # 보관 기간 변경
 | `split_time_minutes` | 시간 분할 단위 (분) | 30 |
 | `split_size_mb` | 크기 분할 단위 (MB) | 500 |
 
-### 쿠키 인증
+### 쿠키 인증 및 봇 감지 우회
 
-YouTube 봇 차단 우회를 위해 `cookies.txt` 파일이 필요할 수 있습니다.
+YouTube 봇 차단 우회를 위해 두 가지 방식을 지원합니다.
+
+**1. PO Token Provider (권장)**
+- `pot-provider` 컨테이너가 PO Token을 자동으로 제공
+- Docker Compose로 자동 실행됨 (별도 설정 불필요)
+- 환경변수: `YT_POT_PROVIDER_URL=http://pot-provider:4416`
+
+**2. 쿠키 파일 (선택사항)**
+- `cookies.txt` 파일을 프로젝트 루트에 배치
+- Docker: 자동으로 마운트됨
+- 로컬: 환경변수 `YT_COOKIES_FILE` 설정 가능
 
 ## 프로젝트 구조
 
@@ -151,6 +196,7 @@ yt-w/
 │   ├── stream_downloader.py     # 라이브 스트림 다운로더
 │   ├── video_downloader.py      # 일반 동영상 다운로더
 │   ├── file_cleaner.py          # 자동 파일 정리
+│   ├── discord_notifier.py      # Discord Webhook 알림
 │   ├── cookie_helper.py         # 쿠키 인증 헬퍼
 │   ├── logger.py                # 로깅 (일별 로테이션)
 │   └── util/
@@ -162,7 +208,9 @@ yt-w/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── channels.json                # 채널 설정
-└── channels.example.json        # 예제 설정
+├── channels.example.json        # 예제 설정
+├── refresh_cookies.bat          # 쿠키 새로고침 (대화형)
+└── update_cookies.bat           # 쿠키 새로고침 (스케줄러용)
 ```
 
 ## 다운로드 파일 구조
@@ -185,7 +233,8 @@ downloads/
 | ffmpeg not found | `apt install ffmpeg` 또는 [다운로드](https://ffmpeg.org/download.html) |
 | 라이브 감지 안됨 | 채널 URL 확인, `check_interval_seconds` 조정 |
 | 다운로드 실패 | `docker compose logs -f` 확인, `uv add yt-dlp --upgrade` |
-| 봇 차단 | `cookies.txt` 갱신 필요 |
+| 봇 차단 | PO Token provider 실행 확인 (`docker compose logs pot-provider`), 또는 `cookies.txt` 갱신 |
+| Discord 알림 안 옴 | `.env`의 `DISCORD_WEBHOOK_URL` 확인, Webhook URL 유효성 확인 |
 
 ## 개발
 

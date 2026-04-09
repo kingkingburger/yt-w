@@ -8,6 +8,7 @@ from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
 from .multi_channel_monitor import MultiChannelMonitor
 from .web_api import WebAPI
 from .file_cleaner import FileCleaner
+from .discord_notifier import DiscordNotifier, get_notifier
 
 __all__ = [
     "Logger",
@@ -20,4 +21,6 @@ __all__ = [
     "MultiChannelMonitor",
     "WebAPI",
     "FileCleaner",
+    "DiscordNotifier",
+    "get_notifier",
 ]

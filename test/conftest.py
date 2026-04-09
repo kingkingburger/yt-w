@@ -5,6 +5,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Generator
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -60,6 +61,17 @@ def temp_channels_file(temp_dir: Path) -> Path:
     with open(channels_file, "w", encoding="utf-8") as f:
         json.dump(default_data, f)
     return channels_file
+
+
+@pytest.fixture
+def discord_mock_urlopen():
+    """Discord Webhook urlopen mock — urllib 호출을 가로채는 공용 fixture."""
+    mock_response = MagicMock()
+    mock_response.headers = {}
+    mock_response.__enter__ = lambda s: mock_response
+    mock_response.__exit__ = MagicMock(return_value=False)
+    with patch("urllib.request.urlopen", return_value=mock_response) as mock_open:
+        yield mock_open
 
 
 @pytest.fixture

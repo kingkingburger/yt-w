@@ -1,5 +1,6 @@
 """Multi-channel live stream monitor module."""
 
+import signal
 import time
 import threading
 from typing import Dict, Optional
@@ -7,6 +8,7 @@ from pathlib import Path
 
 from . import StreamDownloader
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
+from .discord_notifier import get_notifier
 from .logger import Logger
 from .youtube_client import YouTubeClient
 
@@ -93,6 +95,10 @@ class ChannelMonitorThread:
                 self._monitor_cycle()
             except Exception as e:
                 self.logger.error(f"Error monitoring {self.channel.name}: {e}")
+                get_notifier().notify_error(
+                    channel_name=self.channel.name,
+                    error_message=str(e),
+                )
 
             time.sleep(self.global_settings.check_interval_seconds)
 
@@ -120,6 +126,13 @@ class ChannelMonitorThread:
         """
         self.logger.info(f"[{self.channel.name}] Live stream detected: {stream_url}")
         self.is_downloading = True
+        notifier = get_notifier()
+
+        notifier.notify_live_detected(
+            channel_name=self.channel.name,
+            stream_url=stream_url,
+            title=title,
+        )
 
         try:
             success = self.downloader.download(
@@ -128,8 +141,23 @@ class ChannelMonitorThread:
 
             if success:
                 self.logger.info(f"[{self.channel.name}] Download finished")
+                notifier.notify_download_complete(
+                    channel_name=self.channel.name,
+                    title=title,
+                )
             else:
                 self.logger.warning(f"[{self.channel.name}] Download failed")
+                notifier.notify_download_failed(
+                    channel_name=self.channel.name,
+                    error_message="다운로드가 실패했습니다 (success=False)",
+                )
+
+        except Exception as e:
+            notifier.notify_download_failed(
+                channel_name=self.channel.name,
+                error_message=str(e),
+            )
+            raise
 
         finally:
             self.is_downloading = False
@@ -185,6 +213,15 @@ class MultiChannelMonitor:
             self.monitor_threads[channel.id] = monitor_thread
 
         self.logger.info("All channel monitors started")
+        get_notifier().notify_monitor_started(channel_count=len(channels))
+
+        # SIGTERM handler (docker stop / systemd stop)
+        def handle_sigterm(signum: int, frame: object) -> None:
+            self.logger.info("Received SIGTERM signal")
+            get_notifier().notify_monitor_stopped(reason="docker stop (SIGTERM)")
+            self.stop()
+
+        signal.signal(signal.SIGTERM, handle_sigterm)
 
         # Keep main thread alive
         try:
@@ -192,6 +229,7 @@ class MultiChannelMonitor:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.logger.info("Received shutdown signal")
+            get_notifier().notify_monitor_stopped(reason="shutdown signal")
             self.stop()
 
     def stop(self) -> None:
