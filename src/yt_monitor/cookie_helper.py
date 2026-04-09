@@ -136,8 +136,9 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
 
     # Check if cookies.txt exists at all
     if not os.path.exists(_COOKIE_SOURCE_PATH):
-        _cookie_valid = False
-        _cookie_checked_at = now
+        with _lock:
+            _cookie_valid = False
+            _cookie_checked_at = now
         get_notifier().notify_cookie_expired(message="cookies.txt 파일이 없습니다")
         return {
             "valid": False,
@@ -167,8 +168,9 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
             info = ydl.extract_info(test_url, download=False)
 
         if info and info.get("title"):
-            _cookie_valid = True
-            _cookie_checked_at = now
+            with _lock:
+                _cookie_valid = True
+                _cookie_checked_at = now
             return {
                 "valid": True,
                 "has_cookies": True,
@@ -177,8 +179,9 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
                 "cached": False,
             }
 
-        _cookie_valid = False
-        _cookie_checked_at = now
+        with _lock:
+            _cookie_valid = False
+            _cookie_checked_at = now
         get_notifier().notify_cookie_expired(message="쿠키 만료됨 — 브라우저에서 다시 내보내세요")
         return {
             "valid": False,
@@ -190,8 +193,9 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
 
     except Exception as error:
         error_message = str(error)
-        _cookie_valid = False
-        _cookie_checked_at = now
+        with _lock:
+            _cookie_valid = False
+            _cookie_checked_at = now
 
         if "Sign in to confirm" in error_message or "cookies" in error_message.lower():
             message = "쿠키 만료됨 — 브라우저에서 다시 내보내세요"
