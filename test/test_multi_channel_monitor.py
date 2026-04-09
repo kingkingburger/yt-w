@@ -13,29 +13,29 @@ from src.yt_monitor.multi_channel_monitor import (
 from src.yt_monitor.youtube_client import LiveStreamInfo
 
 
+@pytest.fixture
+def sample_channel() -> ChannelDTO:
+    return ChannelDTO(
+        id="test-channel-id",
+        name="Test Channel",
+        url="https://www.youtube.com/@TestChannel",
+        enabled=True,
+    )
+
+
+@pytest.fixture
+def global_settings(temp_dir: Path) -> GlobalSettingsDTO:
+    return GlobalSettingsDTO(
+        check_interval_seconds=1,
+        download_directory=str(temp_dir / "downloads"),
+        log_file=str(temp_dir / "test.log"),
+        split_mode="time",
+        split_time_minutes=30,
+    )
+
+
 class TestChannelMonitorThread:
     """Test cases for ChannelMonitorThread class."""
-
-    @pytest.fixture
-    def sample_channel(self) -> ChannelDTO:
-        """Create sample channel for testing."""
-        return ChannelDTO(
-            id="test-channel-id",
-            name="Test Channel",
-            url="https://www.youtube.com/@TestChannel",
-            enabled=True,
-        )
-
-    @pytest.fixture
-    def global_settings(self, temp_dir: Path) -> GlobalSettingsDTO:
-        """Create global settings for testing."""
-        return GlobalSettingsDTO(
-            check_interval_seconds=1,
-            download_directory=str(temp_dir / "downloads"),
-            log_file=str(temp_dir / "test.log"),
-            split_mode="time",
-            split_time_minutes=30,
-        )
 
     @pytest.fixture
     def mock_youtube_client(self) -> MagicMock:
@@ -427,22 +427,6 @@ class TestMultiChannelMonitor:
 
 class TestChannelMonitorThreadNotifications:
     """알림 호출 검증 — 라이브 감지/다운로드/에러 이벤트가 Discord에 전송되는지."""
-
-    @pytest.fixture
-    def sample_channel(self) -> ChannelDTO:
-        return ChannelDTO(
-            id="test-channel-id",
-            name="Test Channel",
-            url="https://www.youtube.com/@TestChannel",
-        )
-
-    @pytest.fixture
-    def global_settings(self, temp_dir: Path) -> GlobalSettingsDTO:
-        return GlobalSettingsDTO(
-            check_interval_seconds=1,
-            download_directory=str(temp_dir / "downloads"),
-            log_file=str(temp_dir / "test.log"),
-        )
 
     @pytest.fixture
     def monitor_thread(

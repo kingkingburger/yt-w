@@ -4,10 +4,12 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import threading
+import time
+from datetime import datetime
 from pathlib import Path
 import asyncio
 
-from .channel_manager import ChannelManager
+from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
 from .multi_channel_monitor import MultiChannelMonitor
 from .util.sanitize_url import sanitize_youtube_url
 from .video_downloader import VideoDownloader
@@ -68,6 +70,27 @@ class CleanupRequest(BaseModel):
     dry_run: bool = False
 
 
+def _channel_to_dict(channel: ChannelDTO) -> Dict[str, Any]:
+    return {
+        "id": channel.id,
+        "name": channel.name,
+        "url": channel.url,
+        "enabled": channel.enabled,
+        "download_format": channel.download_format,
+    }
+
+
+def _settings_to_dict(settings: GlobalSettingsDTO) -> Dict[str, Any]:
+    return {
+        "check_interval_seconds": settings.check_interval_seconds,
+        "download_directory": settings.download_directory,
+        "log_file": settings.log_file,
+        "split_mode": settings.split_mode,
+        "split_time_minutes": settings.split_time_minutes,
+        "split_size_mb": settings.split_size_mb,
+    }
+
+
 class WebAPI:
     """Web API for YouTube Live Stream Monitor."""
 
@@ -126,16 +149,7 @@ class WebAPI:
         async def list_channels(enabled_only: bool = False):
             """Get list of all channels."""
             channels = self.channel_manager.list_channels(enabled_only=enabled_only)
-            return [
-                {
-                    "id": ch.id,
-                    "name": ch.name,
-                    "url": ch.url,
-                    "enabled": ch.enabled,
-                    "download_format": ch.download_format,
-                }
-                for ch in channels
-            ]
+            return [_channel_to_dict(ch) for ch in channels]
 
         @self.app.get("/api/channels/{channel_id}", response_model=Dict[str, Any])
         async def get_channel(channel_id: str):
@@ -144,13 +158,7 @@ class WebAPI:
             if not channel:
                 raise HTTPException(status_code=404, detail="Channel not found")
 
-            return {
-                "id": channel.id,
-                "name": channel.name,
-                "url": channel.url,
-                "enabled": channel.enabled,
-                "download_format": channel.download_format,
-            }
+            return _channel_to_dict(channel)
 
         @self.app.post("/api/channels", response_model=Dict[str, Any])
         async def create_channel(channel: ChannelCreateRequest):
@@ -170,13 +178,7 @@ class WebAPI:
                 if self.monitor and self.monitor.is_running and new_channel.enabled:
                     self.monitor.add_channel_and_start_monitoring(new_channel)
 
-                return {
-                    "id": new_channel.id,
-                    "name": new_channel.name,
-                    "url": new_channel.url,
-                    "enabled": new_channel.enabled,
-                    "download_format": new_channel.download_format,
-                }
+                return _channel_to_dict(new_channel)
 
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
@@ -206,13 +208,7 @@ class WebAPI:
                     else:
                         self.monitor.remove_channel_and_stop_monitoring(channel_id)
 
-            return {
-                "id": updated_channel.id,
-                "name": updated_channel.name,
-                "url": updated_channel.url,
-                "enabled": updated_channel.enabled,
-                "download_format": updated_channel.download_format,
-            }
+            return _channel_to_dict(updated_channel)
 
         @self.app.delete("/api/channels/{channel_id}")
         async def delete_channel(channel_id: str):
@@ -232,14 +228,7 @@ class WebAPI:
         async def get_settings():
             """Get global settings."""
             settings = self.channel_manager.get_global_settings()
-            return {
-                "check_interval_seconds": settings.check_interval_seconds,
-                "download_directory": settings.download_directory,
-                "log_file": settings.log_file,
-                "split_mode": settings.split_mode,
-                "split_time_minutes": settings.split_time_minutes,
-                "split_size_mb": settings.split_size_mb,
-            }
+            return _settings_to_dict(settings)
 
         @self.app.patch("/api/settings", response_model=Dict[str, Any])
         async def update_settings(settings: GlobalSettingsUpdateRequest):
@@ -249,14 +238,7 @@ class WebAPI:
                     **settings.model_dump(exclude_none=True)
                 )
 
-                return {
-                    "check_interval_seconds": updated_settings.check_interval_seconds,
-                    "download_directory": updated_settings.download_directory,
-                    "log_file": updated_settings.log_file,
-                    "split_mode": updated_settings.split_mode,
-                    "split_time_minutes": updated_settings.split_time_minutes,
-                    "split_size_mb": updated_settings.split_size_mb,
-                }
+                return _settings_to_dict(updated_settings)
 
             except ValueError as e:
                 raise HTTPException(status_code=400, detail=str(e))
@@ -368,8 +350,6 @@ class WebAPI:
                 download_dir.mkdir(parents=True, exist_ok=True)
 
                 # Generate filename
-                from datetime import datetime
-
                 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
                 if request.audio_only:
                     filename = f"audio_{timestamp}"
@@ -603,8 +583,6 @@ class WebAPI:
 
     def _start_cleanup_scheduler(self) -> None:
         """Start background cleanup scheduler (runs daily)."""
-        import time
-
         def cleanup_loop():
             self.cleanup_running = True
             while self.cleanup_running:
@@ -635,10 +613,6 @@ class WebAPI:
         self.cleanup_thread = threading.Thread(target=cleanup_loop, daemon=True)
         self.cleanup_thread.start()
         self.logger.info("파일 자동 정리 스케줄러 시작됨 (매일 실행)")
-
-    def _stop_cleanup_scheduler(self) -> None:
-        """Stop cleanup scheduler."""
-        self.cleanup_running = False
 
     def run(self, host: str = "0.0.0.0", port: int = 8000):
         """

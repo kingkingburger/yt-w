@@ -13,6 +13,7 @@ from .discord_notifier import get_notifier
 _REMOTE_COMPONENTS: List[str] = ["ejs:github"]
 _COOKIE_SOURCE_PATH: str = os.environ.get("YT_COOKIES_FILE", "./cookies.txt")
 _POT_PROVIDER_URL: str = os.environ.get("YT_POT_PROVIDER_URL", "")
+_TEST_VIDEO_URL: str = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 _cookie_temp_path: str = ""
 
 # Cookie validation cache
@@ -78,9 +79,10 @@ def get_cookie_options() -> Dict[str, Any]:
         Dictionary with cookie and JS runtime options for yt-dlp
     """
     base_options: Dict[str, Any] = {"remote_components": _REMOTE_COMPONENTS}
+    is_docker = _is_docker()
 
     # Docker (Alpine): use nodejs instead of deno (deno requires glibc)
-    if _is_docker():
+    if is_docker:
         base_options["js_runtimes"] = {"node": {}}
 
     # PO Token provider: bypass YouTube bot detection without cookies
@@ -90,7 +92,7 @@ def get_cookie_options() -> Dict[str, Any]:
         }
 
     # Docker environment: use temp copy of cookies.txt (prevents overwrite)
-    if _is_docker():
+    if is_docker:
         writable_path = _get_writable_cookie_path()
         if writable_path:
             return {**base_options, "cookiefile": writable_path}
@@ -160,7 +162,7 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
         }
 
         # Use a known public video for validation
-        test_url = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        test_url = _TEST_VIDEO_URL
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(test_url, download=False)
 
@@ -230,7 +232,7 @@ def extract_cookies_from_browser(browser: str = "firefox") -> Dict[str, Any]:
     try:
         import yt_dlp
 
-        test_url = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
+        test_url = _TEST_VIDEO_URL
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
