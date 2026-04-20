@@ -162,10 +162,8 @@ def validate_cookies(force: bool = False) -> Dict[str, Any]:
             **cookie_opts,
         }
 
-        # Use a known public video for validation
-        test_url = _TEST_VIDEO_URL
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(test_url, download=False)
+            info = ydl.extract_info(_TEST_VIDEO_URL, download=False)
 
         if info and info.get("title"):
             with _lock:
@@ -236,7 +234,6 @@ def extract_cookies_from_browser(browser: str = "firefox") -> Dict[str, Any]:
     try:
         import yt_dlp
 
-        test_url = _TEST_VIDEO_URL
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
@@ -247,7 +244,7 @@ def extract_cookies_from_browser(browser: str = "firefox") -> Dict[str, Any]:
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            ydl.extract_info(test_url, download=False)
+            ydl.extract_info(_TEST_VIDEO_URL, download=False)
 
         # Invalidate cache after fresh extraction
         invalidate_cookie_cache()

@@ -74,33 +74,3 @@ def discord_mock_urlopen():
         yield mock_open
 
 
-@pytest.fixture
-def sample_channel_data() -> dict:
-    """Sample channel data for testing."""
-    return {
-        "id": "test-channel-id-123",
-        "name": "Test Channel",
-        "url": "https://www.youtube.com/@TestChannel",
-        "enabled": True,
-        "download_format": "bestvideo[height<=720]+bestaudio/best[height<=720]",
-    }
-
-
-@pytest.fixture
-def temp_config_file(temp_dir: Path) -> Path:
-    """Create a temporary config.json file."""
-    config_file = temp_dir / "config.json"
-    config_data = {
-        "channel_url": "https://www.youtube.com/@TestChannel",
-        "check_interval_seconds": 60,
-        "download_directory": str(temp_dir / "downloads"),
-        "log_file": str(temp_dir / "monitor.log"),
-        "video_quality": "best",
-        "download_format": "bestvideo+bestaudio/best",
-        "split_mode": "time",
-        "split_time_minutes": 30,
-        "split_size_mb": 500,
-    }
-    with open(config_file, "w", encoding="utf-8") as f:
-        json.dump(config_data, f)
-    return config_file

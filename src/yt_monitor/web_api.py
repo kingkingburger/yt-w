@@ -91,6 +91,16 @@ def _settings_to_dict(settings: GlobalSettingsDTO) -> Dict[str, Any]:
     }
 
 
+def _cookie_validation_error_response(error: Exception) -> Dict[str, Any]:
+    return {
+        "valid": False,
+        "has_cookies": False,
+        "message": f"검증 오류: {str(error)[:100]}",
+        "checked_at": 0,
+        "cached": False,
+    }
+
+
 class WebAPI:
     """Web API for YouTube Live Stream Monitor."""
 
@@ -418,13 +428,7 @@ class WebAPI:
                 return result
             except Exception as e:
                 self.logger.error(f"Cookie validation error: {e}")
-                return {
-                    "valid": False,
-                    "has_cookies": False,
-                    "message": f"검증 오류: {str(e)[:100]}",
-                    "checked_at": 0,
-                    "cached": False,
-                }
+                return _cookie_validation_error_response(e)
 
         @self.app.post("/api/cookie/refresh-check")
         async def refresh_cookie_check():
@@ -439,13 +443,7 @@ class WebAPI:
                 return result
             except Exception as e:
                 self.logger.error(f"Cookie refresh check error: {e}")
-                return {
-                    "valid": False,
-                    "has_cookies": False,
-                    "message": f"검증 오류: {str(e)[:100]}",
-                    "checked_at": 0,
-                    "cached": False,
-                }
+                return _cookie_validation_error_response(e)
 
         @self.app.post("/api/cookie/upload")
         async def upload_cookies(file: UploadFile = File(...)):
