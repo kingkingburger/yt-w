@@ -24,8 +24,8 @@ COPY channels.example.json ./channels.json
 # If not present at build time, mount it at runtime: -v /path/to/cookies.txt:/app/cookies.txt
 COPY cookies.tx[t] ./
 
-# Expose port for web server (configurable via YT_WEB_PORT env)
-EXPOSE 8088
+# Expose port for web server (configurable via YT_WEB_PORT env, default 8011)
+EXPOSE 8011
 
 # Health check for yt-web container (wget available in Alpine by default)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

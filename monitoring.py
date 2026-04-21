@@ -26,7 +26,7 @@ def monitor_mode(channels_file: str):
             print("[경고] 활성화된 채널이 없습니다.")
             print(f"'{channels_file}' 파일에 채널을 추가하거나")
             print("다음 명령어를 사용하세요:")
-            print("  python main.py --add-channel 'NAME' 'URL'")
+            print("  python monitoring.py --add-channel 'NAME' 'URL'")
             sys.exit(0)
 
         global_settings = channel_manager.get_global_settings()
@@ -230,25 +230,25 @@ def main():
 사용 예시:
 
   [멀티 채널 모니터링] (기본):
-    python cli.py
+    python monitoring.py
 
   [채널 관리]:
-    python cli.py --add-channel "침착맨" "https://www.youtube.com/@chimchakman_vod"
-    python cli.py --list-channels
-    python cli.py --enable-channel CHANNEL_ID
-    python cli.py --disable-channel CHANNEL_ID
-    python cli.py --remove-channel CHANNEL_ID
+    python monitoring.py --add-channel "침착맨" "https://www.youtube.com/@chimchakman_vod"
+    python monitoring.py --list-channels
+    python monitoring.py --enable-channel CHANNEL_ID
+    python monitoring.py --disable-channel CHANNEL_ID
+    python monitoring.py --remove-channel CHANNEL_ID
 
   [일반 동영상 다운로드]:
-    python cli.py --url "https://youtube.com/watch?v=VIDEO_ID"
-    python cli.py --url "URL" --quality 720
-    python cli.py --url "URL" --audio-only
+    python monitoring.py --url "https://youtube.com/watch?v=VIDEO_ID"
+    python monitoring.py --url "URL" --quality 720
+    python monitoring.py --url "URL" --audio-only
 
   [파일 정리]:
-    python cli.py --cleanup                     # 7일 이상된 파일 삭제 (라이브 제외)
-    python cli.py --cleanup --dry-run           # 삭제 없이 목록만 확인
-    python cli.py --cleanup --days 14           # 14일 기준으로 변경
-    python cli.py --cleanup --force             # 확인 없이 즉시 삭제
+    python monitoring.py --cleanup                     # 7일 이상된 파일 삭제 (라이브 제외)
+    python monitoring.py --cleanup --dry-run           # 삭제 없이 목록만 확인
+    python monitoring.py --cleanup --days 14           # 14일 기준으로 변경
+    python monitoring.py --cleanup --force             # 확인 없이 즉시 삭제
         """,
     )
 

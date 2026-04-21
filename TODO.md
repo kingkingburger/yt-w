@@ -4,8 +4,8 @@
 
 ## P0 (Critical)
 
-- [ ] **Docker EXPOSE 포트 불일치 수정** — `Dockerfile`의 `EXPOSE 8088`을 `EXPOSE 8011`로 변경 (앱 실제 포트와 일치)
-- [ ] **README CLI 진입점 오류 수정** — README가 `python main.py --add-channel`을 안내하지만 채널 관리 CLI는 `monitoring.py`에 있음
+- [x] **Docker EXPOSE 포트 불일치 수정** — `Dockerfile`의 `EXPOSE 8088`을 `EXPOSE 8011`로 변경 완료 (2026-04-21)
+- [x] **README CLI 진입점 오류 수정** — `main.py` → `monitoring.py`로 정정, monitoring.py epilog 예시 (`cli.py`) 정정 완료 (2026-04-21)
 - [x] **cookie_helper 스레드 안전성** — `threading.Lock` 추가 완료 (2026-04-08)
 - [x] **FFmpeg stderr 캡처** — `capture_output=True` + stderr 로깅 완료 (2026-04-08)
 - [ ] **장애 알림 webhook** — 연속 N회 감지 실패 시 Telegram/Discord 알림 (8인 리뷰 ROI 1순위)

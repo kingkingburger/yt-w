@@ -107,31 +107,33 @@ curl http://localhost:8088/health
 
 ## CLI 사용법
 
+> `main.py`는 웹 서버 전용. 채널 관리/다운로드/정리 CLI는 `monitoring.py`에 있습니다.
+
 ### 채널 관리
 
 ```bash
-python main.py --add-channel "채널이름" "https://www.youtube.com/@channel"
-python main.py --list-channels
-python main.py --enable-channel CHANNEL_ID
-python main.py --disable-channel CHANNEL_ID
-python main.py --remove-channel CHANNEL_ID
+python monitoring.py --add-channel "채널이름" "https://www.youtube.com/@channel"
+python monitoring.py --list-channels
+python monitoring.py --enable-channel CHANNEL_ID
+python monitoring.py --disable-channel CHANNEL_ID
+python monitoring.py --remove-channel CHANNEL_ID
 ```
 
 ### 동영상 다운로드
 
 ```bash
-python main.py --url "https://youtube.com/watch?v=VIDEO_ID"
-python main.py --url "URL" --quality 720
-python main.py --url "URL" --audio-only
-python main.py -u "URL" -o "./output" -f "filename"
+python monitoring.py --url "https://youtube.com/watch?v=VIDEO_ID"
+python monitoring.py --url "URL" --quality 720
+python monitoring.py --url "URL" --audio-only
+python monitoring.py -u "URL" -o "./output" -f "filename"
 ```
 
 ### 파일 정리
 
 ```bash
-python main.py --cleanup              # 실행
-python main.py --cleanup --dry-run    # 미리보기
-python main.py --cleanup --days 14    # 보관 기간 변경
+python monitoring.py --cleanup              # 실행
+python monitoring.py --cleanup --dry-run    # 미리보기
+python monitoring.py --cleanup --days 14    # 보관 기간 변경
 ```
 
 ## 설정
