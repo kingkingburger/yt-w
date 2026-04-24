@@ -3,7 +3,6 @@
 import json
 from unittest.mock import MagicMock
 
-import pytest
 
 from src.yt_monitor.discord_notifier import DiscordNotifier, NotificationLevel, get_notifier
 

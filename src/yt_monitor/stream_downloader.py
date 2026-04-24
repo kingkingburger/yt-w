@@ -1,14 +1,21 @@
-"""Stream downloader module."""
+"""Stream downloader — yt-dlp + ffmpeg으로 라이브 녹화 저장.
+
+책임: yt-dlp로 스트림 정보 조회 + SplitStrategy에 따라 단일/세그먼트 다운로드.
+분할 시간 계산, ffmpeg 커맨드 조립은 별도 모듈에서 (split_strategy, ffmpeg_command).
+"""
 
 import os
 import subprocess
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Dict, List
 
 import yt_dlp
 
-from .cookie_helper import get_cookie_options
+from .cookie_options import get_cookie_options
+from .ffmpeg_command import build_ffmpeg_headers, build_segment_command
 from .logger import Logger
+from .split_strategy import NoSplit, make_split_strategy
 
 
 class StreamDownloader:
@@ -36,8 +43,13 @@ class StreamDownloader:
     def download(self, stream_url: str, filename_prefix: str = "stream") -> bool:
         try:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            strategy = make_split_strategy(
+                mode=self.split_mode,
+                time_minutes=self.split_time_minutes,
+                size_mb=self.split_size_mb,
+            )
 
-            if self.split_mode == "none":
+            if isinstance(strategy, NoSplit):
                 output_file = os.path.join(
                     self.download_directory, f"{filename_prefix}_{timestamp}.mp4"
                 )
@@ -48,15 +60,15 @@ class StreamDownloader:
                 return True
 
             output_pattern = os.path.join(
-                self.download_directory, f"{filename_prefix}_{timestamp}_part%03d.mp4"
+                self.download_directory,
+                f"{filename_prefix}_{timestamp}_part%03d.mp4",
             )
-
             self._download_with_realtime_split(stream_url, output_pattern)
             self.logger.info("All segments saved successfully")
             return True
 
-        except Exception as e:
-            self.logger.error(f"Download failed: {e}")
+        except Exception as error:
+            self.logger.error(f"Download failed: {error}")
             return False
 
     def _build_ydl_options(self, output_file: str) -> dict:
@@ -79,23 +91,18 @@ class StreamDownloader:
         }
 
     @staticmethod
-    def _build_ffmpeg_headers(info: dict) -> list[str]:
-        """Extract HTTP headers from yt-dlp info and format for ffmpeg."""
-        http_headers = info.get("http_headers", {})
-        if not http_headers:
-            return []
-        header_str = "".join(f"{k}: {v}\r\n" for k, v in http_headers.items())
-        return ["-headers", header_str]
+    def _build_ffmpeg_headers(info: Dict[str, Any]) -> List[str]:
+        """하위 호환: 이전 코드/테스트가 참조하는 정적 헬퍼."""
+        return build_ffmpeg_headers(info)
 
-    def _download_with_realtime_split(self, stream_url: str, output_pattern: str):
-        # 분할 시간 계산
-        if self.split_mode == "time":
-            split_seconds = self.split_time_minutes * 60
-        elif self.split_mode == "size":
-            # 사이즈 기반 분할 시 예상 시간 계산
-            estimated_bitrate_mbps = 5
-            split_seconds = int((self.split_size_mb * 8) / estimated_bitrate_mbps)
-        else:
+    def _download_with_realtime_split(self, stream_url: str, output_pattern: str) -> None:
+        strategy = make_split_strategy(
+            mode=self.split_mode,
+            time_minutes=self.split_time_minutes,
+            size_mb=self.split_size_mb,
+        )
+        split_seconds = strategy.split_seconds()
+        if split_seconds is None:
             raise ValueError(f"Invalid split_mode: {self.split_mode}")
 
         ydl_opts = {
@@ -108,60 +115,7 @@ class StreamDownloader:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(stream_url, download=False)
 
-        header_args = self._build_ffmpeg_headers(info)
-
-        if "requested_formats" in info:
-            # 비디오 + 오디오 분리된 경우
-            video_url = info["requested_formats"][0]["url"]
-            audio_url = info["requested_formats"][1]["url"]
-            video_headers = self._build_ffmpeg_headers(info["requested_formats"][0])
-            audio_headers = self._build_ffmpeg_headers(info["requested_formats"][1])
-
-            cmd = [
-                "ffmpeg",
-                *video_headers,
-                "-i",
-                video_url,
-                *audio_headers,
-                "-i",
-                audio_url,
-                "-c",
-                "copy",
-                "-f",
-                "segment",
-                "-segment_time",
-                str(split_seconds),
-                "-reset_timestamps",
-                "1",
-                "-map",
-                "0:v:0",  # 첫 번째 입력의 비디오 스트림 1개만
-                "-map",
-                "1:a:0",  # 두 번째 입력의 오디오 스트림 1개만
-                output_pattern,
-            ]
-        else:
-            # 단일 스트림
-            direct_url = info["url"]
-            cmd = [
-                "ffmpeg",
-                *header_args,
-                "-i",
-                direct_url,
-                "-c",
-                "copy",
-                "-f",
-                "segment",
-                "-map",
-                "0:v:0",  # 비디오 1개만
-                "-map",
-                "0:a:0",  # 오디오 1개만
-                "-segment_time",
-                str(split_seconds),
-                "-reset_timestamps",
-                "1",
-                output_pattern,
-            ]
-
+        cmd = build_segment_command(info, output_pattern, split_seconds)
         result = subprocess.run(cmd, capture_output=True, text=True)
         if result.returncode != 0:
             self.logger.error(
@@ -171,6 +125,6 @@ class StreamDownloader:
                 f"FFmpeg segmented download failed (rc={result.returncode})"
             )
 
-    def _perform_download(self, stream_url: str, ydl_opts: dict):
+    def _perform_download(self, stream_url: str, ydl_opts: dict) -> None:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([stream_url])

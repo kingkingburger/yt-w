@@ -1,8 +1,6 @@
 """File cleanup module for managing downloaded files."""
 
-import os
 import time
-from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple
 

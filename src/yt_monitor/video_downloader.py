@@ -1,5 +1,6 @@
 """General YouTube video downloader module."""
 
+import logging
 import os
 from datetime import datetime
 from pathlib import Path
@@ -7,7 +8,10 @@ from typing import Optional
 
 import yt_dlp
 
-from .cookie_helper import get_cookie_options
+from .cookie_options import get_cookie_options
+
+
+logger = logging.getLogger("yt_monitor.video_downloader")
 
 
 class VideoDownloader:
@@ -152,33 +156,26 @@ class VideoDownloader:
             # Build options
             ydl_opts = self._build_ydl_options(output_path)
 
-            # Download
-            print("\n📥 다운로드 시작...")
-            print(f"   URL: {url}")
-            print(f"   화질: {self.quality}")
-            if self.audio_only:
-                print("   모드: 오디오 전용 (MP3)")
-            print(f"   저장 위치: {output_path}")
-            print()
+            mode = "audio-only (MP3)" if self.audio_only else f"video ({self.quality})"
+            logger.info(
+                f"다운로드 시작: url={url} mode={mode} output={output_path}"
+            )
 
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                # Get video info first
                 info = ydl.extract_info(url, download=False)
                 title = info.get("title", "Unknown")
                 duration = info.get("duration", 0)
+                logger.info(
+                    f"제목={title} 길이={duration // 60}분 {duration % 60}초"
+                )
 
-                print(f"📺 제목: {title}")
-                print(f"⏱️  길이: {duration // 60}분 {duration % 60}초")
-                print()
-
-                # Download
                 ydl.download([url])
 
-            print(f"\n💾 저장 완료: {output_path}")
+            logger.info(f"저장 완료: {output_path}")
             return True
 
         except Exception as e:
-            print(f"\n❌ 다운로드 실패: {e}")
+            logger.error(f"다운로드 실패: {e}")
             return False
 
     def get_video_info(self, url: str) -> dict:

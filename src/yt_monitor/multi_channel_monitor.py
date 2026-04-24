@@ -7,13 +7,23 @@ from typing import Dict, Optional
 from pathlib import Path
 
 from . import StreamDownloader
+from .alert_cooldown import AlertCooldown
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
-from .discord_notifier import get_notifier
+from .discord_notifier import DiscordNotifier, get_notifier
 from .logger import Logger
 from .youtube_client import YouTubeClient, YouTubeAuthError
 
 
 _AUTH_ALERT_COOLDOWN_SECONDS: float = 1800.0  # 30분 쿨다운으로 알림 폭주 방지
+
+
+def _sanitize_name(name: str) -> str:
+    """채널 이름에서 파일시스템 예약 문자를 '_'로 치환한다."""
+    invalid_chars = '<>:"/\\|?*'
+    sanitized = name
+    for char in invalid_chars:
+        sanitized = sanitized.replace(char, "_")
+    return sanitized
 
 
 class ChannelMonitorThread:
@@ -24,14 +34,16 @@ class ChannelMonitorThread:
         channel: ChannelDTO,
         global_settings: GlobalSettingsDTO,
         youtube_client: YouTubeClient,
+        notifier: Optional[DiscordNotifier] = None,
+        auth_alert_cooldown: Optional[AlertCooldown] = None,
     ):
         """
-        Initialize channel monitor thread.
-
         Args:
-            channel: Channel to monitor
-            global_settings: Global settings for monitoring
-            youtube_client: YouTube client for live detection
+            channel: 모니터할 채널
+            global_settings: 전역 설정
+            youtube_client: 라이브 감지용 YouTube 클라이언트
+            notifier: Discord 알림 클라이언트 (None이면 모듈 기본값 사용)
+            auth_alert_cooldown: 봇 감지 알림 쿨다운 (None이면 기본 30분)
         """
         self.channel = channel
         self.global_settings = global_settings
@@ -40,13 +52,16 @@ class ChannelMonitorThread:
         self.is_running = False
         self.is_downloading = False
         self.thread: Optional[threading.Thread] = None
-        self._last_auth_alert_at: float = 0.0
+        self._notifier: DiscordNotifier = notifier or get_notifier()
+        self._auth_alert_cooldown: AlertCooldown = (
+            auth_alert_cooldown
+            or AlertCooldown(cooldown_seconds=_AUTH_ALERT_COOLDOWN_SECONDS)
+        )
 
-        # Create channel-specific download directory under 'live' folder
         channel_download_dir = (
             Path(global_settings.download_directory)
             / "live"
-            / self._sanitize_name(channel.name)
+            / _sanitize_name(channel.name)
         )
         channel_download_dir.mkdir(parents=True, exist_ok=True)
 
@@ -59,21 +74,8 @@ class ChannelMonitorThread:
         )
 
     def _sanitize_name(self, name: str) -> str:
-        """
-        Sanitize channel name for use as directory name.
-
-        Args:
-            name: Channel name
-
-        Returns:
-            Sanitized name safe for filesystem
-        """
-        # Remove invalid filesystem characters
-        invalid_chars = '<>:"/\\|?*'
-        sanitized = name
-        for char in invalid_chars:
-            sanitized = sanitized.replace(char, "_")
-        return sanitized
+        """이전 버전 호환용 인스턴스 메서드 — 모듈 함수로 위임."""
+        return _sanitize_name(name)
 
     def start(self) -> None:
         """Start monitoring thread."""
@@ -104,7 +106,7 @@ class ChannelMonitorThread:
                 self._maybe_notify_auth_error(str(e))
             except Exception as e:
                 self.logger.error(f"Error monitoring {self.channel.name}: {e}")
-                get_notifier().notify_error(
+                self._notifier.notify_error(
                     channel_name=self.channel.name,
                     error_message=str(e),
                 )
@@ -112,13 +114,10 @@ class ChannelMonitorThread:
             time.sleep(self.global_settings.check_interval_seconds)
 
     def _maybe_notify_auth_error(self, error_message: str) -> None:
-        """채널별 30분 쿨다운 내에서 1번만 Discord로 봇 감지 알림을 전송한다."""
-        now = time.time()
-        already_alerted = self._last_auth_alert_at > 0.0
-        if already_alerted and (now - self._last_auth_alert_at) < _AUTH_ALERT_COOLDOWN_SECONDS:
+        """쿨다운을 통과한 경우에만 봇 감지 알림을 전송한다."""
+        if not self._auth_alert_cooldown.try_acquire():
             return
-        self._last_auth_alert_at = now
-        get_notifier().notify_bot_detection(
+        self._notifier.notify_bot_detection(
             channel_name=self.channel.name,
             detail=error_message,
         )
@@ -138,18 +137,11 @@ class ChannelMonitorThread:
             self.logger.info(f"[{self.channel.name}] No live stream found")
 
     def _handle_live_stream(self, stream_url: str, title: str) -> None:
-        """
-        Handle detected live stream.
-
-        Args:
-            stream_url: URL of live stream
-            title: Title of live stream
-        """
+        """감지된 라이브 스트림을 다운로드하고 결과를 알린다."""
         self.logger.info(f"[{self.channel.name}] Live stream detected: {stream_url}")
         self.is_downloading = True
-        notifier = get_notifier()
 
-        notifier.notify_live_detected(
+        self._notifier.notify_live_detected(
             channel_name=self.channel.name,
             stream_url=stream_url,
             title=title,
@@ -162,19 +154,19 @@ class ChannelMonitorThread:
 
             if success:
                 self.logger.info(f"[{self.channel.name}] Download finished")
-                notifier.notify_download_complete(
+                self._notifier.notify_download_complete(
                     channel_name=self.channel.name,
                     title=title,
                 )
             else:
                 self.logger.warning(f"[{self.channel.name}] Download failed")
-                notifier.notify_download_failed(
+                self._notifier.notify_download_failed(
                     channel_name=self.channel.name,
                     error_message="다운로드가 실패했습니다 (success=False)",
                 )
 
         except Exception as e:
-            notifier.notify_download_failed(
+            self._notifier.notify_download_failed(
                 channel_name=self.channel.name,
                 error_message=str(e),
             )
@@ -191,19 +183,33 @@ class MultiChannelMonitor:
         self,
         channel_manager: Optional[ChannelManager] = None,
         youtube_client: Optional[YouTubeClient] = None,
+        notifier: Optional[DiscordNotifier] = None,
     ):
         """
-        Initialize multi-channel monitor.
-
         Args:
-            channel_manager: Channel manager instance
-            youtube_client: YouTube client instance
+            channel_manager: 채널 저장소
+            youtube_client: YouTube 클라이언트
+            notifier: Discord 알림 클라이언트 (None이면 모듈 기본값 사용)
         """
         self.channel_manager = channel_manager or ChannelManager()
         self.youtube_client = youtube_client or YouTubeClient()
         self.logger = Logger.get()
         self.monitor_threads: Dict[str, ChannelMonitorThread] = {}
         self.is_running = False
+        self._notifier: DiscordNotifier = notifier or get_notifier()
+
+    def _build_channel_thread(
+        self,
+        channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+    ) -> ChannelMonitorThread:
+        """채널별 모니터 스레드를 생성한다 (테스트에서 오버라이드 가능)."""
+        return ChannelMonitorThread(
+            channel=channel,
+            global_settings=global_settings,
+            youtube_client=self.youtube_client,
+            notifier=self._notifier,
+        )
 
     def start(self) -> None:
         """Start monitoring all enabled channels."""
@@ -223,34 +229,28 @@ class MultiChannelMonitor:
 
         self.is_running = True
 
-        # Start monitoring thread for each channel
         for channel in channels:
-            monitor_thread = ChannelMonitorThread(
-                channel=channel,
-                global_settings=global_settings,
-                youtube_client=self.youtube_client,
-            )
+            monitor_thread = self._build_channel_thread(channel, global_settings)
             monitor_thread.start()
             self.monitor_threads[channel.id] = monitor_thread
 
         self.logger.info("All channel monitors started")
-        get_notifier().notify_monitor_started(channel_count=len(channels))
+        self._notifier.notify_monitor_started(channel_count=len(channels))
 
         # SIGTERM handler (docker stop / systemd stop)
         def handle_sigterm(signum: int, frame: object) -> None:
             self.logger.info("Received SIGTERM signal")
-            get_notifier().notify_monitor_stopped(reason="docker stop (SIGTERM)")
+            self._notifier.notify_monitor_stopped(reason="docker stop (SIGTERM)")
             self.stop()
 
         signal.signal(signal.SIGTERM, handle_sigterm)
 
-        # Keep main thread alive
         try:
             while self.is_running:
                 time.sleep(1)
         except KeyboardInterrupt:
             self.logger.info("Received shutdown signal")
-            get_notifier().notify_monitor_stopped(reason="shutdown signal")
+            self._notifier.notify_monitor_stopped(reason="shutdown signal")
             self.stop()
 
     def stop(self) -> None:
@@ -281,11 +281,7 @@ class MultiChannelMonitor:
 
         global_settings = self.channel_manager.get_global_settings()
 
-        monitor_thread = ChannelMonitorThread(
-            channel=channel,
-            global_settings=global_settings,
-            youtube_client=self.youtube_client,
-        )
+        monitor_thread = self._build_channel_thread(channel, global_settings)
         monitor_thread.start()
         self.monitor_threads[channel.id] = monitor_thread
 

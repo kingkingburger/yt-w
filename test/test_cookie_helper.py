@@ -1,139 +1,98 @@
-"""Tests for cookie_helper module — 쿠키 만료 알림 검증 포함."""
+"""Integration test: web_api 쿠키 엔드포인트가 validator 결과에 따라 알림을 보낸다.
 
+CookieValidator 자체의 단위 테스트는 test_cookie_validator.py.
+알림 책임은 validator에서 분리되어 호출자(web_api)로 이동했다.
+"""
+
+import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
 
-from src.yt_monitor.cookie_helper import (
-    invalidate_cookie_cache,
-    validate_cookies,
-)
+from src.yt_monitor.cookie_validator import CookieValidator, invalidate_cookie_cache
+from src.yt_monitor.web_api import WebAPI
 
 
 @pytest.fixture(autouse=True)
-def reset_cookie_cache():
-    """각 테스트 전/후에 캐시를 초기화한다."""
+def reset_default_validator_cache():
     invalidate_cookie_cache()
     yield
     invalidate_cookie_cache()
 
 
-class TestValidateCookiesNotifications:
-    """쿠키 만료 시 Discord 알림이 전송되는지 검증."""
+@pytest.fixture
+def channels_file(tmp_path: Path) -> str:
+    data = {
+        "channels": [],
+        "global_settings": {
+            "check_interval_seconds": 60,
+            "download_directory": str(tmp_path / "downloads"),
+            "log_file": str(tmp_path / "test.log"),
+            "split_mode": "time",
+            "split_time_minutes": 30,
+            "split_size_mb": 500,
+        },
+    }
+    path = tmp_path / "channels.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    return str(path)
 
-    def test_notifies_when_cookies_file_missing(self, tmp_path):
-        """cookies.txt 파일이 없으면 notify_cookie_expired가 호출된다."""
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.cookie_helper._COOKIE_SOURCE_PATH", str(tmp_path / "no_cookies.txt")):
-            with patch("src.yt_monitor.cookie_helper.get_notifier", return_value=mock_notifier):
-                result = validate_cookies()
 
-        assert result["valid"] is False
-        assert result["has_cookies"] is False
-        mock_notifier.notify_cookie_expired.assert_called_once_with(
-            message="cookies.txt 파일이 없습니다"
-        )
+@pytest.fixture
+def client_and_notifier(channels_file: str, tmp_path: Path):
+    """TestClient + mock notifier + 없는 cookies.txt 경로로 validator 세팅."""
+    missing_cookies = str(tmp_path / "no_cookies.txt")
+    mock_notifier = MagicMock()
+    fresh_validator = CookieValidator(cookie_source_path=missing_cookies)
 
-    def test_notifies_when_yt_dlp_extraction_fails(self, tmp_path):
-        """yt-dlp 추출 예외 시 notify_cookie_expired가 호출된다."""
-        cookies_file = tmp_path / "cookies.txt"
-        cookies_file.write_text("# Netscape HTTP Cookie File\n")
+    with patch("src.yt_monitor.cookie_validator._default_validator", fresh_validator):
+        with patch(
+            "src.yt_monitor.web_api.routes.cookies.get_notifier",
+            return_value=mock_notifier,
+        ):
+            web_api = WebAPI(channels_file=channels_file)
+            yield TestClient(web_api.app), mock_notifier
 
-        mock_notifier = MagicMock()
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = lambda s: mock_ydl
-        mock_ydl.__exit__ = MagicMock(return_value=False)
-        mock_ydl.extract_info.side_effect = Exception("Sign in to confirm your age")
 
-        with patch("src.yt_monitor.cookie_helper._COOKIE_SOURCE_PATH", str(cookies_file)):
-            with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
-                with patch("src.yt_monitor.cookie_helper.get_notifier", return_value=mock_notifier):
-                    result = validate_cookies()
+class TestCookieStatusEndpointNotifications:
+    """GET /api/cookie/status — validator 결과에 따른 알림 호출 검증."""
 
-        assert result["valid"] is False
+    def test_notifies_when_cookies_missing(self, client_and_notifier):
+        client, mock_notifier = client_and_notifier
+
+        response = client.get("/api/cookie/status")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is False
+        assert data["has_cookies"] is False
         mock_notifier.notify_cookie_expired.assert_called_once()
-        assert "만료" in mock_notifier.notify_cookie_expired.call_args.kwargs["message"]
+        call_msg = mock_notifier.notify_cookie_expired.call_args.kwargs["message"]
+        assert "없습니다" in call_msg
 
-    def test_notifies_when_yt_dlp_returns_no_title(self, tmp_path):
-        """yt-dlp가 title 없는 info를 반환하면 notify_cookie_expired가 호출된다."""
-        cookies_file = tmp_path / "cookies.txt"
-        cookies_file.write_text("# Netscape HTTP Cookie File\n")
+    def test_does_not_notify_on_cache_hit(self, client_and_notifier):
+        """캐시 히트 응답은 알림 재전송하지 않는다."""
+        client, mock_notifier = client_and_notifier
 
-        mock_notifier = MagicMock()
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = lambda s: mock_ydl
-        mock_ydl.__exit__ = MagicMock(return_value=False)
-        mock_ydl.extract_info.return_value = {"id": "jNQXAC9IVRw"}  # title 없음
+        client.get("/api/cookie/status")  # 최초 — 알림 1회
+        mock_notifier.notify_cookie_expired.reset_mock()
 
-        with patch("src.yt_monitor.cookie_helper._COOKIE_SOURCE_PATH", str(cookies_file)):
-            with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
-                with patch("src.yt_monitor.cookie_helper.get_notifier", return_value=mock_notifier):
-                    result = validate_cookies()
+        client.get("/api/cookie/status")  # 캐시 히트 — 알림 없음
 
-        assert result["valid"] is False
-        mock_notifier.notify_cookie_expired.assert_called_once_with(
-            message="쿠키 만료됨 — 브라우저에서 다시 내보내세요"
-        )
-
-    def test_does_not_notify_when_cookies_valid(self, tmp_path):
-        """쿠키가 유효하면 notify_cookie_expired가 호출되지 않는다."""
-        cookies_file = tmp_path / "cookies.txt"
-        cookies_file.write_text("# Netscape HTTP Cookie File\n")
-
-        mock_notifier = MagicMock()
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = lambda s: mock_ydl
-        mock_ydl.__exit__ = MagicMock(return_value=False)
-        mock_ydl.extract_info.return_value = {"id": "jNQXAC9IVRw", "title": "Me at the zoo"}
-
-        with patch("src.yt_monitor.cookie_helper._COOKIE_SOURCE_PATH", str(cookies_file)):
-            with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
-                with patch("src.yt_monitor.cookie_helper.get_notifier", return_value=mock_notifier):
-                    result = validate_cookies()
-
-        assert result["valid"] is True
         mock_notifier.notify_cookie_expired.assert_not_called()
 
-    def test_does_not_notify_on_cache_hit(self, tmp_path):
-        """캐시된 결과 반환 시 notify_cookie_expired가 호출되지 않는다."""
-        cookies_file = tmp_path / "cookies.txt"
-        cookies_file.write_text("# Netscape HTTP Cookie File\n")
 
-        mock_notifier = MagicMock()
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = lambda s: mock_ydl
-        mock_ydl.__exit__ = MagicMock(return_value=False)
-        mock_ydl.extract_info.return_value = {"id": "jNQXAC9IVRw", "title": "Me at the zoo"}
+class TestCookieRefreshCheckEndpointNotifications:
+    """POST /api/cookie/refresh-check — 쿠키 무효 시 알림."""
 
-        with patch("src.yt_monitor.cookie_helper._COOKIE_SOURCE_PATH", str(cookies_file)):
-            with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
-                with patch("src.yt_monitor.cookie_helper.get_notifier", return_value=mock_notifier):
-                    # 첫 번째 호출 — 실제 검사
-                    validate_cookies()
-                    # 두 번째 호출 — 캐시 히트
-                    result = validate_cookies()
+    def test_notifies_when_invalid_after_refresh(self, client_and_notifier):
+        client, mock_notifier = client_and_notifier
 
-        assert result["cached"] is True
-        # yt-dlp는 한 번만 호출됨 (캐시 히트)
-        assert mock_ydl.extract_info.call_count == 1
-        mock_notifier.notify_cookie_expired.assert_not_called()
+        response = client.post("/api/cookie/refresh-check")
 
-    def test_force_bypasses_cache_and_notifies(self, tmp_path):
-        """force=True이면 캐시를 무시하고 재검사 후 알림을 전송한다."""
-        cookies_file = tmp_path / "cookies.txt"
-        cookies_file.write_text("# Netscape HTTP Cookie File\n")
-
-        mock_notifier = MagicMock()
-        mock_ydl = MagicMock()
-        mock_ydl.__enter__ = lambda s: mock_ydl
-        mock_ydl.__exit__ = MagicMock(return_value=False)
-        mock_ydl.extract_info.side_effect = Exception("cookies expired")
-
-        with patch("src.yt_monitor.cookie_helper._COOKIE_SOURCE_PATH", str(cookies_file)):
-            with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
-                with patch("src.yt_monitor.cookie_helper.get_notifier", return_value=mock_notifier):
-                    result = validate_cookies(force=True)
-
-        assert result["valid"] is False
-        assert result["cached"] is False
+        assert response.status_code == 200
+        data = response.json()
+        assert data["valid"] is False
         mock_notifier.notify_cookie_expired.assert_called_once()

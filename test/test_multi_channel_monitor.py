@@ -187,17 +187,17 @@ class TestChannelMonitorThread:
                 "Live Stream",
             )
 
-    def test_handle_live_stream_sets_is_downloading(
+    def test_handle_live_stream_resets_is_downloading_after_success(
         self, monitor_thread: ChannelMonitorThread
     ):
-        """Test that _handle_live_stream sets is_downloading flag."""
+        """_handle_live_stream 정상 완료 후 is_downloading이 False로 복구된다."""
         with patch.object(monitor_thread.downloader, "download", return_value=True):
             monitor_thread._handle_live_stream(
                 "https://www.youtube.com/watch?v=test",
                 "Test Stream",
             )
 
-        assert monitor_thread.is_downloading is False  # Reset after download
+        assert monitor_thread.is_downloading is False
 
     def test_handle_live_stream_resets_flag_on_failure(
         self, monitor_thread: ChannelMonitorThread
@@ -291,7 +291,7 @@ class TestMultiChannelMonitor:
         mock_channel_manager: MagicMock,
         temp_dir: Path,
     ):
-        """Test that start() creates monitor threads for each channel."""
+        """실제 start() 경로가 채널마다 monitor thread를 생성·등록한다."""
         channels = [
             ChannelDTO(
                 id="channel1",
@@ -305,27 +305,25 @@ class TestMultiChannelMonitor:
             ),
         ]
         mock_channel_manager.list_channels.return_value = channels
+        multi_monitor.youtube_client.check_if_live.return_value = (False, None)
 
-        # Run start in a separate thread to avoid blocking
-        def start_and_stop():
-            multi_monitor.is_running = True
-            # Just set up threads, don't actually loop
-            global_settings = mock_channel_manager.get_global_settings()
-            for channel in channels:
-                from src.yt_monitor.multi_channel_monitor import ChannelMonitorThread
+        def exit_keep_alive_loop(sig, handler):
+            # SIGTERM 핸들러 등록 지점에서 메인 while 루프를 즉시 종료시킨다
+            multi_monitor.is_running = False
 
-                monitor_thread = ChannelMonitorThread(
-                    channel=channel,
-                    global_settings=global_settings,
-                    youtube_client=multi_monitor.youtube_client,
-                )
-                multi_monitor.monitor_threads[channel.id] = monitor_thread
+        with patch("src.yt_monitor.multi_channel_monitor.get_notifier"):
+            with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
+                mock_sig.signal.side_effect = exit_keep_alive_loop
+                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
+                    mock_time.sleep = MagicMock()
+                    multi_monitor.start()
 
-        start_and_stop()
-
-        assert len(multi_monitor.monitor_threads) == 2
-        assert "channel1" in multi_monitor.monitor_threads
-        assert "channel2" in multi_monitor.monitor_threads
+        try:
+            assert len(multi_monitor.monitor_threads) == 2
+            assert "channel1" in multi_monitor.monitor_threads
+            assert "channel2" in multi_monitor.monitor_threads
+        finally:
+            multi_monitor.stop()
 
     def test_stop_clears_monitor_threads(
         self,
@@ -426,31 +424,38 @@ class TestMultiChannelMonitor:
 
 
 class TestChannelMonitorThreadNotifications:
-    """알림 호출 검증 — 라이브 감지/다운로드/에러 이벤트가 Discord에 전송되는지."""
+    """알림 호출 검증 — 라이브 감지/다운로드/에러 이벤트가 Discord에 전송되는지.
+
+    notifier를 생성자에 직접 주입하므로 patch 중첩 없이 assert만 호출하면 된다.
+    """
+
+    @pytest.fixture
+    def mock_notifier(self) -> MagicMock:
+        return MagicMock()
 
     @pytest.fixture
     def monitor_thread(
         self,
         sample_channel: ChannelDTO,
         global_settings: GlobalSettingsDTO,
+        mock_notifier: MagicMock,
         initialized_logger,
     ) -> ChannelMonitorThread:
         return ChannelMonitorThread(
             channel=sample_channel,
             global_settings=global_settings,
             youtube_client=MagicMock(),
+            notifier=mock_notifier,
         )
 
     def test_handle_live_stream_sends_live_detected_notification(
-        self, monitor_thread: ChannelMonitorThread
+        self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
     ):
         """라이브 감지 시 notify_live_detected가 호출된다."""
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread.downloader, "download", return_value=True):
-                monitor_thread._handle_live_stream(
-                    "https://youtube.com/watch?v=abc", "방송 제목"
-                )
+        with patch.object(monitor_thread.downloader, "download", return_value=True):
+            monitor_thread._handle_live_stream(
+                "https://youtube.com/watch?v=abc", "방송 제목"
+            )
 
         mock_notifier.notify_live_detected.assert_called_once_with(
             channel_name="Test Channel",
@@ -459,15 +464,13 @@ class TestChannelMonitorThreadNotifications:
         )
 
     def test_handle_live_stream_success_sends_download_complete_notification(
-        self, monitor_thread: ChannelMonitorThread
+        self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
     ):
         """다운로드 성공 시 notify_download_complete가 호출된다."""
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread.downloader, "download", return_value=True):
-                monitor_thread._handle_live_stream(
-                    "https://youtube.com/watch?v=abc", "방송 제목"
-                )
+        with patch.object(monitor_thread.downloader, "download", return_value=True):
+            monitor_thread._handle_live_stream(
+                "https://youtube.com/watch?v=abc", "방송 제목"
+            )
 
         mock_notifier.notify_download_complete.assert_called_once_with(
             channel_name="Test Channel",
@@ -476,15 +479,13 @@ class TestChannelMonitorThreadNotifications:
         mock_notifier.notify_download_failed.assert_not_called()
 
     def test_handle_live_stream_failure_sends_download_failed_notification(
-        self, monitor_thread: ChannelMonitorThread
+        self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
     ):
         """다운로드 실패(success=False) 시 notify_download_failed가 호출된다."""
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread.downloader, "download", return_value=False):
-                monitor_thread._handle_live_stream(
-                    "https://youtube.com/watch?v=abc", "방송 제목"
-                )
+        with patch.object(monitor_thread.downloader, "download", return_value=False):
+            monitor_thread._handle_live_stream(
+                "https://youtube.com/watch?v=abc", "방송 제목"
+            )
 
         mock_notifier.notify_download_failed.assert_called_once_with(
             channel_name="Test Channel",
@@ -493,18 +494,16 @@ class TestChannelMonitorThreadNotifications:
         mock_notifier.notify_download_complete.assert_not_called()
 
     def test_handle_live_stream_exception_sends_download_failed_notification(
-        self, monitor_thread: ChannelMonitorThread
+        self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
     ):
         """다운로드 예외 발생 시 notify_download_failed가 호출된다."""
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(
-                monitor_thread.downloader, "download", side_effect=Exception("ffmpeg crashed")
-            ):
-                with pytest.raises(Exception):
-                    monitor_thread._handle_live_stream(
-                        "https://youtube.com/watch?v=abc", "방송 제목"
-                    )
+        with patch.object(
+            monitor_thread.downloader, "download", side_effect=Exception("ffmpeg crashed")
+        ):
+            with pytest.raises(Exception):
+                monitor_thread._handle_live_stream(
+                    "https://youtube.com/watch?v=abc", "방송 제목"
+                )
 
         mock_notifier.notify_download_failed.assert_called_once_with(
             channel_name="Test Channel",
@@ -512,24 +511,18 @@ class TestChannelMonitorThreadNotifications:
         )
 
     def test_monitor_loop_exception_sends_error_notification(
-        self, monitor_thread: ChannelMonitorThread
+        self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
     ):
         """_monitor_cycle 예외 시 notify_error가 호출된다."""
-        call_count = 0
 
         def cycle_side_effect():
-            nonlocal call_count
-            call_count += 1
             monitor_thread.is_running = False
             raise Exception("API timeout")
 
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
-                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
-                    mock_time.sleep = MagicMock()
-                    monitor_thread.is_running = True
-                    monitor_thread._monitor_loop()
+        with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
+            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+                monitor_thread.is_running = True
+                monitor_thread._monitor_loop()
 
         mock_notifier.notify_error.assert_called_once_with(
             channel_name="Test Channel",
@@ -537,22 +530,31 @@ class TestChannelMonitorThreadNotifications:
         )
 
     def test_monitor_loop_auth_error_sends_bot_detection_notification(
-        self, monitor_thread: ChannelMonitorThread
+        self,
+        sample_channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+        mock_notifier: MagicMock,
+        initialized_logger,
     ):
         """YouTubeAuthError 발생 시 notify_bot_detection이 호출된다."""
+        from src.yt_monitor.alert_cooldown import AlertCooldown
+
+        thread = ChannelMonitorThread(
+            channel=sample_channel,
+            global_settings=global_settings,
+            youtube_client=MagicMock(),
+            notifier=mock_notifier,
+            auth_alert_cooldown=AlertCooldown(cooldown_seconds=1800.0, clock=lambda: 1000.0),
+        )
 
         def cycle_side_effect():
-            monitor_thread.is_running = False
+            thread.is_running = False
             raise YouTubeAuthError("Sign in to confirm you're not a bot")
 
-        mock_notifier = MagicMock()
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
-                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
-                    mock_time.sleep = MagicMock()
-                    mock_time.time = MagicMock(return_value=1000.0)
-                    monitor_thread.is_running = True
-                    monitor_thread._monitor_loop()
+        with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
+            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+                thread.is_running = True
+                thread._monitor_loop()
 
         mock_notifier.notify_bot_detection.assert_called_once_with(
             channel_name="Test Channel",
@@ -561,56 +563,78 @@ class TestChannelMonitorThreadNotifications:
         mock_notifier.notify_error.assert_not_called()
 
     def test_monitor_loop_auth_error_respects_cooldown(
-        self, monitor_thread: ChannelMonitorThread
+        self,
+        sample_channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+        mock_notifier: MagicMock,
+        initialized_logger,
     ):
         """쿨다운 내 반복되는 YouTubeAuthError는 1번만 알림을 보낸다."""
+        from src.yt_monitor.alert_cooldown import AlertCooldown
+
+        # 세 번 모두 쿨다운(1800초) 내 시각 — 첫 번째만 통과
+        time_sequence = iter([1000.0, 1005.0, 1010.0])
+        thread = ChannelMonitorThread(
+            channel=sample_channel,
+            global_settings=global_settings,
+            youtube_client=MagicMock(),
+            notifier=mock_notifier,
+            auth_alert_cooldown=AlertCooldown(
+                cooldown_seconds=1800.0, clock=lambda: next(time_sequence)
+            ),
+        )
+
         call_count = 0
 
         def cycle_side_effect():
             nonlocal call_count
             call_count += 1
             if call_count >= 3:
-                monitor_thread.is_running = False
+                thread.is_running = False
             raise YouTubeAuthError("Sign in to confirm you're not a bot")
 
-        mock_notifier = MagicMock()
-        # 세 번 모두 쿨다운(1800초) 내 시각 — 첫 번째만 알림
-        time_sequence = iter([1000.0, 1005.0, 1010.0])
-
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
-                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
-                    mock_time.sleep = MagicMock()
-                    mock_time.time = MagicMock(side_effect=lambda: next(time_sequence))
-                    monitor_thread.is_running = True
-                    monitor_thread._monitor_loop()
+        with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
+            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+                thread.is_running = True
+                thread._monitor_loop()
 
         assert mock_notifier.notify_bot_detection.call_count == 1
 
     def test_monitor_loop_auth_error_after_cooldown_sends_again(
-        self, monitor_thread: ChannelMonitorThread
+        self,
+        sample_channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+        mock_notifier: MagicMock,
+        initialized_logger,
     ):
         """쿨다운 경과 후 재발생하면 다시 알림을 보낸다."""
+        from src.yt_monitor.alert_cooldown import AlertCooldown
+
+        # 첫 호출 t=1000, 두 번째 t=3000 (2000초 경과 > 1800초 쿨다운)
+        time_sequence = iter([1000.0, 3000.0])
+        thread = ChannelMonitorThread(
+            channel=sample_channel,
+            global_settings=global_settings,
+            youtube_client=MagicMock(),
+            notifier=mock_notifier,
+            auth_alert_cooldown=AlertCooldown(
+                cooldown_seconds=1800.0, clock=lambda: next(time_sequence)
+            ),
+        )
+
         call_count = 0
 
         def cycle_side_effect():
             nonlocal call_count
             call_count += 1
             if call_count >= 2:
-                monitor_thread.is_running = False
+                thread.is_running = False
             raise YouTubeAuthError("Sign in to confirm you're not a bot")
 
-        mock_notifier = MagicMock()
-        # 첫 호출 t=1000, 두 번째 t=3000 (2000초 경과 > 1800초 쿨다운)
-        time_sequence = iter([1000.0, 3000.0])
-
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
-                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
-                    mock_time.sleep = MagicMock()
-                    mock_time.time = MagicMock(side_effect=lambda: next(time_sequence))
-                    monitor_thread.is_running = True
-                    monitor_thread._monitor_loop()
+        with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
+            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+                thread.is_running = True
+                thread._monitor_loop()
 
         assert mock_notifier.notify_bot_detection.call_count == 2
 
@@ -645,13 +669,14 @@ class TestMultiChannelMonitorSigterm:
 
         mock_youtube_client = MagicMock()
         mock_youtube_client.check_if_live.return_value = (False, None)
+        mock_notifier = MagicMock()
 
         monitor = MultiChannelMonitor(
             channel_manager=mock_channel_manager,
             youtube_client=mock_youtube_client,
+            notifier=mock_notifier,
         )
 
-        mock_notifier = MagicMock()
         captured_handler = {}
 
         def capture_and_stop(sig, handler):
@@ -659,19 +684,15 @@ class TestMultiChannelMonitorSigterm:
             captured_handler[sig] = handler
             monitor.is_running = False  # while 루프 즉시 종료
 
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
-            with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
-                mock_sig.SIGTERM = real_signal.SIGTERM
-                mock_sig.signal.side_effect = capture_and_stop
-                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
-                    mock_time.sleep.return_value = None
-                    monitor.start()
+        with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
+            mock_sig.SIGTERM = real_signal.SIGTERM
+            mock_sig.signal.side_effect = capture_and_stop
+            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+                monitor.start()
 
-            # 핸들러가 등록됐는지 확인
-            assert real_signal.SIGTERM in captured_handler
+        assert real_signal.SIGTERM in captured_handler
 
-            # mock_notifier가 여전히 활성인 컨텍스트 안에서 핸들러 직접 호출
-            captured_handler[real_signal.SIGTERM](real_signal.SIGTERM, None)
-            mock_notifier.notify_monitor_stopped.assert_called_with(
-                reason="docker stop (SIGTERM)"
-            )
+        captured_handler[real_signal.SIGTERM](real_signal.SIGTERM, None)
+        mock_notifier.notify_monitor_stopped.assert_called_with(
+            reason="docker stop (SIGTERM)"
+        )
