@@ -42,11 +42,13 @@ services:
     environment:
       - YT_POT_PROVIDER_URL=http://pot-provider:4416
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+    # Firefox 프로필을 read-only로 마운트 — yt-dlp가 cookiesfrombrowser로 직접 읽어
+    # 사용자 브라우저의 최신 YouTube 쿠키를 자동 사용. 수동 추출 불필요.
     volumes:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
       - ./logs:/app/logs
-      - ./cookies.txt:/app/cookies.txt
+      - ${FIREFOX_PROFILE_PATH}:/app/firefox_profile:ro
     command: ["uv", "run", "python", "monitoring.py"]
     healthcheck:
       test: ["CMD-SHELL", "pgrep -f 'monitoring.py' || exit 1"]
@@ -72,7 +74,7 @@ services:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
       - ./logs:/app/logs
-      - ./cookies.txt:/app/cookies.txt
+      - ${FIREFOX_PROFILE_PATH}:/app/firefox_profile:ro
     command: ["sh", "-c", "uv run python main.py --host 0.0.0.0 --port $YT_WEB_PORT"]
     # BusyBox wget에서 'localhost'가 IPv6(::1)로 먼저 풀려 앱의 IPv4 bind에 connection refused 발생
     healthcheck:

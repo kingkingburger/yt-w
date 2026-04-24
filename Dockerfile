@@ -20,9 +20,10 @@ COPY main.py monitoring.py ./
 COPY web/ ./web/
 COPY channels.example.json ./channels.json
 
-# Optional: copy cookies.txt if exists (for YouTube auth in Docker)
-# If not present at build time, mount it at runtime: -v /path/to/cookies.txt:/app/cookies.txt
-COPY cookies.tx[t] ./
+# cookies.txt는 이미지에 포함시키지 않는다 — 공개 라이브는 pot-provider의 PO Token만으로
+# 접근 가능하고, 멤버십/비공개가 필요하면 런타임에 볼륨 마운트로 주입하면 된다.
+# 과거 COPY cookies.tx[t]는 빌드 타임 쿠키를 이미지에 박아 재배포해도 낡은 쿠키가
+# 따라다녔다.
 
 # Expose port for web server (configurable via YT_WEB_PORT env, default 8011)
 EXPOSE 8011

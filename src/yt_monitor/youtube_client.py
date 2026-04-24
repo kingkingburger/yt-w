@@ -1,11 +1,21 @@
-"""YouTube API client module for live stream detection."""
+"""YouTube 라이브 감지 클라이언트.
+
+2개 탐지 방식(/streams 탭, 채널 페이지)이 공통 로직을 공유한다.
+URL/옵션/파싱 방식만 다르므로 DetectionStrategy로 캡슐화한다.
+
+이전에 있던 /live 엔드포인트 탐지(_check_live_endpoint)는 제거했다 —
+`extract_flat=False`로 전체 메타데이터를 추출하는 호출이었고, 이게 매 분
+폴링 시 YouTube 봇 감지 패턴과 정확히 일치해서 "Sign in to confirm"
+에러를 유발했다. /streams와 채널 페이지는 `extract_flat=in_playlist`로
+가벼운 playlist 스캔만 수행하므로 봇 감지 트리거 없이 동작한다.
+"""
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 import yt_dlp
 
-from .cookie_helper import get_cookie_options
+from .cookie_options import get_cookie_options
 from .logger import Logger
 
 
@@ -44,6 +54,28 @@ class LiveStreamInfo:
             self.url = f"https://www.youtube.com/watch?v={self.video_id}"
 
 
+@dataclass
+class DetectionStrategy:
+    """탐지 방식의 URL 변환 + yt-dlp 옵션."""
+
+    name: str
+    url_suffix: str  # "" | "/streams"
+    extra_opts: Dict[str, Any]
+
+
+_STREAMS_TAB_STRATEGY = DetectionStrategy(
+    name="streams_tab",
+    url_suffix="/streams",
+    extra_opts={"extract_flat": "in_playlist", "ignoreerrors": True},
+)
+
+_CHANNEL_PAGE_STRATEGY = DetectionStrategy(
+    name="channel_page",
+    url_suffix="",
+    extra_opts={"extract_flat": "in_playlist", "ignoreerrors": True},
+)
+
+
 class YouTubeClient:
     """Client for interacting with YouTube to detect live streams."""
 
@@ -51,9 +83,7 @@ class YouTubeClient:
         self.logger = Logger.get()
 
     def check_if_live(self, channel_url: str) -> Tuple[bool, Optional[LiveStreamInfo]]:
-        # 라이브를 확인하는 3가지 방식
         detection_methods = [
-            self._check_live_endpoint,
             self._check_streams_tab,
             self._check_channel_page,
         ]
@@ -64,12 +94,11 @@ class YouTubeClient:
                 result = method(channel_url)
                 if result:
                     return True, result
-            except Exception as e:
-                self.logger.debug(f"{method.__name__} failed: {e}")
-                if _is_auth_error(e):
-                    auth_errors.append(f"{method.__name__}: {e}")
+            except Exception as error:
+                self.logger.debug(f"{method.__name__} failed: {error}")
+                if _is_auth_error(error):
+                    auth_errors.append(f"{method.__name__}: {error}")
 
-        # 봇 감지가 하나라도 걸리면 라이브 놓칠 수 있음 — 호출자에게 승격
         if auth_errors:
             total_methods = len(detection_methods)
             raise YouTubeAuthError(
@@ -81,102 +110,56 @@ class YouTubeClient:
 
     @staticmethod
     def _is_entry_live(entry: dict) -> bool:
-        """Check if a playlist entry represents a currently live stream.
-
-        yt-dlp uses 'is_live' for full extraction but 'live_status' for
-        extract_flat mode. Both must be checked.
-        """
+        """extract_flat 모드는 live_status를, 전체 추출은 is_live를 쓴다 — 둘 다 확인."""
         if entry.get("is_live", False):
             return True
         return entry.get("live_status") == "is_live"
 
-    def _check_live_endpoint(self, channel_url: str) -> Optional[LiveStreamInfo]:
-        live_url = channel_url.rstrip("/") + "/live"
+    def _check_streams_tab(self, channel_url: str) -> Optional[LiveStreamInfo]:
+        return self._detect_with(channel_url, _STREAMS_TAB_STRATEGY)
+
+    def _check_channel_page(self, channel_url: str) -> Optional[LiveStreamInfo]:
+        return self._detect_with(channel_url, _CHANNEL_PAGE_STRATEGY)
+
+    def _detect_with(
+        self,
+        channel_url: str,
+        strategy: DetectionStrategy,
+    ) -> Optional[LiveStreamInfo]:
+        target_url = channel_url.rstrip("/") + strategy.url_suffix
 
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
-            "extract_flat": False,
-            "skip_download": True,
+            **strategy.extra_opts,
             **get_cookie_options(),
         }
 
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(live_url, download=False)
+            info = ydl.extract_info(target_url, download=False)
 
-            if info and info.get("is_live", False):
-                video_id = info.get("id")
-                title = info.get("title")
-                self.logger.info(f"Live stream found via /live endpoint: {video_id}")
+        return self._parse_entries(info, strategy.name)
 
+    def _parse_entries(
+        self,
+        info: Optional[Dict[str, Any]],
+        source_name: str,
+    ) -> Optional[LiveStreamInfo]:
+        if not info or "entries" not in info:
+            return None
+
+        for entry in info["entries"]:
+            if not entry or "id" not in entry:
+                continue
+
+            if self._is_entry_live(entry):
+                video_id = entry.get("id")
+                title = entry.get("title")
+                self.logger.info(f"Live stream found in {source_name}: {video_id}")
                 return LiveStreamInfo(
                     video_id=video_id,
                     url=f"https://www.youtube.com/watch?v={video_id}",
                     title=title,
                 )
-
-        return None
-
-    def _check_streams_tab(self, channel_url: str) -> Optional[LiveStreamInfo]:
-        streams_url = channel_url.rstrip("/") + "/streams"
-
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "extract_flat": "in_playlist",
-            "ignoreerrors": True,
-            **get_cookie_options(),
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(streams_url, download=False)
-
-            if "entries" in info:
-                for entry in info["entries"]:
-                    if not entry or "id" not in entry:
-                        continue
-
-                    if self._is_entry_live(entry):
-                        video_id = entry.get("id")
-                        title = entry.get("title")
-                        self.logger.info(f"Live stream found in /streams: {video_id}")
-
-                        return LiveStreamInfo(
-                            video_id=video_id,
-                            url=f"https://www.youtube.com/watch?v={video_id}",
-                            title=title,
-                        )
-
-        return None
-
-    def _check_channel_page(self, channel_url: str) -> Optional[LiveStreamInfo]:
-        ydl_opts = {
-            "quiet": True,
-            "no_warnings": True,
-            "extract_flat": "in_playlist",
-            "ignoreerrors": True,
-            **get_cookie_options(),
-        }
-
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(channel_url, download=False)
-
-            if "entries" in info:
-                for entry in info["entries"]:
-                    if not entry or "id" not in entry:
-                        continue
-
-                    if self._is_entry_live(entry):
-                        video_id = entry.get("id")
-                        title = entry.get("title")
-                        self.logger.info(
-                            f"Live stream found on channel page: {video_id}"
-                        )
-
-                        return LiveStreamInfo(
-                            video_id=video_id,
-                            url=f"https://www.youtube.com/watch?v={video_id}",
-                            title=title,
-                        )
 
         return None
