@@ -10,7 +10,10 @@ from . import StreamDownloader
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
 from .discord_notifier import get_notifier
 from .logger import Logger
-from .youtube_client import YouTubeClient
+from .youtube_client import YouTubeClient, YouTubeAuthError
+
+
+_AUTH_ALERT_COOLDOWN_SECONDS: float = 1800.0  # 30분 쿨다운으로 알림 폭주 방지
 
 
 class ChannelMonitorThread:
@@ -37,6 +40,7 @@ class ChannelMonitorThread:
         self.is_running = False
         self.is_downloading = False
         self.thread: Optional[threading.Thread] = None
+        self._last_auth_alert_at: float = 0.0
 
         # Create channel-specific download directory under 'live' folder
         channel_download_dir = (
@@ -93,6 +97,11 @@ class ChannelMonitorThread:
         while self.is_running:
             try:
                 self._monitor_cycle()
+            except YouTubeAuthError as e:
+                self.logger.error(
+                    f"[{self.channel.name}] YouTube 봇 감지로 라이브 확인 실패: {e}"
+                )
+                self._maybe_notify_auth_error(str(e))
             except Exception as e:
                 self.logger.error(f"Error monitoring {self.channel.name}: {e}")
                 get_notifier().notify_error(
@@ -101,6 +110,18 @@ class ChannelMonitorThread:
                 )
 
             time.sleep(self.global_settings.check_interval_seconds)
+
+    def _maybe_notify_auth_error(self, error_message: str) -> None:
+        """채널별 30분 쿨다운 내에서 1번만 Discord로 봇 감지 알림을 전송한다."""
+        now = time.time()
+        already_alerted = self._last_auth_alert_at > 0.0
+        if already_alerted and (now - self._last_auth_alert_at) < _AUTH_ALERT_COOLDOWN_SECONDS:
+            return
+        self._last_auth_alert_at = now
+        get_notifier().notify_bot_detection(
+            channel_name=self.channel.name,
+            detail=error_message,
+        )
 
     def _monitor_cycle(self) -> None:
         """Single monitoring cycle."""

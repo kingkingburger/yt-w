@@ -1,12 +1,34 @@
 """YouTube API client module for live stream detection."""
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 import yt_dlp
 
 from .cookie_helper import get_cookie_options
 from .logger import Logger
+
+
+_AUTH_ERROR_PATTERNS: Tuple[str, ...] = (
+    "sign in to confirm",
+    "not a bot",
+    "use --cookies-from-browser",
+    "use --cookies",
+)
+
+
+class YouTubeAuthError(Exception):
+    """Raised when YouTube bot/cookie authentication blocks live detection.
+
+    Signals that at least one detection method failed with a bot-detection
+    or cookie-auth error — recording may be missed without user action.
+    """
+
+
+def _is_auth_error(error: Exception) -> bool:
+    """Return True if the exception message matches a YouTube auth failure."""
+    message = str(error).lower()
+    return any(pattern in message for pattern in _AUTH_ERROR_PATTERNS)
 
 
 @dataclass
@@ -36,6 +58,7 @@ class YouTubeClient:
             self._check_channel_page,
         ]
 
+        auth_errors: List[str] = []
         for method in detection_methods:
             try:
                 result = method(channel_url)
@@ -43,6 +66,16 @@ class YouTubeClient:
                     return True, result
             except Exception as e:
                 self.logger.debug(f"{method.__name__} failed: {e}")
+                if _is_auth_error(e):
+                    auth_errors.append(f"{method.__name__}: {e}")
+
+        # 봇 감지가 하나라도 걸리면 라이브 놓칠 수 있음 — 호출자에게 승격
+        if auth_errors:
+            total_methods = len(detection_methods)
+            raise YouTubeAuthError(
+                f"YouTube 봇 감지로 {len(auth_errors)}/{total_methods} 탐지 방식 실패:\n"
+                + "\n".join(auth_errors)
+            )
 
         return False, None
 

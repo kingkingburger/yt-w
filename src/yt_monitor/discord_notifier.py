@@ -162,6 +162,18 @@ class DiscordNotifier:
             level=NotificationLevel.ERROR,
         )
 
+    def notify_bot_detection(self, channel_name: str, detail: str) -> bool:
+        """봇 감지로 라이브 확인/녹화 실패 알림."""
+        return self.send(
+            title=f"🚨 봇 감지 차단: {channel_name}",
+            description=(
+                "YouTube 봇 감지로 라이브 확인 실패 — 녹화 놓칠 수 있음.\n"
+                "쿠키 재추출 또는 pot-provider 상태 확인 필요.\n"
+                f"```{detail[:1200]}```"
+            ),
+            level=NotificationLevel.ERROR,
+        )
+
 
 _notifier: Optional[DiscordNotifier] = None
 

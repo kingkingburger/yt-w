@@ -10,7 +10,7 @@ from src.yt_monitor.multi_channel_monitor import (
     ChannelMonitorThread,
     MultiChannelMonitor,
 )
-from src.yt_monitor.youtube_client import LiveStreamInfo
+from src.yt_monitor.youtube_client import LiveStreamInfo, YouTubeAuthError
 
 
 @pytest.fixture
@@ -535,6 +535,84 @@ class TestChannelMonitorThreadNotifications:
             channel_name="Test Channel",
             error_message="API timeout",
         )
+
+    def test_monitor_loop_auth_error_sends_bot_detection_notification(
+        self, monitor_thread: ChannelMonitorThread
+    ):
+        """YouTubeAuthError 발생 시 notify_bot_detection이 호출된다."""
+
+        def cycle_side_effect():
+            monitor_thread.is_running = False
+            raise YouTubeAuthError("Sign in to confirm you're not a bot")
+
+        mock_notifier = MagicMock()
+        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
+            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
+                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
+                    mock_time.sleep = MagicMock()
+                    mock_time.time = MagicMock(return_value=1000.0)
+                    monitor_thread.is_running = True
+                    monitor_thread._monitor_loop()
+
+        mock_notifier.notify_bot_detection.assert_called_once_with(
+            channel_name="Test Channel",
+            detail="Sign in to confirm you're not a bot",
+        )
+        mock_notifier.notify_error.assert_not_called()
+
+    def test_monitor_loop_auth_error_respects_cooldown(
+        self, monitor_thread: ChannelMonitorThread
+    ):
+        """쿨다운 내 반복되는 YouTubeAuthError는 1번만 알림을 보낸다."""
+        call_count = 0
+
+        def cycle_side_effect():
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 3:
+                monitor_thread.is_running = False
+            raise YouTubeAuthError("Sign in to confirm you're not a bot")
+
+        mock_notifier = MagicMock()
+        # 세 번 모두 쿨다운(1800초) 내 시각 — 첫 번째만 알림
+        time_sequence = iter([1000.0, 1005.0, 1010.0])
+
+        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
+            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
+                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
+                    mock_time.sleep = MagicMock()
+                    mock_time.time = MagicMock(side_effect=lambda: next(time_sequence))
+                    monitor_thread.is_running = True
+                    monitor_thread._monitor_loop()
+
+        assert mock_notifier.notify_bot_detection.call_count == 1
+
+    def test_monitor_loop_auth_error_after_cooldown_sends_again(
+        self, monitor_thread: ChannelMonitorThread
+    ):
+        """쿨다운 경과 후 재발생하면 다시 알림을 보낸다."""
+        call_count = 0
+
+        def cycle_side_effect():
+            nonlocal call_count
+            call_count += 1
+            if call_count >= 2:
+                monitor_thread.is_running = False
+            raise YouTubeAuthError("Sign in to confirm you're not a bot")
+
+        mock_notifier = MagicMock()
+        # 첫 호출 t=1000, 두 번째 t=3000 (2000초 경과 > 1800초 쿨다운)
+        time_sequence = iter([1000.0, 3000.0])
+
+        with patch("src.yt_monitor.multi_channel_monitor.get_notifier", return_value=mock_notifier):
+            with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
+                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
+                    mock_time.sleep = MagicMock()
+                    mock_time.time = MagicMock(side_effect=lambda: next(time_sequence))
+                    monitor_thread.is_running = True
+                    monitor_thread._monitor_loop()
+
+        assert mock_notifier.notify_bot_detection.call_count == 2
 
 
 class TestMultiChannelMonitorSigterm:

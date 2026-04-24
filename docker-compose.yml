@@ -1,17 +1,44 @@
 services:
+  # unhealthy 컨테이너를 감시하다 자동 재시작 — pot-provider hang 대비 안전망
+  autoheal:
+    image: willfarrell/autoheal:latest
+    container_name: autoheal
+    restart: unless-stopped
+    environment:
+      - AUTOHEAL_CONTAINER_LABEL=autoheal
+      - AUTOHEAL_INTERVAL=30
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+
   pot-provider:
     image: brainicism/bgutil-ytdlp-pot-provider:latest
     container_name: pot-provider
     restart: unless-stopped
+    labels:
+      - "autoheal=true"
     environment:
       - TOKEN_TTL=21600
+    mem_limit: 512m
+    # 이미지에 wget/curl이 없어 node 런타임으로 /ping 검사
+    # unhealthy 상태가 지속되면 autoheal 사이드카가 강제 재시작
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://localhost:4416/ping').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
 
   yt-monitor:
     build: .
     container_name: yt-monitor
     restart: unless-stopped
     depends_on:
-      - pot-provider
+      pot-provider:
+        condition: service_healthy
     environment:
       - YT_POT_PROVIDER_URL=http://pot-provider:4416
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
@@ -33,7 +60,8 @@ services:
     container_name: yt-web
     restart: unless-stopped
     depends_on:
-      - pot-provider
+      pot-provider:
+        condition: service_healthy
     ports:
       - "8088:${YT_WEB_PORT:-8011}"
     environment:
@@ -46,8 +74,9 @@ services:
       - ./logs:/app/logs
       - ./cookies.txt:/app/cookies.txt
     command: ["sh", "-c", "uv run python main.py --host 0.0.0.0 --port $YT_WEB_PORT"]
+    # BusyBox wget에서 'localhost'가 IPv6(::1)로 먼저 풀려 앱의 IPv4 bind에 connection refused 발생
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:${YT_WEB_PORT:-8011}/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:${YT_WEB_PORT:-8011}/health || exit 1"]
       interval: 30s
       timeout: 5s
       start_period: 10s

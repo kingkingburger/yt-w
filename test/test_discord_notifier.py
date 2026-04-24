@@ -98,6 +98,21 @@ class TestDiscordNotifier:
         assert not notifier.notify_monitor_started(3)
         assert not notifier.notify_monitor_stopped("test")
         assert not notifier.notify_error("채널", "에러")
+        assert not notifier.notify_bot_detection("채널", "봇 감지")
+
+    def test_notify_bot_detection_title_and_level(self, discord_mock_urlopen):
+        """봇 감지 알림은 ERROR 레벨이고 제목에 채널명과 봇 감지 표시가 들어간다."""
+        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
+        notifier.notify_bot_detection("침착맨", "Sign in to confirm you're not a bot")
+
+        request = discord_mock_urlopen.call_args[0][0]
+        payload = json.loads(request.data)
+        embed = payload["embeds"][0]
+
+        assert "침착맨" in embed["title"]
+        assert "봇 감지" in embed["title"]
+        assert embed["color"] == NotificationLevel.ERROR.value
+        assert "Sign in to confirm" in embed["description"]
 
     def test_notify_live_detected_title_format(self, discord_mock_urlopen):
         """라이브 감지 알림 제목 형식 검증."""
