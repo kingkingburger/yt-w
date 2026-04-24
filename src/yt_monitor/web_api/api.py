@@ -46,23 +46,6 @@ class WebAPI:
         self.cleanup_scheduler = CleanupScheduler(channel_manager=self.channel_manager)
         self.cleanup_scheduler.start()
 
-    # 하위 호환 속성 — 기존 코드/테스트가 self.monitor로 접근하는 경우
-    @property
-    def monitor(self):
-        return self.monitor_state.monitor
-
-    @monitor.setter
-    def monitor(self, value):
-        self.monitor_state.monitor = value
-
-    @property
-    def monitor_thread(self):
-        return self.monitor_state.monitor_thread
-
-    @monitor_thread.setter
-    def monitor_thread(self, value):
-        self.monitor_state.monitor_thread = value
-
     def _register_routes(self) -> None:
         register_meta_routes(self.app)
         register_channel_routes(self.app, self.channel_manager, self.monitor_state)

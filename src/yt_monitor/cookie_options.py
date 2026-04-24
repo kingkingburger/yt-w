@@ -19,6 +19,7 @@ from typing import Any, Dict, List
 
 _REMOTE_COMPONENTS: List[str] = ["ejs:github"]
 _COOKIE_SOURCE_PATH: str = os.environ.get("YT_COOKIES_FILE", "./cookies.txt")
+_TEST_VIDEO_URL: str = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 _POT_PROVIDER_URL: str = os.environ.get("YT_POT_PROVIDER_URL", "")
 _DOCKER_FIREFOX_PROFILE: str = "/app/firefox_profile"
 _cookie_temp_path: str = ""

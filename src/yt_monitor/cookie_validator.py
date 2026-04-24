@@ -10,10 +10,9 @@ import time
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Dict, Optional
 
-from .cookie_options import _COOKIE_SOURCE_PATH, get_cookie_options
+from .cookie_options import _COOKIE_SOURCE_PATH, _TEST_VIDEO_URL, get_cookie_options
 
 
-_TEST_VIDEO_URL: str = "https://www.youtube.com/watch?v=jNQXAC9IVRw"
 _DEFAULT_CACHE_TTL_SECONDS: float = 300.0
 
 

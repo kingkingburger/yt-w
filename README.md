@@ -199,7 +199,9 @@ yt-w/
 │   ├── video_downloader.py      # 일반 동영상 다운로더
 │   ├── file_cleaner.py          # 자동 파일 정리
 │   ├── discord_notifier.py      # Discord Webhook 알림
-│   ├── cookie_helper.py         # 쿠키 인증 헬퍼
+│   ├── cookie_options.py        # yt-dlp 쿠키/인증 옵션 빌더
+│   ├── cookie_validator.py      # 쿠키 유효성 검증 + 캐시
+│   ├── cookie_browser.py        # 브라우저에서 쿠키 추출
 │   ├── logger.py                # 로깅 (일별 로테이션)
 │   └── util/
 │       └── sanitize_url.py      # URL 정규화
