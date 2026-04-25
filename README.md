@@ -191,7 +191,13 @@ YouTube 봇 차단 우회를 위해 두 가지 방식을 지원합니다.
 ```
 yt-w/
 ├── src/yt_monitor/              # 메인 패키지
-│   ├── web_api.py               # FastAPI 웹 서버 + REST API
+│   ├── web_api/                 # FastAPI 웹 서버 + REST API (라우트별 분할)
+│   │   ├── api.py               # 앱 조립 + 라우트 등록 + 스케줄러 시작
+│   │   ├── routes/              # /api/* 라우트 모듈
+│   │   ├── schemas.py           # Pydantic 요청/응답 스키마
+│   │   ├── dto_converters.py    # Internal DTO → dict 변환
+│   │   ├── state.py             # MonitorState 공유 컨테이너
+│   │   └── cleanup_scheduler.py # 백그라운드 자동 정리 스케줄러
 │   ├── multi_channel_monitor.py # 멀티 채널 모니터링
 │   ├── channel_manager.py       # 채널 설정 관리
 │   ├── youtube_client.py        # YouTube 라이브 감지 (3중 fallback)
@@ -199,6 +205,7 @@ yt-w/
 │   ├── video_downloader.py      # 일반 동영상 다운로더
 │   ├── file_cleaner.py          # 자동 파일 정리
 │   ├── discord_notifier.py      # Discord Webhook 알림
+│   ├── alert_cooldown.py        # 알림 쿨다운 (봇 감지 폭주 방지)
 │   ├── cookie_options.py        # yt-dlp 쿠키/인증 옵션 빌더
 │   ├── cookie_validator.py      # 쿠키 유효성 검증 + 캐시
 │   ├── cookie_browser.py        # 브라우저에서 쿠키 추출

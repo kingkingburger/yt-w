@@ -16,11 +16,11 @@
 - [ ] **Health check 엔드포인트** — `/api/health` + docker-compose healthcheck (P2→P1 승격, 8인 리뷰)
 - [ ] **yt-dlp 응답 어댑터 DTO** — Pydantic 모델로 변환 레이어 추가, 키 변경 시 ValidationError (8인 리뷰)
 - [ ] **MonitorStatus 확장** — 채널별 last_checked_at, consecutive_failures, last_error 추가 (8인 리뷰)
-- [ ] **web_api.py 테스트 추가** — FastAPI TestClient 통합 테스트
-- [ ] **cookie_helper.py 테스트 추가** — 쿠키 검증, 캐시 무효화, Docker 감지 단위 테스트
+- [x] **web_api 테스트 추가** — `test/test_web_api.py`, `test/test_web_api_routes.py`로 TestClient 통합 테스트 추가됨
+- [x] **cookie_validator 테스트 추가** — `test/test_cookie_validator.py`, `test/test_cookie_notifications.py`
 - [ ] **file_cleaner.py 테스트 추가** — 클린업 로직, 빈 디렉토리 삭제, 라이브 파일 보존
 - [ ] **sanitize_url.py 테스트 추가** — 엣지 케이스 (쿼리 파라미터 없음, 비-YouTube URL 등)
-- [ ] **다운로드 동시성 제한** — `web_api.py`에 `asyncio.Semaphore` 추가 (최대 2-3 동시 다운로드)
+- [ ] **다운로드 동시성 제한** — `web_api/routes/video.py`에 `asyncio.Semaphore` 추가 (최대 2-3 동시 다운로드)
 - [ ] **Graceful shutdown** — FastAPI lifespan 이벤트로 cleanup scheduler, monitor 스레드 정리
 - [ ] **환경변수 문서화** — `.env.example` 추가
 
@@ -29,7 +29,7 @@
 - [ ] **테마 토글 수정/제거** — `web/index.html`의 toggleTheme()이 동작하지 않음
 - [ ] **다운로드 진행률 UI** — WebSocket/SSE로 다운로드 progress 표시
 - [ ] **print() → Logger 교체** — `video_downloader.py` lines 156-182
-- [ ] **Any 타입 제거** — `web_api.py`, `cookie_helper.py`, `channel_manager.py`에서 구체적 타입으로 교체
+- [ ] **Any 타입 제거** — `web_api/`, `cookie_validator.py`, `channel_manager.py`에서 구체적 타입으로 교체
 - [ ] **쿠키 파일 검증 개선** — `os.path.exists()` → `os.path.isfile()`
 - [ ] **UI 에러 상태 추가** — 다운로드 실패 시 persistent 에러 + 재시도 옵션
 - [ ] **YouTube Data API v3 하이브리드** — 라이브 감지를 공식 API로 분리, 단일 의존성 분산

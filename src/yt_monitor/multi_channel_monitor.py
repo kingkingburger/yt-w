@@ -73,10 +73,6 @@ class ChannelMonitorThread:
             split_size_mb=global_settings.split_size_mb,
         )
 
-    def _sanitize_name(self, name: str) -> str:
-        """이전 버전 호환용 인스턴스 메서드 — 모듈 함수로 위임."""
-        return _sanitize_name(name)
-
     def start(self) -> None:
         """Start monitoring thread."""
         if self.is_running:

@@ -9,6 +9,7 @@ from src.yt_monitor.channel_manager import ChannelDTO, GlobalSettingsDTO, Channe
 from src.yt_monitor.multi_channel_monitor import (
     ChannelMonitorThread,
     MultiChannelMonitor,
+    _sanitize_name,
 )
 from src.yt_monitor.youtube_client import LiveStreamInfo, YouTubeAuthError
 
@@ -32,6 +33,19 @@ def global_settings(temp_dir: Path) -> GlobalSettingsDTO:
         split_mode="time",
         split_time_minutes=30,
     )
+
+
+class TestSanitizeName:
+    """모듈 레벨 _sanitize_name 순수 함수 검증."""
+
+    def test_removes_invalid_chars(self):
+        sanitized = _sanitize_name('Test<>:"/\\|?*Channel')
+
+        for char in '<>:"/\\|?*':
+            assert char not in sanitized
+
+    def test_preserves_valid_chars(self):
+        assert _sanitize_name("Test Channel 123") == "Test Channel 123"
 
 
 class TestChannelMonitorThread:
@@ -74,34 +88,6 @@ class TestChannelMonitorThread:
 
         expected_dir = temp_dir / "downloads" / "live" / "Test Channel"
         assert expected_dir.exists()
-
-    def test_sanitize_name_removes_invalid_chars(
-        self, monitor_thread: ChannelMonitorThread
-    ):
-        """Test that _sanitize_name removes invalid filesystem characters."""
-        invalid_name = 'Test<>:"/\\|?*Channel'
-
-        sanitized = monitor_thread._sanitize_name(invalid_name)
-
-        assert "<" not in sanitized
-        assert ">" not in sanitized
-        assert ":" not in sanitized
-        assert '"' not in sanitized
-        assert "/" not in sanitized
-        assert "\\" not in sanitized
-        assert "|" not in sanitized
-        assert "?" not in sanitized
-        assert "*" not in sanitized
-
-    def test_sanitize_name_preserves_valid_chars(
-        self, monitor_thread: ChannelMonitorThread
-    ):
-        """Test that _sanitize_name preserves valid characters."""
-        valid_name = "Test Channel 123"
-
-        sanitized = monitor_thread._sanitize_name(valid_name)
-
-        assert sanitized == "Test Channel 123"
 
     def test_start_sets_is_running(self, monitor_thread: ChannelMonitorThread):
         """Test that start() sets is_running to True."""
