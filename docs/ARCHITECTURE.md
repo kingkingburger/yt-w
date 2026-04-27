@@ -2,210 +2,155 @@
 
 ## 개요
 
-이 프로젝트는 클린 코드 원칙과 SOLID 원칙을 적용하여 모듈화된 구조로 설계되었습니다.
+YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드 시스템. 두 개의 장기 실행 프로세스(yt-monitor, yt-web)와 한 개의 사이드카(pot-provider)가 Docker Compose로 함께 동작한다.
+
+- **yt-monitor**: `monitoring.py` 진입점. 채널마다 스레드를 띄워 라이브를 감지하고 ffmpeg로 녹화한다.
+- **yt-web**: `main.py` 진입점. FastAPI로 채널 관리 / 모니터 제어 / 일반 동영상 다운로드 / 쿠키 검증 API를 제공하고 정적 웹 UI를 호스팅한다.
+- **pot-provider**: bgutil PO Token 사이드카. yt-dlp가 YouTube 봇 감지를 우회할 PO Token을 받아 온다.
+
+## 컨테이너 구성 (`docker-compose.yml`)
+
+| 서비스 | 책임 | healthcheck | autoheal label |
+|--------|------|-------------|----------------|
+| `pot-provider` | PO Token 발급 | `node -e "fetch(/ping)"` | yes |
+| `yt-monitor` | 채널 모니터 데몬 | `pgrep -f monitoring.py` | (autoheal 미지정 — `restart: unless-stopped`) |
+| `yt-web` | FastAPI + 웹 UI | `wget /health` (IPv4 강제) | (autoheal 미지정) |
+| `autoheal` | unhealthy 컨테이너 자동 재시작 | — | — |
+
+`yt-monitor`와 `yt-web`은 모두 호스트의 Firefox 프로필을 `/app/firefox_profile`로 read-only 마운트해, yt-dlp가 `cookiesfrombrowser`로 최신 YouTube 쿠키를 직접 읽는다.
 
 ## 프로젝트 구조
 
 ```
 yt-w/
-├── src/
-│   └── yt_monitor/          # 메인 패키지
-│       ├── __init__.py      # 패키지 초기화
-│       ├── config.py        # 설정 관리 모듈
-│       ├── logger.py        # 로깅 설정 모듈
-│       ├── youtube_client.py # YouTube API 클라이언트
-│       ├── downloader.py    # 스트림 다운로더
-│       └── monitor.py       # 라이브 스트림 모니터
-├── test/                    # 테스트 디렉토리
-│   ├── __init__.py
-│   ├── test_config.py
-│   ├── test_youtube_client.py
-│   ├── test_downloader.py
-│   └── test_monitor.py
-├── main.py                  # 엔트리포인트
-├── config.json              # 설정 파일
-└── pyproject.toml          # 프로젝트 메타데이터
+├── src/yt_monitor/                      # 메인 패키지
+│   ├── multi_channel_monitor.py         # 멀티 채널 모니터 + 채널별 스레드
+│   ├── channel_manager.py               # channels.json CRUD (RLock 직렬화)
+│   ├── youtube_client.py                # 라이브 감지 (DetectionStrategy 2종)
+│   ├── stream_downloader.py             # 라이브 녹화 (yt-dlp + ffmpeg Popen)
+│   ├── video_downloader.py              # 일반 동영상 다운로드
+│   ├── ffmpeg_command.py                # ffmpeg 세그먼트 커맨드 빌더 (순수)
+│   ├── split_strategy.py                # 시간/크기/없음 분할 전략
+│   ├── file_cleaner.py                  # retention 기반 정리
+│   ├── discord_notifier.py              # Discord webhook (urllib + rate-limit)
+│   ├── alert_cooldown.py                # 쿨다운 값 객체 (알림 폭주 방지)
+│   ├── cookie_options.py                # yt-dlp cookie/PO-Token 옵션 빌더
+│   ├── cookie_validator.py              # 쿠키 유효성 검증 + 캐시
+│   ├── cookie_browser.py                # 브라우저에서 쿠키 추출
+│   ├── logger.py                        # TimedRotatingFileHandler 로거
+│   ├── web_api/                         # FastAPI 웹 서버
+│   │   ├── api.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
+│   │   ├── state.py                     # 실행 중 모니터 상태 컨테이너
+│   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
+│   │   ├── dto_converters.py            # internal DTO → dict
+│   │   ├── cleanup_scheduler.py         # 백그라운드 자동 정리 스케줄러
+│   │   └── routes/                      # 라우트 모듈 (channels/monitor/video/cookies/cleanup/meta)
+│   └── util/sanitize_url.py             # URL 정규화
+├── test/                                # pytest 단위/회귀 테스트
+├── web/index.html                       # Tailwind 웹 UI
+├── reviews/                             # 8인 리뷰 리포트 (히스토리)
+├── main.py                              # 웹 서버 엔트리
+├── monitoring.py                        # 모니터 데몬 + CLI 엔트리
+├── docker-compose.yml
+├── Dockerfile
+└── channels.json                        # 채널 설정 (Compose volume)
 ```
 
-## 모듈 설명
+## 핵심 흐름
 
-### 1. config.py - 설정 관리
+### 1. 라이브 모니터링 (yt-monitor)
 
-**책임**: 설정 파일 로드 및 검증
+```
+monitoring.py
+  └─ MultiChannelMonitor.start()
+       ├─ ChannelManager.list_channels(enabled_only=True)
+       ├─ for channel: ChannelMonitorThread(...).start()
+       │    └─ _monitor_loop (per-channel daemon thread)
+       │         ├─ YouTubeClient.check_if_live(url)
+       │         │    └─ DetectionStrategy: /streams 탭 → 채널 페이지 (둘 다 extract_flat)
+       │         │         └─ yt-dlp + cookie_options + PO Token
+       │         └─ _handle_live_stream
+       │              ├─ DiscordNotifier.notify_live_detected
+       │              └─ StreamDownloader.download
+       │                   ├─ NoSplit: yt-dlp 직접 다운로드
+       │                   └─ Time/Size: yt-dlp로 stream URL 추출 → ffmpeg Popen + segment
+       └─ SIGTERM handler (메인 스레드일 때만 등록)
+```
 
-**클래스**:
-- `Config`: 설정 데이터 클래스 (dataclass)
-- `ConfigLoader`: 설정 파일 로더
+`/live` 엔드포인트 탐지는 매 분 `extract_flat=False`로 전체 메타데이터를 끌어오는 호출이라 봇 감지 트리거가 됐다 — 제거됨. 두 탐지 방식 모두 `extract_flat="in_playlist"`로 가벼운 playlist 스캔만 한다.
 
-**주요 기능**:
-- JSON 설정 파일 로드
-- 설정값 검증
-- 기본값 제공
+### 2. 웹 API (yt-web)
 
-**클린 코드 원칙**:
-- 단일 책임 원칙 (SRP): 설정 관리만 담당
-- 데이터 클래스 사용으로 명확한 타입 정의
-- 검증 로직 분리
+```
+main.py → uvicorn → web_api.api.create_app()
+  ├─ MonitorState 생성 (라우트 간 공유)
+  ├─ register_*_routes (channels / monitor / video / cookies / cleanup / meta)
+  └─ CleanupScheduler.start_in_background()
+```
 
-### 2. logger.py - 로깅 설정
+`/api/monitor/start`는 `MultiChannelMonitor.start()`를 데몬 스레드에서 호출한다. 이 경우 `MultiChannelMonitor`는 `signal.signal()` 등록을 건너뛴다(메인 스레드가 아니므로 `ValueError` 회피). 컨테이너의 SIGTERM 처리는 호스트 프로세스(uvicorn)가 담당한다.
 
-**책임**: 로깅 시스템 설정
+### 3. 다운로드 라이프사이클 종료
 
-**함수**:
-- `setup_logger()`: 로거 인스턴스 생성 및 설정
+`ChannelMonitorThread.stop()`은:
+1. `is_running = False`로 모니터 루프 정지를 신호.
+2. `downloader.stop()`을 호출해 진행 중인 ffmpeg subprocess를 `terminate → wait(5s) → kill` 순으로 정리.
+3. 모니터 스레드를 `join(timeout=5)`.
 
-**주요 기능**:
-- 파일 및 콘솔 핸들러 설정
-- 로그 포맷 지정
-- 로그 디렉토리 자동 생성
+이전에는 `subprocess.run`으로 ffmpeg를 블로킹 호출했기 때문에 stop이 5초 안에 반환되지 못하고 좀비를 남기는 문제가 있었다.
 
-**클린 코드 원칙**:
-- 함수형 접근으로 간단한 API 제공
-- 재사용 가능한 설정
+### 4. 쿠키 인증 우선순위
 
-### 3. youtube_client.py - YouTube 클라이언트
+`cookie_options.get_cookie_options()`가 환경에 따라 분기:
 
-**책임**: YouTube 채널의 라이브 스트림 감지
+1. **Docker + `/app/firefox_profile` 존재** → `cookiesfrombrowser=("firefox", profile, ...)` (호스트 Firefox 프로필 직접 사용)
+2. **Docker + 프로필 없음 + `cookies.txt` 존재** → 임시본 `cookiefile` (yt-dlp가 매 요청 덮어써서 원본 보호)
+3. **로컬** → `cookies.txt` 우선, 없으면 시스템 기본 브라우저(`firefox` 기본값)
 
-**클래스**:
-- `LiveStreamInfo`: 라이브 스트림 정보 데이터 클래스
-- `YouTubeClient`: YouTube API 클라이언트
+PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다.
 
-**주요 기능**:
-- 다중 전략으로 라이브 스트림 감지
-  - /live 엔드포인트
-  - /streams 탭
-  - 채널 메인 페이지
-- 오류 처리 및 폴백
+### 5. Discord 알림
 
-**클린 코드 원칙**:
-- 전략 패턴: 여러 감지 방법 시도
-- 메서드 분리로 가독성 향상
-- 명확한 반환 타입 (Tuple[bool, Optional[LiveStreamInfo]])
+이벤트별 메서드(`notify_live_detected`, `notify_download_complete`, ...)가 `DiscordNotifier.send()`를 통해 webhook으로 embed를 보낸다.
 
-### 4. downloader.py - 스트림 다운로더
+- Cloudflare가 기본 `python-urllib` UA를 차단하므로 `User-Agent: DiscordBot (...)` 강제.
+- `X-RateLimit-Remaining`/`Retry-After` 헤더를 읽어 자체 슬립.
+- 봇 감지(`YouTubeAuthError`) 알림은 `AlertCooldown`(기본 30분)으로 폭주 차단.
 
-**책임**: 라이브 스트림 다운로드
+## 동시성 / 스레드 모델
 
-**클래스**:
-- `StreamDownloader`: 스트림 다운로드 담당
+| 컴포넌트 | 동시성 보호 |
+|----------|-------------|
+| `ChannelManager` mutating 메서드 | `RLock` (read-modify-write 직렬화) |
+| `StreamDownloader._proc` | `Lock` (set/clear/stop 보호) |
+| `CookieValidator` 캐시 | `Lock` |
+| `DiscordNotifier` rate-limit | `Lock` |
+| `ChannelMonitorThread.is_downloading` | `bool` (단일 라이터 가정) |
 
-**주요 기능**:
-- yt-dlp를 사용한 스트림 다운로드
-- 자동 파일명 생성 (타임스탬프 포함)
-- MP4 형식으로 변환
-
-**클린 코드 원칙**:
-- 단일 책임 원칙: 다운로드만 담당
-- 설정 분리 (yt-dlp 옵션 빌더)
-- 명확한 성공/실패 반환
-
-### 5. monitor.py - 라이브 스트림 모니터
-
-**책임**: 전체 모니터링 프로세스 조율
-
-**클래스**:
-- `LiveStreamMonitor`: 모니터링 오케스트레이터
-
-**주요 기능**:
-- 주기적인 라이브 스트림 확인
-- 감지 시 자동 다운로드
-- 다운로드 상태 관리
-
-**클린 코드 원칙**:
-- 의존성 주입 (DI): YouTubeClient, StreamDownloader 주입 가능
-- 단일 책임 원칙: 조율만 담당
-- 명확한 상태 관리 (is_downloading)
-
-## 설계 원칙
-
-### SOLID 원칙 적용
-
-1. **Single Responsibility Principle (SRP)**
-   - 각 클래스는 하나의 책임만 가짐
-   - ConfigLoader: 설정 로드
-   - YouTubeClient: 라이브 감지
-   - StreamDownloader: 다운로드
-   - LiveStreamMonitor: 조율
-
-2. **Open/Closed Principle (OCP)**
-   - 확장에는 열려있고 수정에는 닫혀있음
-   - 새로운 감지 방법 추가 가능
-   - 새로운 다운로드 전략 추가 가능
-
-3. **Liskov Substitution Principle (LSP)**
-   - 인터페이스 기반 설계로 대체 가능성 보장
-
-4. **Interface Segregation Principle (ISP)**
-   - 작고 명확한 인터페이스 제공
-
-5. **Dependency Inversion Principle (DIP)**
-   - 의존성 주입으로 느슨한 결합
-   - LiveStreamMonitor는 구체 클래스가 아닌 추상화에 의존
-
-### 클린 코드 원칙
-
-1. **의미 있는 이름**
-   - 명확한 클래스/메서드/변수 이름
-   - 축약어 최소화
-
-2. **함수는 작게**
-   - 각 메서드는 한 가지 일만 수행
-   - 메서드 길이 최소화
-
-3. **주석보다 코드로 설명**
-   - 자기 설명적인 코드 작성
-   - docstring으로 API 문서화
-
-4. **에러 처리**
-   - 명확한 예외 처리
-   - 적절한 로깅
-
-5. **테스트 가능한 설계**
-   - 의존성 주입으로 모킹 가능
-   - 각 모듈 독립적으로 테스트 가능
+`ChannelManager`의 file lock은 단일 프로세스 내 한정. yt-monitor 컨테이너는 `channels.json`을 read-only로만 쓰므로 yt-web의 RLock으로 충분하다.
 
 ## 테스트 전략
 
-### 단위 테스트
+- **단위**: 각 모듈 독립 테스트 (`test/test_*.py`).
+- **회귀**: `test/test_regression_20260408.py`에 과거 P0 버그(`is_live`/`live_status` 누락, ffmpeg HTTP 헤더 누락) 보존.
+- **알림**: `test_discord_notifier.py` + `test_cookie_notifications.py`에서 webhook patch 대상은 `urllib.request.urlopen`이 아니라 모듈 내 import 경로.
+- **동시성**: `test_channel_manager.py::test_concurrent_add_no_lost_updates` — 10개 스레드 동시 add 후 항목 유실 없음.
+- **라이프사이클**: `test_multi_channel_monitor.py::TestMultiChannelMonitorBackgroundThread` — 백그라운드 스레드에서 start() 호출 시 SIGTERM 등록을 건너뛰는지 검증.
 
-- 각 모듈별로 독립적인 테스트
-- Mock 사용으로 외부 의존성 제거
-- 엣지 케이스 및 에러 시나리오 테스트
+테스트 실행:
 
-### 테스트 커버리지
+```bash
+uv run pytest          # 전체
+uv run pytest -v       # 상세
+uv run pytest test/test_stream_downloader.py -k stop  # 특정
+```
 
-- Config 모듈: 검증 로직 테스트
-- YouTubeClient: 감지 로직 및 폴백 테스트
-- StreamDownloader: 다운로드 로직 테스트
-- LiveStreamMonitor: 통합 시나리오 테스트
+## 운영 주의
 
-## 확장 가능성
+- **Firefox 프로필 마운트**가 read-only인지 확인 (`docker-compose.yml`의 `:ro`). yt-dlp가 cookiesdb를 쓰면 SQLite lock으로 호스트 Firefox와 충돌.
+- **pot-provider hang**은 두 단계 안전망으로 대응: 컨테이너 healthcheck → autoheal 사이드카가 강제 재시작. 그래도 봇 감지가 발생하면 `notify_bot_detection` Discord 알림.
+- **ffmpeg 좀비**는 `downloader.stop()`이 막지만, kill까지 7초가 걸리므로 docker stop 시 `--time` 충분히(>10s) 줄 것.
 
-### 새로운 감지 방법 추가
+## 변경 이력
 
-`YouTubeClient` 클래스에 새로운 `_check_*` 메서드 추가
-
-### 다른 플랫폼 지원
-
-- 새로운 클라이언트 클래스 생성
-- 동일한 인터페이스 구현
-
-### 다운로드 전략 변경
-
-- StreamDownloader 클래스 확장 또는 대체
-- 의존성 주입으로 쉽게 교체 가능
-
-## 성능 고려사항
-
-1. **비동기 처리 가능성**
-   - 현재는 동기 방식
-   - 필요 시 asyncio로 변환 가능
-
-2. **메모리 관리**
-   - 컨텍스트 매니저 사용 (with 문)
-   - 리소스 자동 정리
-
-3. **로깅 최적화**
-   - 파일 핸들러 버퍼링
-   - 로그 레벨 조정 가능
+자세한 사건/사고 노트는 `docs/history.md`와 `reviews/`를 참고한다.
