@@ -625,6 +625,72 @@ class TestChannelMonitorThreadNotifications:
         assert mock_notifier.notify_bot_detection.call_count == 2
 
 
+class TestMultiChannelMonitorBackgroundThread:
+    """백그라운드 스레드에서 start() 호출 시 SIGTERM 등록을 건너뛰는지 검증.
+
+    웹 라우트의 /api/monitor/start는 데몬 스레드 위에서 monitor.start()를
+    호출한다. signal.signal()은 메인 스레드에서만 호출 가능하므로,
+    백그라운드 스레드 진입 시 등록을 건너뛰어야 한다.
+    """
+
+    def test_start_in_background_thread_skips_signal_registration(
+        self,
+        tmp_path: Path,
+        initialized_logger,
+    ):
+        """sub-thread에서 start() 호출 시 signal.signal()이 호출되지 않아야 한다."""
+        import threading as real_threading
+
+        manager = MagicMock(spec=ChannelManager)
+        manager.list_channels.return_value = [
+            ChannelDTO(
+                id="ch1",
+                name="Test Channel",
+                url="https://www.youtube.com/@TestChannel",
+            )
+        ]
+        manager.get_global_settings.return_value = GlobalSettingsDTO(
+            download_directory=str(tmp_path / "downloads"),
+            log_file=str(tmp_path / "test.log"),
+        )
+
+        mock_youtube_client = MagicMock()
+        mock_youtube_client.check_if_live.return_value = (False, None)
+        mock_notifier = MagicMock()
+
+        monitor = MultiChannelMonitor(
+            channel_manager=manager,
+            youtube_client=mock_youtube_client,
+            notifier=mock_notifier,
+        )
+
+        run_error: dict = {}
+
+        def run_monitor():
+            try:
+                with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
+                    with patch("src.yt_monitor.multi_channel_monitor.time.sleep") as mock_sleep:
+                        # 첫 sleep에서 즉시 종료 — 핸들러 등록 분기를 통과한 직후 빠진다
+                        def stop_loop(*args, **kwargs):
+                            monitor.is_running = False
+
+                        mock_sleep.side_effect = stop_loop
+                        monitor.start()
+                        run_error["signal_called"] = mock_sig.signal.called
+            except Exception as error:
+                run_error["error"] = error
+
+        worker = real_threading.Thread(target=run_monitor)
+        worker.start()
+        worker.join(timeout=5.0)
+
+        assert "error" not in run_error, f"start() raised: {run_error.get('error')}"
+        assert run_error.get("signal_called") is False, (
+            "백그라운드 스레드에서는 signal.signal()이 호출되면 안 됨"
+        )
+        monitor.stop()
+
+
 class TestMultiChannelMonitorSigterm:
     """SIGTERM 수신 시 notify_monitor_stopped가 호출되는지 검증."""
 

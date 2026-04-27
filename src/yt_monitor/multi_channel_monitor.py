@@ -233,13 +233,15 @@ class MultiChannelMonitor:
         self.logger.info("All channel monitors started")
         self._notifier.notify_monitor_started(channel_count=len(channels))
 
-        # SIGTERM handler (docker stop / systemd stop)
-        def handle_sigterm(signum: int, frame: object) -> None:
-            self.logger.info("Received SIGTERM signal")
-            self._notifier.notify_monitor_stopped(reason="docker stop (SIGTERM)")
-            self.stop()
+        # SIGTERM은 메인 스레드에서만 등록 가능 — 웹 라우트가 백그라운드
+        # 스레드에서 start()를 호출하면 signal.signal()이 ValueError를 던진다.
+        if threading.current_thread() is threading.main_thread():
+            def handle_sigterm(signum: int, frame: object) -> None:
+                self.logger.info("Received SIGTERM signal")
+                self._notifier.notify_monitor_stopped(reason="docker stop (SIGTERM)")
+                self.stop()
 
-        signal.signal(signal.SIGTERM, handle_sigterm)
+            signal.signal(signal.SIGTERM, handle_sigterm)
 
         try:
             while self.is_running:
