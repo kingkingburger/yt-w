@@ -1,5 +1,6 @@
 """Tests for stream_downloader module."""
 
+import subprocess
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -183,8 +184,11 @@ class TestStreamDownloader:
             }
             mock_ydl.return_value = mock_instance
 
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=0)
+            with patch("subprocess.Popen") as mock_popen:
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = ("", "")
+                mock_proc.returncode = 0
+                mock_popen.return_value = mock_proc
 
                 stream_downloader._download_with_realtime_split(
                     "https://www.youtube.com/watch?v=test123",
@@ -192,7 +196,7 @@ class TestStreamDownloader:
                 )
 
                 # Verify ffmpeg was called with correct segment time (10 * 60 = 600)
-                call_args = mock_run.call_args[0][0]
+                call_args = mock_popen.call_args[0][0]
                 segment_time_idx = call_args.index("-segment_time")
                 assert call_args[segment_time_idx + 1] == "600"
 
@@ -216,8 +220,11 @@ class TestStreamDownloader:
             }
             mock_ydl.return_value = mock_instance
 
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=0)
+            with patch("subprocess.Popen") as mock_popen:
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = ("", "")
+                mock_proc.returncode = 0
+                mock_popen.return_value = mock_proc
 
                 downloader._download_with_realtime_split(
                     "https://www.youtube.com/watch?v=test123",
@@ -225,7 +232,7 @@ class TestStreamDownloader:
                 )
 
                 # Verify ffmpeg was called
-                mock_run.assert_called_once()
+                mock_popen.assert_called_once()
 
     def test_download_with_realtime_split_dual_stream(
         self, stream_downloader: StreamDownloader
@@ -243,8 +250,11 @@ class TestStreamDownloader:
             }
             mock_ydl.return_value = mock_instance
 
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=0)
+            with patch("subprocess.Popen") as mock_popen:
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = ("", "")
+                mock_proc.returncode = 0
+                mock_popen.return_value = mock_proc
 
                 stream_downloader._download_with_realtime_split(
                     "https://www.youtube.com/watch?v=test123",
@@ -252,7 +262,7 @@ class TestStreamDownloader:
                 )
 
                 # Verify ffmpeg was called with two inputs
-                call_args = mock_run.call_args[0][0]
+                call_args = mock_popen.call_args[0][0]
                 input_count = call_args.count("-i")
                 assert input_count == 2
 
@@ -285,14 +295,60 @@ class TestStreamDownloader:
             }
             mock_ydl.return_value = mock_instance
 
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=1)
+            with patch("subprocess.Popen") as mock_popen:
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = ("", "ffmpeg error detail")
+                mock_proc.returncode = 1
+                mock_popen.return_value = mock_proc
 
                 with pytest.raises(Exception, match="FFmpeg segmented download failed"):
                     stream_downloader._download_with_realtime_split(
                         "https://www.youtube.com/watch?v=test123",
                         "/output/pattern_%03d.mp4",
                     )
+
+    def test_stop_terminates_running_ffmpeg(
+        self, stream_downloader: StreamDownloader
+    ):
+        """stop()은 진행 중인 ffmpeg에 terminate 후 wait를 호출한다."""
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None  # 살아 있음
+        stream_downloader._proc = mock_proc
+
+        stream_downloader.stop()
+
+        mock_proc.terminate.assert_called_once()
+        mock_proc.wait.assert_called_once()
+
+    def test_stop_kills_when_terminate_times_out(
+        self, stream_downloader: StreamDownloader
+    ):
+        """terminate가 timeout이면 kill로 강제 종료한다."""
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        mock_proc.wait.side_effect = [subprocess.TimeoutExpired(cmd="ffmpeg", timeout=5), None]
+        stream_downloader._proc = mock_proc
+
+        stream_downloader.stop()
+
+        mock_proc.terminate.assert_called_once()
+        mock_proc.kill.assert_called_once()
+
+    def test_stop_no_op_when_proc_already_finished(
+        self, stream_downloader: StreamDownloader
+    ):
+        """proc.poll()이 None이 아니면(=종료됨) terminate를 호출하지 않는다."""
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 0
+        stream_downloader._proc = mock_proc
+
+        stream_downloader.stop()
+
+        mock_proc.terminate.assert_not_called()
+
+    def test_stop_no_op_when_no_proc(self, stream_downloader: StreamDownloader):
+        """진행 중인 다운로드가 없으면 stop()은 조용히 통과한다."""
+        stream_downloader.stop()  # raise 없이 끝나야 한다
 
     def test_perform_download(self, stream_downloader: StreamDownloader):
         """Test _perform_download calls yt-dlp correctly."""

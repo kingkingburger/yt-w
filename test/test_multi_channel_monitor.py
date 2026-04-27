@@ -126,6 +126,15 @@ class TestChannelMonitorThread:
 
         assert monitor_thread.is_running is False
 
+    def test_stop_terminates_active_downloader(
+        self, monitor_thread: ChannelMonitorThread
+    ):
+        """stop()은 진행 중인 ffmpeg 다운로드를 끊기 위해 downloader.stop()을 호출한다."""
+        with patch.object(monitor_thread.downloader, "stop") as mock_stop:
+            monitor_thread.stop()
+
+        mock_stop.assert_called_once()
+
     def test_monitor_cycle_checks_for_live(
         self,
         monitor_thread: ChannelMonitorThread,

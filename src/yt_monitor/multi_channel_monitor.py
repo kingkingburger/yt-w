@@ -84,8 +84,13 @@ class ChannelMonitorThread:
         self.logger.info(f"Started monitoring channel: {self.channel.name}")
 
     def stop(self) -> None:
-        """Stop monitoring thread."""
+        """Stop monitoring thread.
+
+        진행 중인 ffmpeg 다운로드도 함께 끊어 좀비를 막는다.
+        downloader.stop()은 진행 중이 아니면 no-op.
+        """
         self.is_running = False
+        self.downloader.stop()
         if self.thread:
             self.thread.join(timeout=5.0)
         self.logger.info(f"Stopped monitoring channel: {self.channel.name}")

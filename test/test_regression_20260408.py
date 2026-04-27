@@ -171,8 +171,11 @@ class TestFfmpegHeadersInDownload:
             }
             mock_ydl.return_value = mock_instance
 
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="")
+            with patch("subprocess.Popen") as mock_run:
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = ("", "")
+                mock_proc.returncode = 0
+                mock_run.return_value = mock_proc
 
                 downloader._download_with_realtime_split(
                     "https://www.youtube.com/watch?v=test",
@@ -198,8 +201,11 @@ class TestFfmpegHeadersInDownload:
             }
             mock_ydl.return_value = mock_instance
 
-            with patch("subprocess.run") as mock_run:
-                mock_run.return_value = MagicMock(returncode=0, stderr="", stdout="")
+            with patch("subprocess.Popen") as mock_run:
+                mock_proc = MagicMock()
+                mock_proc.communicate.return_value = ("", "")
+                mock_proc.returncode = 0
+                mock_run.return_value = mock_proc
 
                 downloader._download_with_realtime_split(
                     "https://www.youtube.com/watch?v=test",

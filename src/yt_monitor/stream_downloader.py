@@ -6,9 +6,10 @@
 
 import os
 import subprocess
+import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import yt_dlp
 
@@ -16,6 +17,10 @@ from .cookie_options import get_cookie_options
 from .ffmpeg_command import build_ffmpeg_headers, build_segment_command
 from .logger import Logger
 from .split_strategy import NoSplit, make_split_strategy
+
+
+_FFMPEG_TERMINATE_TIMEOUT_SECONDS: float = 5.0
+_FFMPEG_KILL_TIMEOUT_SECONDS: float = 2.0
 
 
 class StreamDownloader:
@@ -35,6 +40,8 @@ class StreamDownloader:
         self.split_time_minutes = split_time_minutes
         self.split_size_mb = split_size_mb
         self.logger = Logger.get()
+        self._proc: Optional[subprocess.Popen] = None
+        self._proc_lock: threading.Lock = threading.Lock()
         self._setup_directory()
 
     def _setup_directory(self):
@@ -95,6 +102,30 @@ class StreamDownloader:
         """하위 호환: 이전 코드/테스트가 참조하는 정적 헬퍼."""
         return build_ffmpeg_headers(info)
 
+    def stop(self) -> None:
+        """진행 중인 ffmpeg 프로세스를 즉시 종료한다.
+
+        ChannelMonitorThread.stop()이 호출하면, 라이브 녹화 중이라도
+        ffmpeg를 깔끔히 끊어 좀비 프로세스를 막는다. terminate → wait,
+        타임아웃이면 kill.
+        """
+        with self._proc_lock:
+            proc = self._proc
+
+        if proc is None or proc.poll() is not None:
+            return
+
+        try:
+            proc.terminate()
+            proc.wait(timeout=_FFMPEG_TERMINATE_TIMEOUT_SECONDS)
+        except subprocess.TimeoutExpired:
+            self.logger.warning("ffmpeg did not terminate in time, killing")
+            proc.kill()
+            try:
+                proc.wait(timeout=_FFMPEG_KILL_TIMEOUT_SECONDS)
+            except subprocess.TimeoutExpired:
+                self.logger.error("ffmpeg kill also timed out")
+
     def _download_with_realtime_split(self, stream_url: str, output_pattern: str) -> None:
         strategy = make_split_strategy(
             mode=self.split_mode,
@@ -116,13 +147,26 @@ class StreamDownloader:
             info = ydl.extract_info(stream_url, download=False)
 
         cmd = build_segment_command(info, output_pattern, split_seconds)
-        result = subprocess.run(cmd, capture_output=True, text=True)
-        if result.returncode != 0:
+        proc = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+        )
+        with self._proc_lock:
+            self._proc = proc
+        try:
+            _stdout, stderr = proc.communicate()
+        finally:
+            with self._proc_lock:
+                self._proc = None
+
+        if proc.returncode != 0:
             self.logger.error(
-                f"FFmpeg failed (exit {result.returncode}): {result.stderr[-2000:]}"
+                f"FFmpeg failed (exit {proc.returncode}): {(stderr or '')[-2000:]}"
             )
             raise Exception(
-                f"FFmpeg segmented download failed (rc={result.returncode})"
+                f"FFmpeg segmented download failed (rc={proc.returncode})"
             )
 
     def _perform_download(self, stream_url: str, ydl_opts: dict) -> None:
