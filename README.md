@@ -253,7 +253,6 @@ uv run pytest -v        # 상세 출력
 ```
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)
-- [테스트 가이드](docs/TESTING.md)
 - [변경 이력](docs/history.md)
 
 ## 라이선스

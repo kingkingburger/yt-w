@@ -2,7 +2,7 @@
 
 import threading
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 
 from ...channel_manager import ChannelManager
 from ...logger import Logger
@@ -30,7 +30,7 @@ def register_monitor_routes(
         )
 
     @app.post("/api/monitor/start")
-    async def start_monitor(background_tasks: BackgroundTasks):
+    async def start_monitor():
         if monitor_state.is_running:
             raise HTTPException(status_code=400, detail="Monitor is already running")
 
