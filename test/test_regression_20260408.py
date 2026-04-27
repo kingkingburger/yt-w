@@ -1,13 +1,14 @@
 """Regression tests for 2026-04-08 bugs.
 
 Bug 1: _is_entry_live only checked is_live, missed live_status field
-Bug 2: _build_ffmpeg_headers was missing, ffmpeg got no HTTP headers -> 403
+Bug 2: build_ffmpeg_headers was missing, ffmpeg got no HTTP headers -> 403
 """
 
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from src.yt_monitor.ffmpeg_command import build_ffmpeg_headers
 from src.yt_monitor.youtube_client import YouTubeClient
 from src.yt_monitor.stream_downloader import StreamDownloader
 
@@ -55,20 +56,23 @@ class TestIsEntryLive:
 
 
 class TestBuildFfmpegHeaders:
-    """Direct unit tests for _build_ffmpeg_headers.
+    """Direct unit tests for build_ffmpeg_headers (ffmpeg_command 모듈 함수).
 
     ffmpeg needs HTTP headers (User-Agent, Cookie) to download
     YouTube HLS segments. Without them, 403 Forbidden.
+
+    test_ffmpeg_command.py에도 같은 함수의 단위 테스트가 있지만 여기서는
+    회귀 사례 자체를 보존한다.
     """
 
     def test_empty_when_no_headers(self):
-        assert StreamDownloader._build_ffmpeg_headers({}) == []
+        assert build_ffmpeg_headers({}) == []
 
     def test_empty_when_key_missing(self):
-        assert StreamDownloader._build_ffmpeg_headers({"url": "x"}) == []
+        assert build_ffmpeg_headers({"url": "x"}) == []
 
     def test_empty_when_headers_dict_empty(self):
-        assert StreamDownloader._build_ffmpeg_headers({"http_headers": {}}) == []
+        assert build_ffmpeg_headers({"http_headers": {}}) == []
 
     def test_formats_headers_correctly(self):
         info = {
@@ -77,7 +81,7 @@ class TestBuildFfmpegHeaders:
                 "Cookie": "abc=123",
             }
         }
-        result = StreamDownloader._build_ffmpeg_headers(info)
+        result = build_ffmpeg_headers(info)
 
         assert len(result) == 2
         assert result[0] == "-headers"
@@ -86,7 +90,7 @@ class TestBuildFfmpegHeaders:
 
     def test_single_header(self):
         info = {"http_headers": {"User-Agent": "test"}}
-        result = StreamDownloader._build_ffmpeg_headers(info)
+        result = build_ffmpeg_headers(info)
 
         assert result == ["-headers", "User-Agent: test\r\n"]
 

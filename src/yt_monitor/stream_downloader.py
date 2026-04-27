@@ -9,12 +9,12 @@ import subprocess
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import yt_dlp
 
 from .cookie_options import get_cookie_options
-from .ffmpeg_command import build_ffmpeg_headers, build_segment_command
+from .ffmpeg_command import build_segment_command
 from .logger import Logger
 from .split_strategy import NoSplit, make_split_strategy
 
@@ -96,11 +96,6 @@ class StreamDownloader:
                 }
             ],
         }
-
-    @staticmethod
-    def _build_ffmpeg_headers(info: Dict[str, Any]) -> List[str]:
-        """하위 호환: 이전 코드/테스트가 참조하는 정적 헬퍼."""
-        return build_ffmpeg_headers(info)
 
     def stop(self) -> None:
         """진행 중인 ffmpeg 프로세스를 즉시 종료한다.
