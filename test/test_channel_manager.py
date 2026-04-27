@@ -278,6 +278,35 @@ class TestChannelManager:
         assert settings.check_interval_seconds == 120
         assert settings.split_mode == "size"
 
+    def test_concurrent_add_no_lost_updates(self, temp_channels_file: Path):
+        """동시에 add_channel을 호출해도 read-modify-write 레이스로 항목이 유실되면 안 된다."""
+        import threading
+
+        manager = ChannelManager(channels_file=str(temp_channels_file))
+
+        thread_count = 10
+        barrier = threading.Barrier(thread_count)
+
+        def add_one(idx: int) -> None:
+            barrier.wait()
+            manager.add_channel(
+                name=f"Channel {idx}",
+                url=f"https://www.youtube.com/@Channel{idx}",
+            )
+
+        threads = [
+            threading.Thread(target=add_one, args=(i,)) for i in range(thread_count)
+        ]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=5.0)
+
+        channels = manager.list_channels()
+        assert len(channels) == thread_count, (
+            f"동시 add 후 채널 수가 {thread_count}이어야 하는데 {len(channels)}"
+        )
+
     def test_persistence(self, temp_channels_file: Path):
         """Test that changes are persisted to file."""
         manager1 = ChannelManager(channels_file=str(temp_channels_file))

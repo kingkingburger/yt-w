@@ -1,6 +1,7 @@
 """Channel management module for multiple YouTube channels."""
 
 import json
+import threading
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import List, Optional, Dict, Any
@@ -55,6 +56,11 @@ class ChannelManager:
             channels_file: Path to channels configuration file
         """
         self.channels_file = Path(channels_file)
+        # 같은 프로세스 내 라우트들이 add/update를 동시에 부르면 read-modify-write
+        # 레이스가 난다 (yt-web FastAPI는 멀티스레드 서버). RLock으로 보호한다.
+        # 단일 프로세스 한정 — 같은 channels.json을 다른 컨테이너가 동시 수정하면
+        # 별도 file lock이 필요하지만, yt-monitor는 read-only로만 접근하므로 OK.
+        self._lock: threading.RLock = threading.RLock()
         self._ensure_file_exists()
 
     def _ensure_file_exists(self) -> None:
@@ -108,26 +114,27 @@ class ChannelManager:
         Raises:
             ValueError: If channel with same URL already exists
         """
-        data = self._read_data()
+        with self._lock:
+            data = self._read_data()
 
-        # Check if channel URL already exists
-        for channel_data in data["channels"]:
-            if channel_data["url"] == url:
-                raise ValueError(f"Channel with URL {url} already exists")
+            # Check if channel URL already exists
+            for channel_data in data["channels"]:
+                if channel_data["url"] == url:
+                    raise ValueError(f"Channel with URL {url} already exists")
 
-        # Create new channel with unique ID
-        channel = ChannelDTO(
-            id=str(uuid4()),
-            name=name,
-            url=url,
-            enabled=enabled,
-            download_format=download_format,
-        )
+            # Create new channel with unique ID
+            channel = ChannelDTO(
+                id=str(uuid4()),
+                name=name,
+                url=url,
+                enabled=enabled,
+                download_format=download_format,
+            )
 
-        data["channels"].append(asdict(channel))
-        self._write_data(data)
+            data["channels"].append(asdict(channel))
+            self._write_data(data)
 
-        return channel
+            return channel
 
     def remove_channel(self, channel_id: str) -> bool:
         """
@@ -139,16 +146,17 @@ class ChannelManager:
         Returns:
             True if channel was removed, False if not found
         """
-        data = self._read_data()
-        original_count = len(data["channels"])
+        with self._lock:
+            data = self._read_data()
+            original_count = len(data["channels"])
 
-        data["channels"] = [ch for ch in data["channels"] if ch["id"] != channel_id]
+            data["channels"] = [ch for ch in data["channels"] if ch["id"] != channel_id]
 
-        if len(data["channels"]) < original_count:
-            self._write_data(data)
-            return True
+            if len(data["channels"]) < original_count:
+                self._write_data(data)
+                return True
 
-        return False
+            return False
 
     def list_channels(self, enabled_only: bool = False) -> List[ChannelDTO]:
         """
@@ -207,25 +215,26 @@ class ChannelManager:
         Returns:
             Updated ChannelDTO if found, None otherwise
         """
-        data = self._read_data()
+        with self._lock:
+            data = self._read_data()
 
-        for i, channel_data in enumerate(data["channels"]):
-            if channel_data["id"] == channel_id:
-                if name is not None:
-                    channel_data["name"] = name
-                if url is not None:
-                    channel_data["url"] = url
-                if enabled is not None:
-                    channel_data["enabled"] = enabled
-                if download_format is not None:
-                    channel_data["download_format"] = download_format
+            for i, channel_data in enumerate(data["channels"]):
+                if channel_data["id"] == channel_id:
+                    if name is not None:
+                        channel_data["name"] = name
+                    if url is not None:
+                        channel_data["url"] = url
+                    if enabled is not None:
+                        channel_data["enabled"] = enabled
+                    if download_format is not None:
+                        channel_data["download_format"] = download_format
 
-                data["channels"][i] = channel_data
-                self._write_data(data)
+                    data["channels"][i] = channel_data
+                    self._write_data(data)
 
-                return ChannelDTO(**channel_data)
+                    return ChannelDTO(**channel_data)
 
-        return None
+            return None
 
     def get_global_settings(self) -> GlobalSettingsDTO:
         """
@@ -247,14 +256,15 @@ class ChannelManager:
         Returns:
             Updated GlobalSettingsDTO object
         """
-        data = self._read_data()
-        settings = data["global_settings"]
+        with self._lock:
+            data = self._read_data()
+            settings = data["global_settings"]
 
-        for key, value in kwargs.items():
-            if key in settings:
-                settings[key] = value
+            for key, value in kwargs.items():
+                if key in settings:
+                    settings[key] = value
 
-        data["global_settings"] = settings
-        self._write_data(data)
+            data["global_settings"] = settings
+            self._write_data(data)
 
-        return GlobalSettingsDTO(**settings)
+            return GlobalSettingsDTO(**settings)
