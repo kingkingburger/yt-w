@@ -219,9 +219,7 @@ yt-w/
 ├── docker-compose.yml
 ├── Dockerfile
 ├── channels.json                # 채널 설정
-├── channels.example.json        # 예제 설정
-├── refresh_cookies.bat          # 쿠키 새로고침 (대화형)
-└── update_cookies.bat           # 쿠키 새로고침 (스케줄러용)
+└── channels.example.json        # 예제 설정
 ```
 
 ## 다운로드 파일 구조
