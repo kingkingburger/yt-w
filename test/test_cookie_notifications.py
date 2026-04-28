@@ -41,25 +41,32 @@ def channels_file(tmp_path: Path) -> str:
 
 
 @pytest.fixture
-def client_and_notifier(channels_file: str, tmp_path: Path):
-    """TestClient + mock notifier + 없는 cookies.txt 경로로 validator 세팅."""
-    missing_cookies = str(tmp_path / "no_cookies.txt")
+def client_and_notifier(channels_file: str):
+    """TestClient + mock notifier + yt-dlp가 인증 실패하는 validator 세팅."""
     mock_notifier = MagicMock()
-    fresh_validator = CookieValidator(cookie_source_path=missing_cookies)
+    fresh_validator = CookieValidator()
+
+    mock_ydl = MagicMock()
+    mock_ydl.__enter__ = lambda s: mock_ydl
+    mock_ydl.__exit__ = MagicMock(return_value=False)
+    mock_ydl.extract_info.side_effect = Exception(
+        "Sign in to confirm you're not a bot"
+    )
 
     with patch("src.yt_monitor.cookie_validator._default_validator", fresh_validator):
         with patch(
             "src.yt_monitor.web_api.routes.cookies.get_notifier",
             return_value=mock_notifier,
         ):
-            web_api = WebAPI(channels_file=channels_file)
-            yield TestClient(web_api.app), mock_notifier
+            with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
+                web_api = WebAPI(channels_file=channels_file)
+                yield TestClient(web_api.app), mock_notifier
 
 
 class TestCookieStatusEndpointNotifications:
     """GET /api/cookie/status — validator 결과에 따른 알림 호출 검증."""
 
-    def test_notifies_when_cookies_missing(self, client_and_notifier):
+    def test_notifies_when_cookies_invalid(self, client_and_notifier):
         client, mock_notifier = client_and_notifier
 
         response = client.get("/api/cookie/status")
@@ -67,10 +74,9 @@ class TestCookieStatusEndpointNotifications:
         assert response.status_code == 200
         data = response.json()
         assert data["valid"] is False
-        assert data["has_cookies"] is False
         mock_notifier.notify_cookie_expired.assert_called_once()
         call_msg = mock_notifier.notify_cookie_expired.call_args.kwargs["message"]
-        assert "없습니다" in call_msg
+        assert "만료" in call_msg
 
     def test_does_not_notify_on_cache_hit(self, client_and_notifier):
         """캐시 히트 응답은 알림 재전송하지 않는다."""
@@ -82,17 +88,3 @@ class TestCookieStatusEndpointNotifications:
         client.get("/api/cookie/status")  # 캐시 히트 — 알림 없음
 
         mock_notifier.notify_cookie_expired.assert_not_called()
-
-
-class TestCookieRefreshCheckEndpointNotifications:
-    """POST /api/cookie/refresh-check — 쿠키 무효 시 알림."""
-
-    def test_notifies_when_invalid_after_refresh(self, client_and_notifier):
-        client, mock_notifier = client_and_notifier
-
-        response = client.post("/api/cookie/refresh-check")
-
-        assert response.status_code == 200
-        data = response.json()
-        assert data["valid"] is False
-        mock_notifier.notify_cookie_expired.assert_called_once()

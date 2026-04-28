@@ -34,9 +34,9 @@ yt-w/
 │   ├── file_cleaner.py                  # retention 기반 정리
 │   ├── discord_notifier.py              # Discord webhook (urllib + rate-limit)
 │   ├── alert_cooldown.py                # 쿨다운 값 객체 (알림 폭주 방지)
-│   ├── cookie_options.py                # yt-dlp cookie/PO-Token 옵션 빌더
+│   ├── cookie_options.py                # yt-dlp cookie/PO-Token 옵션 빌더 (Firefox profile 직접 읽기)
 │   ├── cookie_validator.py              # 쿠키 유효성 검증 + 캐시
-│   ├── cookie_browser.py                # 브라우저에서 쿠키 추출
+│   ├── video_merger.py                  # ffmpeg 기반 영상 병합 (concat / re-encode 잡 매니저)
 │   ├── logger.py                        # TimedRotatingFileHandler 로거
 │   ├── web_api/                         # FastAPI 웹 서버
 │   │   ├── api.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
@@ -44,10 +44,10 @@ yt-w/
 │   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
 │   │   ├── dto_converters.py            # internal DTO → dict
 │   │   ├── cleanup_scheduler.py         # 백그라운드 자동 정리 스케줄러
-│   │   └── routes/                      # 라우트 모듈 (channels/monitor/video/cookies/cleanup/meta)
+│   │   └── routes/                      # 라우트 모듈 (channels/monitor/video/cookies/merge/system/meta)
 │   └── util/sanitize_url.py             # URL 정규화
 ├── test/                                # pytest 단위/회귀 테스트
-├── web/index.html                       # Tailwind 웹 UI
+├── web/index.html                       # Operator console (vanilla JS, JetBrains Mono)
 ├── reviews/                             # 8인 리뷰 리포트 (히스토리)
 ├── main.py                              # 웹 서버 엔트리
 ├── monitoring.py                        # 모니터 데몬 + CLI 엔트리

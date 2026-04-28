@@ -62,10 +62,6 @@ class TestChannelRoutes:
         assert len(listed) == 1
         assert listed[0]["id"] == created["id"]
 
-    def test_get_nonexistent_returns_404(self, client: TestClient):
-        response = client.get("/api/channels/not-a-real-id")
-        assert response.status_code == 404
-
     def test_update_channel(self, client: TestClient):
         created = client.post(
             "/api/channels",
@@ -95,24 +91,6 @@ class TestChannelRoutes:
         client.post("/api/channels", json=payload)
         response = client.post("/api/channels", json=payload)
         assert response.status_code == 400
-
-
-class TestSettingsRoutes:
-    """/api/settings."""
-
-    def test_get_settings_returns_defaults(self, client: TestClient):
-        response = client.get("/api/settings")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["check_interval_seconds"] == 60
-        assert data["split_mode"] == "time"
-
-    def test_patch_settings_updates_field(self, client: TestClient):
-        response = client.patch(
-            "/api/settings", json={"check_interval_seconds": 120}
-        )
-        assert response.status_code == 200
-        assert response.json()["check_interval_seconds"] == 120
 
 
 class TestMonitorStatusRoute:
@@ -145,12 +123,3 @@ class TestMonitorStatusRoute:
         assert data["active_channels"] == 1
 
 
-class TestCleanupStatusRoute:
-    """/api/cleanup/status."""
-
-    def test_empty_directory_zero_files(self, client: TestClient):
-        response = client.get("/api/cleanup/status")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["files_to_delete"] == 0
-        assert data["retention_days"] == 7

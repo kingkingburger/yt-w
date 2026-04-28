@@ -206,14 +206,14 @@ yt-w/
 │   ├── file_cleaner.py          # 자동 파일 정리
 │   ├── discord_notifier.py      # Discord Webhook 알림
 │   ├── alert_cooldown.py        # 알림 쿨다운 (봇 감지 폭주 방지)
-│   ├── cookie_options.py        # yt-dlp 쿠키/인증 옵션 빌더
+│   ├── cookie_options.py        # yt-dlp 쿠키/인증 옵션 빌더 (Firefox profile 직접 읽기)
 │   ├── cookie_validator.py      # 쿠키 유효성 검증 + 캐시
-│   ├── cookie_browser.py        # 브라우저에서 쿠키 추출
+│   ├── video_merger.py          # ffmpeg 기반 영상 병합 잡 매니저
 │   ├── logger.py                # 로깅 (일별 로테이션)
 │   └── util/
 │       └── sanitize_url.py      # URL 정규화
 ├── web/
-│   └── index.html               # 웹 UI (Tailwind CSS)
+│   └── index.html               # Operator console (vanilla JS, JetBrains Mono)
 ├── main.py                      # CLI + 웹 서버 엔트리포인트
 ├── monitoring.py                # 모니터링 데몬 엔트리포인트
 ├── docker-compose.yml

@@ -1,16 +1,15 @@
-"""쿠키 유효성 검증 — 결과만 반환, 알림 책임 없음.
+"""쿠키 유효성 검증 — yt-dlp 실제 추출 시도로 인증 가능 여부를 결정한다.
 
-호출자가 CookieValidationResult를 받아 필요하면 알림을 전송한다.
-테스트에서 CookieValidator 인스턴스를 직접 만들어 격리 가능.
+Firefox profile 마운트 도입 후 cookies.txt 파일 존재 여부는 더 이상 신호가 아니다.
+오직 yt-dlp가 테스트 영상에서 title을 받아오는지만 본다.
 """
 
-import os
 import threading
 import time
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Dict, Optional
 
-from .cookie_options import _COOKIE_SOURCE_PATH, _TEST_VIDEO_URL, get_cookie_options
+from .cookie_options import _TEST_VIDEO_URL, get_cookie_options
 
 
 _DEFAULT_CACHE_TTL_SECONDS: float = 300.0
@@ -21,7 +20,6 @@ class CookieValidationResult:
     """쿠키 유효성 검증 결과."""
 
     valid: bool
-    has_cookies: bool
     message: str
     checked_at: float
     cached: bool
@@ -38,11 +36,9 @@ class CookieValidator:
 
     def __init__(
         self,
-        cookie_source_path: Optional[str] = None,
         cache_ttl_seconds: float = _DEFAULT_CACHE_TTL_SECONDS,
         clock: Callable[[], float] = time.time,
     ):
-        self._cookie_source_path: str = cookie_source_path or _COOKIE_SOURCE_PATH
         self._cache_ttl_seconds: float = cache_ttl_seconds
         self._clock: Callable[[], float] = clock
         self._lock: threading.Lock = threading.Lock()
@@ -68,25 +64,14 @@ class CookieValidator:
                 if (now - self._checked_at) < self._cache_ttl_seconds:
                     return CookieValidationResult(
                         valid=self._cached_valid,
-                        has_cookies=os.path.exists(self._cookie_source_path),
                         message=(
                             "쿠키 유효"
                             if self._cached_valid
-                            else "쿠키 만료됨 — 브라우저에서 다시 내보내세요"
+                            else "쿠키 만료됨 — 호스트 Firefox의 YouTube 로그인 상태 확인 필요"
                         ),
                         checked_at=self._checked_at,
                         cached=True,
                     )
-
-        if not os.path.exists(self._cookie_source_path):
-            self._store_result(valid=False, now=now)
-            return CookieValidationResult(
-                valid=False,
-                has_cookies=False,
-                message="cookies.txt 파일이 없습니다",
-                checked_at=now,
-                cached=False,
-            )
 
         try:
             import yt_dlp
@@ -107,7 +92,6 @@ class CookieValidator:
                 self._store_result(valid=True, now=now)
                 return CookieValidationResult(
                     valid=True,
-                    has_cookies=True,
                     message="쿠키 유효",
                     checked_at=now,
                     cached=False,
@@ -116,8 +100,7 @@ class CookieValidator:
             self._store_result(valid=False, now=now)
             return CookieValidationResult(
                 valid=False,
-                has_cookies=True,
-                message="쿠키 만료됨 — 브라우저에서 다시 내보내세요",
+                message="쿠키 만료됨 — 호스트 Firefox의 YouTube 로그인 상태 확인 필요",
                 checked_at=now,
                 cached=False,
             )
@@ -126,12 +109,11 @@ class CookieValidator:
             self._store_result(valid=False, now=now)
             error_text = str(error)
             if "Sign in to confirm" in error_text or "cookies" in error_text.lower():
-                message = "쿠키 만료됨 — 브라우저에서 다시 내보내세요"
+                message = "쿠키 만료됨 — 호스트 Firefox의 YouTube 로그인 상태 확인 필요"
             else:
                 message = f"쿠키 검증 실패: {error_text[:100]}"
             return CookieValidationResult(
                 valid=False,
-                has_cookies=True,
                 message=message,
                 checked_at=now,
                 cached=False,

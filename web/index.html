@@ -1,999 +1,1530 @@
 <!DOCTYPE html>
-<html lang="ko" class="dark">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YT Saver - YouTube Downloader & Live Monitor</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    animation: {
-                        'bounce-short': 'bounce 1s infinite',
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        body {
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .step-section {
-            display: none !important;
-        }
-        .step-section.active {
-            display: block !important;
-        }
-        .step-section.active.flex-col {
-            display: flex !important;
-        }
-        .tab-button {
-            transition: all 0.3s;
-        }
-        .tab-button.active {
-            border-bottom: 3px solid #ef4444;
-        }
-        #result-area {
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-            transition: max-height 0.4s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
-        }
-        #result-area.active {
-            max-height: 2000px;
-            opacity: 1;
-            margin-top: 2rem;
-        }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YT-W // OPERATOR CONSOLE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=IBM+Plex+Sans:wght@400;500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ========================================================================
+     YT-W :: OPERATOR CONSOLE
+     bg=#0a0a0a fg=#e8e6e3 amber=#ffb000 dim=#666 danger=#ff5b5b ok=#69f0ae
+     ======================================================================== */
+  :root {
+    --bg: #14120f;
+    --bg-1: #1b1916;
+    --bg-2: #211e1a;
+    --bg-3: #28241e;
+    --line: #2c2924;
+    --line-2: #38342d;
+    --fg: #c4c0b8;
+    --fg-dim: #7a756c;
+    --fg-mute: #5c5750;
+    --amber: #d9a256;
+    --amber-2: #e8be7a;
+    --amber-mute: #4a3416;
+    --ok: #7cc795;
+    --warn: #d9a256;
+    --danger: #d96868;
+    --info: #6db8d9;
+    --grid: rgba(217, 162, 86, 0.025);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    font-feature-settings: 'calt' 1, 'liga' 1, 'ss01' 1;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 32px 32px;
+    background-attachment: fixed;
+  }
+  ::selection { background: var(--amber); color: var(--bg); }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-1); }
+  ::-webkit-scrollbar-thumb { background: var(--line-2); }
+  ::-webkit-scrollbar-thumb:hover { background: var(--amber-mute); }
+
+  a { color: var(--amber); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  .container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 24px 80px;
+  }
+
+  /* ── Boot banner ───────────────────────────────────────────────────────── */
+  .banner {
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    padding: 14px 18px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .banner::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 2px;
+    background: var(--amber);
+  }
+  .banner-title {
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    font-size: 11px;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .banner-h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    margin-bottom: 6px;
+  }
+  .banner-h1 .blink {
+    display: inline-block;
+    width: 12px;
+    background: var(--amber);
+    color: var(--amber);
+    height: 18px;
+    vertical-align: -2px;
+    animation: blink 1.05s steps(2, start) infinite;
+    margin-left: 4px;
+  }
+  @keyframes blink { to { background: transparent; } }
+  .banner-meta {
+    color: var(--fg-dim);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .banner-meta b { color: var(--fg); font-weight: 500; }
+
+  /* ── Status bar ────────────────────────────────────────────────────────── */
+  .statusbar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .stat {
+    padding: 14px 16px;
+    border-right: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: default;
+  }
+  .stat:last-child { border-right: 0; }
+  .stat:hover { background: var(--bg-2); }
+  .stat-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--fg-mute);
+    flex-shrink: 0;
+    box-shadow: 0 0 0 0 currentColor;
+  }
+  .stat.ok .stat-dot { background: var(--ok); animation: pulse-ok 2s infinite; }
+  .stat.warn .stat-dot { background: var(--warn); }
+  .stat.err .stat-dot { background: var(--danger); animation: pulse-err 1s infinite; }
+  @keyframes pulse-ok {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(105,240,174,0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(105,240,174,0); }
+  }
+  @keyframes pulse-err {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255,91,91,0.6); }
+    50% { box-shadow: 0 0 0 5px rgba(255,91,91,0); }
+  }
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--fg-mute);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+  .stat-val { font-size: 14px; font-weight: 500; letter-spacing: -0.005em; }
+  .stat-sub { color: var(--fg-dim); font-size: 11px; }
+
+  /* ── Tabs ─────────────────────────────────────────────────────────────── */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+  }
+  .tab {
+    background: transparent;
+    border: 0;
+    color: var(--fg-mute);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    padding: 14px 20px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.12s, border-color 0.12s;
+    text-transform: uppercase;
+  }
+  .tab .num { color: var(--fg-mute); margin-right: 6px; font-weight: 800; }
+  .tab:hover { color: var(--fg); }
+  .tab.active { color: var(--amber); border-color: var(--amber); }
+  .tab.active .num { color: var(--amber); }
+
+  /* ── Panels ──────────────────────────────────────────────────────────── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .section {
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    margin-bottom: 18px;
+  }
+  .section-head {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--bg-2);
+  }
+  .section-title {
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--amber);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .section-title::before {
+    content: '▸ ';
+    color: var(--amber);
+    margin-right: 4px;
+  }
+  .section-body { padding: 16px; }
+
+  /* ── Buttons ─────────────────────────────────────────────────────────── */
+  .btn {
+    background: transparent;
+    color: var(--fg);
+    border: 1px solid var(--line-2);
+    padding: 8px 14px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    font-weight: 600;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+  }
+  .btn:hover:not(:disabled) {
+    background: var(--bg-3);
+    border-color: var(--fg);
+  }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.primary {
+    background: var(--amber);
+    color: var(--bg);
+    border-color: var(--amber);
+    font-weight: 800;
+  }
+  .btn.primary:hover:not(:disabled) {
+    background: var(--amber-2);
+    border-color: var(--amber-2);
+  }
+  .btn.ghost { border-color: var(--line); color: var(--fg-dim); }
+  .btn.ghost:hover { color: var(--fg); border-color: var(--line-2); }
+  .btn.danger { color: var(--danger); border-color: var(--line-2); }
+  .btn.danger:hover:not(:disabled) { background: var(--danger); color: var(--bg); border-color: var(--danger); }
+  .btn.ok { color: var(--ok); }
+  .btn.sm { padding: 4px 10px; font-size: 10px; }
+
+  /* ── Inputs ──────────────────────────────────────────────────────────── */
+  .input, .select {
+    background: var(--bg);
+    color: var(--fg);
+    border: 1px solid var(--line-2);
+    padding: 8px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    width: 100%;
+  }
+  .input:focus, .select:focus {
+    outline: none;
+    border-color: var(--amber);
+    box-shadow: 0 0 0 1px var(--amber);
+  }
+  .input::placeholder { color: var(--fg-mute); }
+  .label {
+    font-size: 10px;
+    color: var(--fg-mute);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  /* ── Tables ──────────────────────────────────────────────────────────── */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .table th {
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    color: var(--fg-mute);
+    font-size: 10px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--line);
+    background: var(--bg-2);
+  }
+  .table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .table tr:hover td { background: var(--bg-2); }
+  .table tr:last-child td { border-bottom: 0; }
+  .table .actions { display: flex; gap: 6px; justify-content: flex-end; }
+  .col-num { width: 36px; color: var(--fg-mute); font-variant-numeric: tabular-nums; }
+  .col-num::before { content: ''; }
+  .empty {
+    padding: 56px 24px;
+    text-align: center;
+    color: var(--fg-mute);
+    font-size: 12px;
+  }
+  .empty .ascii {
+    color: var(--line-2);
+    white-space: pre;
+    font-size: 11px;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    display: inline-block;
+  }
+
+  /* ── Badge / chip ────────────────────────────────────────────────────── */
+  .chip {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    font-weight: 700;
+    text-transform: uppercase;
+    border: 1px solid currentColor;
+  }
+  .chip.ok { color: var(--ok); }
+  .chip.warn { color: var(--warn); }
+  .chip.err { color: var(--danger); }
+  .chip.dim { color: var(--fg-mute); border-color: var(--line-2); }
+  .chip.amber { color: var(--amber); }
+  .chip.solid {
+    background: var(--amber);
+    color: var(--bg);
+    border-color: var(--amber);
+  }
+
+  /* ── Stat tiles ──────────────────────────────────────────────────────── */
+  .tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0;
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+  }
+  .tile {
+    padding: 18px 18px;
+    border-right: 1px solid var(--line);
+  }
+  .tile:last-child { border-right: 0; }
+  .tile-label {
+    font-size: 9px;
+    letter-spacing: 0.22em;
+    color: var(--fg-mute);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .tile-val {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--fg);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .tile-val.amber { color: var(--amber); }
+  .tile-val.ok { color: var(--ok); }
+  .tile-sub { color: var(--fg-dim); font-size: 11px; margin-top: 6px; }
+
+  /* ── Merge workspace ─────────────────────────────────────────────────── */
+  .merge-grid {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 900px) {
+    .merge-grid { grid-template-columns: 1fr; }
+  }
+  .file-list {
+    max-height: 480px;
+    overflow-y: auto;
+  }
+  .file-row {
+    display: grid;
+    grid-template-columns: 28px 1fr auto auto;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background 0.1s;
+  }
+  .file-row:hover { background: var(--bg-2); }
+  .file-row:last-child { border-bottom: 0; }
+  .file-row.selected { background: rgba(255,176,0,0.06); }
+  .file-row input[type=checkbox] {
+    accent-color: var(--amber);
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+  }
+  .file-name {
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .file-name .dir { color: var(--fg-mute); }
+  .file-meta {
+    color: var(--fg-dim);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+
+  .seq-list {
+    min-height: 80px;
+    border: 1px dashed var(--line-2);
+    background: var(--bg);
+    padding: 8px;
+  }
+  .seq-list.empty-seq {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fg-mute);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .seq-item {
+    display: grid;
+    grid-template-columns: 28px 28px 1fr auto;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    background: var(--bg-1);
+    margin-bottom: 4px;
+    font-size: 12px;
+    cursor: grab;
+  }
+  .seq-item:active { cursor: grabbing; }
+  .seq-item.dragging { opacity: 0.4; }
+  .seq-item.drop-target { border-color: var(--amber); }
+  .seq-item .idx {
+    color: var(--amber);
+    font-weight: 700;
+    text-align: center;
+  }
+  .seq-item .grip { color: var(--fg-mute); cursor: grab; }
+  .seq-item .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .toggle-group {
+    display: flex;
+    border: 1px solid var(--line-2);
+  }
+  .toggle-group button {
+    flex: 1;
+    background: transparent;
+    color: var(--fg-dim);
+    border: 0;
+    padding: 8px;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    border-right: 1px solid var(--line-2);
+  }
+  .toggle-group button:last-child { border-right: 0; }
+  .toggle-group button.active {
+    background: var(--amber);
+    color: var(--bg);
+    font-weight: 800;
+  }
+
+  /* ── Job list ────────────────────────────────────────────────────────── */
+  .job-row {
+    display: grid;
+    grid-template-columns: 80px 1fr 80px 80px auto;
+    gap: 12px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--line);
+    font-size: 12px;
+    align-items: center;
+  }
+  .job-row:last-child { border-bottom: 0; }
+  .job-id {
+    color: var(--fg-mute);
+    font-variant-numeric: tabular-nums;
+  }
+  .job-mode { font-size: 10px; color: var(--fg-dim); letter-spacing: 0.1em; }
+
+  /* ── Notif ───────────────────────────────────────────────────────────── */
+  .notif {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--bg-1);
+    border: 1px solid var(--line-2);
+    padding: 14px 16px;
+    min-width: 280px;
+    max-width: 360px;
+    z-index: 100;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: transform 0.25s cubic-bezier(.2,.8,.2,1), opacity 0.2s;
+    border-left: 3px solid var(--amber);
+  }
+  .notif.active { transform: translateY(0); opacity: 1; }
+  .notif.ok { border-left-color: var(--ok); }
+  .notif.err { border-left-color: var(--danger); }
+  .notif-title {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: var(--amber);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 800;
+  }
+  .notif.ok .notif-title { color: var(--ok); }
+  .notif.err .notif-title { color: var(--danger); }
+  .notif-msg { font-size: 12px; line-height: 1.5; color: var(--fg); }
+
+  /* ── Modal ───────────────────────────────────────────────────────────── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(2px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 24px;
+  }
+  .overlay.active { display: flex; }
+  .modal {
+    background: var(--bg-1);
+    border: 1px solid var(--line-2);
+    width: 100%;
+    max-width: 480px;
+    border-top: 3px solid var(--amber);
+  }
+  .modal-head {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .modal-title {
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-size: 12px;
+    color: var(--amber);
+  }
+  .modal-body { padding: 18px; }
+  .modal-foot {
+    padding: 14px 18px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  /* ── Footer ──────────────────────────────────────────────────────────── */
+  .footer {
+    margin-top: 32px;
+    padding: 16px 0;
+    border-top: 1px solid var(--line);
+    color: var(--fg-mute);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    display: flex;
+    justify-content: space-between;
+    text-transform: uppercase;
+  }
+
+  /* ── Field rows ──────────────────────────────────────────────────────── */
+  .field { margin-bottom: 14px; }
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .stack-sm > * + * { margin-top: 8px; }
+  .stack > * + * { margin-top: 14px; }
+  .row-flex {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .grow { flex: 1; min-width: 0; }
+  .right { text-align: right; }
+  .nowrap { white-space: nowrap; }
+  .mono-num { font-variant-numeric: tabular-nums; }
+</style>
 </head>
-<body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col">
 
-    <!-- 헤더 -->
-    <header id="main-header" class="border-b border-gray-800 bg-gray-900/90 sticky top-0 z-50 backdrop-blur-md">
-        <div class="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
-            <div class="flex items-center space-x-2 cursor-pointer" onclick="resetApp()">
-                <div class="bg-red-600 p-1.5 rounded-lg">
-                    <i data-lucide="play" class="w-5 h-5 text-white fill-current"></i>
-                </div>
-                <span class="text-xl font-bold tracking-tight">YT<span class="text-red-600">Saver</span></span>
-            </div>
+<body>
+  <div class="container">
 
-            <div class="flex items-center space-x-4">
-                <button onclick="toggleTheme()" class="p-2 rounded-full hover:bg-gray-800 text-gray-400 transition-colors" id="theme-btn">
-                    <i data-lucide="sun" class="w-5 h-5"></i>
-                </button>
-            </div>
-        </div>
+    <!-- ▌ BOOT BANNER ─────────────────────────────────────────────────── -->
+    <header class="banner">
+      <div class="banner-title">YT-W // OPERATOR CONSOLE — v1.0</div>
+      <div class="banner-h1">
+        <span id="boot-host">localhost</span>:<span id="boot-port">8088</span>
+        <span class="blink"></span>
+      </div>
+      <div class="banner-meta">
+        <b id="boot-time">--:--:--</b> &nbsp;·&nbsp;
+        UPTIME <b id="boot-uptime">--</b> &nbsp;·&nbsp;
+        DOWNLOADS <b id="boot-dlpath">./downloads</b> &nbsp;·&nbsp;
+        <b id="boot-files">0</b> FILES &nbsp;·&nbsp;
+        <a href="#" onclick="systemRefresh(); return false;">[refresh]</a>
+      </div>
     </header>
 
-    <!-- 쿠키 만료 경고 배너 -->
-    <div id="cookie-warning" class="hidden bg-amber-600/90 text-white">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0"></i>
-                <span class="text-sm font-medium" id="cookie-warning-message">
-                    YouTube 쿠키가 만료되었습니다. 브라우저에서 쿠키를 다시 내보내주세요.
-                </span>
-            </div>
-            <div class="flex items-center gap-2 flex-shrink-0">
-                <button onclick="extractCookies()" id="cookie-extract-btn" class="text-xs bg-white/90 text-amber-700 hover:bg-white px-3 py-1.5 rounded-lg transition-colors font-bold">
-                    쿠키 갱신
-                </button>
-                <input type="file" id="cookie-file-input" accept=".txt" class="hidden" onchange="uploadCookieFile(this)" />
-                <button onclick="document.getElementById('cookie-file-input').click()" id="cookie-upload-btn" class="text-xs bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded-lg transition-colors font-medium">
-                    파일 업로드
-                </button>
-                <button onclick="dismissCookieWarning()" class="p-1 hover:bg-white/20 rounded-lg transition-colors">
-                    <i data-lucide="x" class="w-4 h-4"></i>
-                </button>
-            </div>
+    <!-- ▌ STATUS BAR ────────────────────────────────────────────────────── -->
+    <section class="statusbar">
+      <div class="stat" id="stat-monitor">
+        <span class="stat-dot"></span>
+        <div>
+          <div class="stat-label">MONITOR</div>
+          <div class="stat-val" id="stat-monitor-val">stopped</div>
         </div>
-    </div>
+      </div>
+      <div class="stat" id="stat-discord">
+        <span class="stat-dot"></span>
+        <div>
+          <div class="stat-label">DISCORD</div>
+          <div class="stat-val" id="stat-discord-val">─</div>
+        </div>
+      </div>
+      <div class="stat" id="stat-cookie">
+        <span class="stat-dot"></span>
+        <div>
+          <div class="stat-label">COOKIE</div>
+          <div class="stat-val" id="stat-cookie-val">─</div>
+        </div>
+      </div>
+      <div class="stat" id="stat-disk">
+        <span class="stat-dot"></span>
+        <div>
+          <div class="stat-label">DISK</div>
+          <div class="stat-val mono-num" id="stat-disk-val">─</div>
+          <div class="stat-sub mono-num" id="stat-disk-sub">─</div>
+        </div>
+      </div>
+    </section>
 
-    <!-- 탭 네비게이션 -->
-    <nav class="border-b border-gray-800 bg-gray-900">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex space-x-8">
-                <button onclick="switchTab('download')" id="tab-download" class="tab-button active py-4 px-2 text-sm font-semibold text-white">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="download" class="w-4 h-4"></i>
-                        동영상 다운로드
-                    </div>
-                </button>
-                <button onclick="switchTab('monitor')" id="tab-monitor" class="tab-button py-4 px-2 text-sm font-semibold text-gray-500 hover:text-white">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="radio" class="w-4 h-4"></i>
-                        라이브 모니터링
-                    </div>
-                </button>
-            </div>
-        </div>
+    <!-- ▌ TABS ─────────────────────────────────────────────────────────── -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="monitor" onclick="switchTab('monitor')">
+        <span class="num">01</span>MONITOR
+      </button>
+      <button class="tab" data-tab="merge" onclick="switchTab('merge')">
+        <span class="num">02</span>MERGE
+      </button>
+      <button class="tab" data-tab="download" onclick="switchTab('download')">
+        <span class="num">03</span>DOWNLOAD
+      </button>
+      <button class="tab" data-tab="channels" onclick="switchTab('channels')">
+        <span class="num">04</span>CHANNELS
+      </button>
     </nav>
 
-    <!-- 메인 컨텐츠 -->
-    <main class="flex-grow flex flex-col items-center pt-12 pb-20 px-4 w-full">
+    <!-- ╔═════════════════════════ PANEL :: MONITOR ════════════════════╗ -->
+    <main id="panel-monitor" class="panel active">
 
-        <!-- 다운로드 탭 -->
-        <div id="content-download" class="w-full max-w-6xl">
-            <!-- 히어로 텍스트 -->
-            <div class="text-center max-w-3xl mx-auto mb-12">
-                <h1 class="text-4xl md:text-6xl font-extrabold mb-6 leading-tight">
-                    YouTube 동영상을 <br />
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">
-                        가장 빠르고 안전하게
-                    </span>
-                </h1>
-                <p class="text-lg md:text-xl mb-8 text-gray-400">
-                    고화질 MP4, MP3 변환 지원. 설치가 필요 없는 무료 온라인 다운로더입니다.
-                </p>
-            </div>
-
-            <!-- 검색 영역 (항상 표시) -->
-            <div id="search-area" class="w-full max-w-2xl mx-auto rounded-2xl shadow-2xl overflow-hidden bg-gray-800 border border-gray-700 p-8 md:p-12">
-                <form onsubmit="handleAnalyze(event)" id="analyze-form" class="relative">
-                    <div class="relative flex items-center">
-                        <i data-lucide="link" class="absolute left-4 text-gray-400 w-6 h-6"></i>
-                        <input
-                            type="text"
-                            id="url-input"
-                            placeholder="여기에 YouTube 링크를 붙여넣으세요..."
-                            class="w-full pl-12 pr-32 py-5 rounded-xl text-lg outline-none transition-all border-2 bg-gray-900 border-gray-700 focus:border-red-500 text-white placeholder-gray-600"
-                            required
-                        />
-                        <button
-                            type="submit"
-                            id="analyze-btn"
-                            class="absolute right-2 top-2 bottom-2 bg-red-600 hover:bg-red-700 text-white px-6 rounded-lg font-bold transition-all duration-200 shadow-lg hover:shadow-red-500/30 flex items-center"
-                        >
-                            시작하기
-                        </button>
-                    </div>
-                </form>
-                <p class="mt-4 text-sm text-center text-gray-500">
-                    YouTube 링크를 입력하고 원하는 형식으로 다운로드하세요
-                </p>
-            </div>
-
-            <!-- 결과 영역 (확장 가능) -->
-            <div id="result-area" class="w-full max-w-2xl mx-auto">
-                <div class="rounded-2xl shadow-2xl overflow-hidden bg-gray-800 border border-gray-700">
-                    <!-- STEP 2: 분석 중 (Analyzing) -->
-                    <div id="step-analyzing" class="step-section p-16 flex flex-col items-center justify-center text-center">
-                        <i data-lucide="loader-2" class="w-16 h-16 text-red-500 animate-spin mb-6"></i>
-                        <h3 class="text-2xl font-bold mb-2">동영상 분석 중...</h3>
-                        <p class="text-gray-500">잠시만 기다려주세요. 동영상 정보를 가져오고 있습니다.</p>
-                    </div>
-
-                    <!-- STEP 3: 결과 (Result) -->
-                    <div id="step-result" class="step-section p-6 md:p-8">
-                        <div class="flex flex-col md:flex-row gap-6 mb-8">
-                            <div class="w-full md:w-1/3 aspect-video rounded-lg overflow-hidden relative group shadow-lg bg-gray-700">
-                                <img id="video-thumb" src="" alt="Thumbnail" class="w-full h-full object-cover" />
-                                <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <i data-lucide="play" class="w-12 h-12 text-white fill-current"></i>
-                                </div>
-                            </div>
-                            <div class="flex-1">
-                                <h3 id="video-title" class="text-xl font-bold mb-2 line-clamp-2 leading-snug">동영상 제목</h3>
-                                <p id="video-author" class="text-sm mb-4 text-gray-400">
-                                    업로더: Unknown
-                                </p>
-                                <div id="video-info" class="text-xs text-gray-500">
-                                    <span id="video-duration">00:00</span> · <span id="video-views">0 views</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-b py-6 mb-6 grid grid-cols-1 md:grid-cols-2 gap-6 border-gray-700">
-                            <div>
-                                <label class="block text-sm font-medium mb-2 text-gray-400">포맷 선택</label>
-                                <div class="flex gap-2">
-                                    <button
-                                        onclick="setFormat('video')"
-                                        id="btn-video"
-                                        class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-500 bg-red-500/10 text-red-500 transition-all"
-                                    >
-                                        <i data-lucide="film" size="18"></i>
-                                        <span class="font-bold">Video (MP4)</span>
-                                    </button>
-                                    <button
-                                        onclick="setFormat('audio')"
-                                        id="btn-audio"
-                                        class="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-transparent bg-gray-700 text-gray-500 transition-all"
-                                    >
-                                        <i data-lucide="music" size="18"></i>
-                                        <span class="font-bold">Audio (MP3)</span>
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div id="quality-container">
-                                <label class="block text-sm font-medium mb-2 text-gray-400">화질 선택</label>
-                                <select
-                                    class="w-full p-3 rounded-xl outline-none appearance-none cursor-pointer bg-gray-700 text-white"
-                                    id="quality-select"
-                                >
-                                    <option value="best">최고 화질 (Best)</option>
-                                    <option value="2160">2160p (4K)</option>
-                                    <option value="1440">1440p (2K)</option>
-                                    <option value="1080">1080p (Full HD)</option>
-                                    <option value="720">720p (HD)</option>
-                                    <option value="480">480p</option>
-                                    <option value="360">360p</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="flex gap-4">
-                            <button
-                                onclick="closeResult()"
-                                class="flex-1 py-4 rounded-xl font-bold transition-all bg-gray-700 hover:bg-gray-600 text-white"
-                            >
-                                취소
-                            </button>
-                            <button
-                                onclick="startDownload()"
-                                class="flex-[2] bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold shadow-lg hover:shadow-red-500/40 transition-all flex items-center justify-center gap-2"
-                            >
-                                <i data-lucide="download" class="w-5 h-5"></i>
-                                다운로드 시작
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- STEP 4: 다운로드 중 (Downloading) -->
-                    <div id="step-downloading" class="step-section p-16 flex flex-col items-center justify-center text-center">
-                        <i data-lucide="download" class="w-16 h-16 text-red-500 animate-bounce mb-6"></i>
-                        <h3 class="text-2xl font-bold mb-2">다운로드 중...</h3>
-                        <p class="text-gray-500">잠시만 기다려주세요. 파일을 다운로드하고 있습니다.</p>
-                        <p class="text-gray-500 text-sm mt-2">브라우저를 닫지 마세요.</p>
-                    </div>
-
-                    <!-- STEP 5: 완료 (Finished) -->
-                    <div id="step-finished" class="step-section p-16 flex flex-col items-center justify-center text-center">
-                        <div class="w-20 h-20 bg-green-900/30 rounded-full flex items-center justify-center mb-6">
-                            <i data-lucide="check-circle" class="w-10 h-10 text-green-500"></i>
-                        </div>
-                        <h3 class="text-2xl font-bold mb-2">다운로드 완료!</h3>
-                        <p class="text-gray-500 mb-8" id="finish-message">파일이 성공적으로 다운로드되었습니다.</p>
-
-                        <div class="flex flex-col gap-3 w-full max-w-sm">
-                            <button
-                                onclick="closeResult()"
-                                class="w-full bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold shadow-lg transition-all flex items-center justify-center gap-2"
-                            >
-                                <i data-lucide="download" class="w-5 h-5"></i>
-                                다른 동영상 다운로드
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 기능 설명 -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-24 max-w-6xl mx-auto">
-                <div class="p-8 rounded-2xl bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="w-14 h-14 rounded-xl flex items-center justify-center mb-6 bg-gray-700">
-                        <i data-lucide="zap" class="w-8 h-8 text-yellow-500"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">초고속 변환</h3>
-                    <p class="text-sm leading-relaxed text-gray-400">
-                        최신 기술을 사용하여 대기 시간 없이 즉시 다운로드합니다.
-                    </p>
-                </div>
-                <div class="p-8 rounded-2xl bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="w-14 h-14 rounded-xl flex items-center justify-center mb-6 bg-gray-700">
-                        <i data-lucide="shield-check" class="w-8 h-8 text-green-500"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">100% 안전함</h3>
-                    <p class="text-sm leading-relaxed text-gray-400">
-                        개인정보를 수집하지 않는 안전한 도구입니다.
-                    </p>
-                </div>
-                <div class="p-8 rounded-2xl bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-300">
-                    <div class="w-14 h-14 rounded-xl flex items-center justify-center mb-6 bg-gray-700">
-                        <i data-lucide="film" class="w-8 h-8 text-blue-500"></i>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">모든 품질 지원</h3>
-                    <p class="text-sm leading-relaxed text-gray-400">
-                        4K, 1080p, 720p 등 원하는 화질로 저장할 수 있습니다.
-                    </p>
-                </div>
-            </div>
+      <section class="tiles">
+        <div class="tile">
+          <div class="tile-label">STATE</div>
+          <div class="tile-val" id="tile-monitor-state">─</div>
+          <div class="tile-sub" id="tile-monitor-state-sub">multi-channel monitor</div>
         </div>
-
-        <!-- 모니터링 탭 -->
-        <div id="content-monitor" class="w-full max-w-6xl hidden">
-            <div class="text-center max-w-3xl mx-auto mb-12">
-                <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
-                    라이브 방송 <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">자동 모니터링</span>
-                </h1>
-                <p class="text-lg text-gray-400">
-                    여러 YouTube 채널의 라이브 방송을 동시에 모니터링하고 자동으로 다운로드합니다
-                </p>
-            </div>
-
-            <!-- 상태 카드 -->
-            <div class="bg-gray-800 rounded-2xl p-8 mb-8 border border-gray-700">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">모니터링 상태</h2>
-                    <div class="flex items-center gap-3">
-                        <div class="w-3 h-3 rounded-full" id="status-dot"></div>
-                        <span class="font-semibold" id="status-text">중지됨</span>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div class="bg-gray-900 p-6 rounded-xl">
-                        <div class="text-4xl font-bold text-red-500 mb-2" id="active-channels">0</div>
-                        <div class="text-sm text-gray-400">활성 채널</div>
-                    </div>
-                    <div class="bg-gray-900 p-6 rounded-xl">
-                        <div class="text-4xl font-bold text-blue-500 mb-2" id="total-channels">0</div>
-                        <div class="text-sm text-gray-400">전체 채널</div>
-                    </div>
-                </div>
-
-                <div class="flex gap-4">
-                    <button
-                        onclick="startMonitor()"
-                        id="start-btn"
-                        class="flex-1 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
-                    >
-                        <i data-lucide="play" class="w-5 h-5"></i>
-                        시작
-                    </button>
-                    <button
-                        onclick="stopMonitor()"
-                        id="stop-btn"
-                        class="flex-1 bg-gray-700 text-gray-500 py-4 rounded-xl font-bold cursor-not-allowed"
-                        disabled
-                    >
-                        <i data-lucide="square" class="w-5 h-5 inline mr-2"></i>
-                        중지
-                    </button>
-                </div>
-            </div>
-
-            <!-- 채널 목록 -->
-            <div class="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">채널 관리</h2>
-                    <button
-                        onclick="openAddChannelModal()"
-                        class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold transition-all flex items-center gap-2"
-                    >
-                        <i data-lucide="plus" class="w-5 h-5"></i>
-                        채널 추가
-                    </button>
-                </div>
-
-                <div id="channel-list" class="space-y-4">
-                    <div class="text-center py-12 text-gray-500">
-                        <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-4 opacity-50"></i>
-                        <p>등록된 채널이 없습니다</p>
-                        <p class="text-sm mt-2">채널을 추가하여 라이브 방송 모니터링을 시작하세요</p>
-                    </div>
-                </div>
-            </div>
+        <div class="tile">
+          <div class="tile-label">ACTIVE</div>
+          <div class="tile-val amber" id="tile-active">0</div>
+          <div class="tile-sub">enabled channels</div>
         </div>
+        <div class="tile">
+          <div class="tile-label">TOTAL</div>
+          <div class="tile-val" id="tile-total">0</div>
+          <div class="tile-sub">registered</div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">UPTIME</div>
+          <div class="tile-val ok mono-num" id="tile-uptime">0s</div>
+          <div class="tile-sub">since boot</div>
+        </div>
+      </section>
+
+      <div style="height:16px"></div>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">CONTROL</span>
+          <span class="row-flex">
+            <button class="btn primary" id="btn-start" onclick="startMonitor()">▶ START</button>
+            <button class="btn danger" id="btn-stop" onclick="stopMonitor()" disabled>■ STOP</button>
+          </span>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">CHANNELS</span>
+          <button class="btn" onclick="openAddChannelModal()">+ ADD CHANNEL</button>
+        </div>
+        <div id="monitor-channel-list"></div>
+      </section>
     </main>
 
-    <!-- 채널 추가 모달 -->
-    <div id="add-channel-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div class="bg-gray-800 rounded-2xl p-8 max-w-md w-full border border-gray-700">
-            <h3 class="text-2xl font-bold mb-6">채널 추가</h3>
-            <form onsubmit="addChannel(event)">
-                <div class="mb-4">
-                    <label class="block text-sm font-medium mb-2 text-gray-400">채널 이름</label>
-                    <input
-                        type="text"
-                        id="channel-name"
-                        required
-                        placeholder="예: 침착맨"
-                        class="w-full p-3 rounded-xl bg-gray-900 border-2 border-gray-700 focus:border-red-500 outline-none text-white"
-                    />
-                </div>
-                <div class="mb-6">
-                    <label class="block text-sm font-medium mb-2 text-gray-400">채널 URL</label>
-                    <input
-                        type="url"
-                        id="channel-url"
-                        required
-                        placeholder="https://www.youtube.com/@channel"
-                        class="w-full p-3 rounded-xl bg-gray-900 border-2 border-gray-700 focus:border-red-500 outline-none text-white"
-                    />
-                </div>
-                <div class="flex gap-3">
-                    <button
-                        type="button"
-                        onclick="closeAddChannelModal()"
-                        class="flex-1 py-3 rounded-xl font-bold bg-gray-700 hover:bg-gray-600 text-white transition-all"
-                    >
-                        취소
-                    </button>
-                    <button
-                        type="submit"
-                        class="flex-1 py-3 rounded-xl font-bold bg-red-600 hover:bg-red-700 text-white transition-all"
-                    >
-                        추가
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <!-- ╔═════════════════════════ PANEL :: MERGE ══════════════════════╗ -->
+    <main id="panel-merge" class="panel">
+      <div class="merge-grid">
+        <section class="section">
+          <div class="section-head">
+            <span class="section-title">SOURCE FILES</span>
+            <span class="row-flex">
+              <span class="chip dim mono-num" id="merge-file-count">0 FILES</span>
+              <button class="btn sm ghost" id="btn-select-all" onclick="toggleSelectAll()">SELECT ALL</button>
+              <button class="btn sm ghost" onclick="loadFiles()">RESCAN</button>
+            </span>
+          </div>
+          <div class="file-list" id="merge-file-list"></div>
+        </section>
 
-    <!-- 알림 -->
-    <div id="notification" class="hidden fixed top-4 right-4 bg-gray-800 border border-gray-700 rounded-xl p-4 shadow-lg z-50 min-w-[300px]">
-        <div class="flex items-start gap-3">
-            <div id="notification-icon"></div>
-            <div class="flex-1">
-                <div class="font-bold mb-1" id="notification-title">알림</div>
-                <div class="text-sm text-gray-400" id="notification-message"></div>
+        <section class="section">
+          <div class="section-head">
+            <span class="section-title">SEQUENCE</span>
+            <span class="chip dim mono-num" id="merge-seq-count">0 CLIPS</span>
+          </div>
+          <div class="section-body stack">
+            <div class="seq-list empty-seq" id="merge-seq-list">
+              ── DRAG OR SELECT FILES ──
             </div>
-        </div>
-    </div>
 
-    <!-- 푸터 -->
-    <footer class="border-t py-12 border-gray-800 bg-gray-900">
-        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-            <div class="flex items-center space-x-2">
-                <span class="text-lg font-bold">YT<span class="text-red-600">Saver</span></span>
-                <span class="text-sm text-gray-500">© 2025 All rights reserved.</span>
+            <div class="field-row">
+              <div>
+                <label class="label">OUTPUT FILENAME</label>
+                <input class="input" type="text" id="merge-output" placeholder="merged_output.mp4" />
+              </div>
+              <div>
+                <label class="label">MODE</label>
+                <div class="toggle-group">
+                  <button id="mode-concat" class="active" onclick="setMergeMode('concat')">CONCAT</button>
+                  <button id="mode-reencode" onclick="setMergeMode('reencode')">RE-ENCODE</button>
+                </div>
+              </div>
             </div>
-            <div class="text-sm text-center md:text-right text-gray-500">
-                <p>개인적인 용도로만 사용해야 하며, 저작권법을 준수해 주세요.</p>
+
+            <div style="font-size:11px; color: var(--fg-dim); line-height:1.6;">
+              <div><b style="color:var(--amber)">CONCAT</b> &nbsp;·&nbsp; 무손실, 빠름. 모든 입력의 코덱·해상도가 같아야 함.</div>
+              <div><b style="color:var(--amber)">RE-ENCODE</b> &nbsp;·&nbsp; 모든 클립을 H.264/AAC로 재인코딩. 코덱이 달라도 됨, 느림.</div>
             </div>
+
+            <div class="row-flex">
+              <button class="btn ghost grow" onclick="clearSequence()">CLEAR</button>
+              <button class="btn primary grow" id="btn-execute-merge" onclick="executeMerge()">▶ EXECUTE MERGE</button>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">JOBS</span>
+          <button class="btn sm ghost" onclick="loadJobs()">REFRESH</button>
         </div>
+        <div id="merge-jobs"></div>
+      </section>
+    </main>
+
+    <!-- ╔═════════════════════════ PANEL :: DOWNLOAD ═══════════════════╗ -->
+    <main id="panel-download" class="panel">
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">SINGLE VIDEO DOWNLOAD</span>
+        </div>
+        <div class="section-body stack">
+          <form onsubmit="handleAnalyze(event)" id="analyze-form">
+            <label class="label">YOUTUBE URL</label>
+            <div class="row-flex">
+              <input class="input" type="text" id="url-input"
+                     placeholder="https://www.youtube.com/watch?v=..." required />
+              <button class="btn primary nowrap" type="submit" id="analyze-btn">ANALYZE ▶</button>
+            </div>
+          </form>
+        </div>
+      </section>
+
+      <section id="dl-step-analyzing" class="section" style="display:none">
+        <div class="section-body" style="text-align:center; padding: 40px 20px; color: var(--amber); letter-spacing:0.2em; font-size: 11px;">
+          ◴ FETCHING METADATA ...
+        </div>
+      </section>
+
+      <section id="dl-step-result" class="section" style="display:none">
+        <div class="section-head">
+          <span class="section-title">VIDEO INFO</span>
+          <button class="btn sm ghost" onclick="closeResult()">✕ CLOSE</button>
+        </div>
+        <div class="section-body">
+          <div class="row-flex" style="align-items:flex-start; gap: 16px; margin-bottom: 18px;">
+            <img id="video-thumb" src="" style="width: 200px; height: 112px; object-fit: cover; border:1px solid var(--line);" />
+            <div class="grow">
+              <div id="video-title" style="font-weight:700; font-size:14px; margin-bottom:6px;"></div>
+              <div id="video-author" style="color:var(--fg-dim); font-size:11px; margin-bottom:4px;"></div>
+              <div style="color:var(--fg-mute); font-size: 11px;">
+                <span id="video-duration">--:--</span> · <span id="video-views">0 views</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div>
+              <label class="label">FORMAT</label>
+              <div class="toggle-group">
+                <button id="btn-video-fmt" class="active" onclick="setFormat('video')">VIDEO MP4</button>
+                <button id="btn-audio-fmt" onclick="setFormat('audio')">AUDIO MP3</button>
+              </div>
+            </div>
+            <div id="quality-container">
+              <label class="label">QUALITY</label>
+              <select class="select" id="quality-select">
+                <option value="best">BEST</option>
+                <option value="2160">2160P · 4K</option>
+                <option value="1440">1440P · 2K</option>
+                <option value="1080">1080P · FHD</option>
+                <option value="720">720P · HD</option>
+                <option value="480">480P</option>
+                <option value="360">360P</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="height: 14px;"></div>
+          <button class="btn primary" style="width:100%" onclick="startDownload()">▼ DOWNLOAD</button>
+        </div>
+      </section>
+
+      <section id="dl-step-downloading" class="section" style="display:none">
+        <div class="section-body" style="text-align:center; padding: 40px 20px; color: var(--amber); letter-spacing:0.2em; font-size: 11px;">
+          ▼ DOWNLOADING — DO NOT CLOSE BROWSER
+        </div>
+      </section>
+
+      <section id="dl-step-finished" class="section" style="display:none">
+        <div class="section-body" style="text-align:center; padding: 40px 20px;">
+          <div style="color: var(--ok); letter-spacing:0.2em; font-size: 11px; margin-bottom: 16px;">
+            ✓ DOWNLOAD COMPLETE
+          </div>
+          <div id="finish-message" style="color: var(--fg-dim); font-size:11px; margin-bottom: 18px;"></div>
+          <button class="btn" onclick="closeResult()">⟲ NEW DOWNLOAD</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ╔═════════════════════════ PANEL :: CHANNELS ═══════════════════╗ -->
+    <main id="panel-channels" class="panel">
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">REGISTERED CHANNELS</span>
+          <span class="row-flex">
+            <button class="btn" onclick="openAddChannelModal()">+ ADD</button>
+            <button class="btn ghost sm" onclick="loadChannels()">REFRESH</button>
+          </span>
+        </div>
+        <div id="channel-table"></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="section-title">DISCORD WEBHOOK</span>
+        </div>
+        <div class="section-body row-flex" style="justify-content:space-between">
+          <div style="font-size: 12px; color: var(--fg-dim)">
+            <span id="discord-state-text">상태 확인 중…</span>
+          </div>
+          <button class="btn" onclick="testDiscord()">▶ SEND TEST PING</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- ▌ FOOTER ──────────────────────────────────────────────────────── -->
+    <footer class="footer">
+      <span>YT-W // SELF-HOSTED · DOCKER</span>
+      <span>FOR PERSONAL USE — RESPECT COPYRIGHT</span>
     </footer>
+  </div>
 
-    <script>
-        const API_BASE = '';
-        let isDarkMode = true;
-        let currentFormat = 'video';
-        let currentTab = 'download';
+  <!-- ▌ ADD CHANNEL MODAL ─────────────────────────────────────────────── -->
+  <div id="add-channel-overlay" class="overlay" onclick="if(event.target===this) closeAddChannelModal()">
+    <div class="modal">
+      <div class="modal-head">
+        <span class="modal-title">▸ NEW CHANNEL</span>
+        <button class="btn sm ghost" onclick="closeAddChannelModal()">✕</button>
+      </div>
+      <form onsubmit="addChannel(event)">
+        <div class="modal-body stack">
+          <div>
+            <label class="label">NAME</label>
+            <input class="input" type="text" id="channel-name" placeholder="예: 침착맨" required />
+          </div>
+          <div>
+            <label class="label">URL</label>
+            <input class="input" type="url" id="channel-url" placeholder="https://www.youtube.com/@..." required />
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn ghost" onclick="closeAddChannelModal()">CANCEL</button>
+          <button type="submit" class="btn primary">CREATE</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        let cookieWarningDismissed = false;
+  <!-- ▌ NOTIF ─────────────────────────────────────────────────────────── -->
+  <div id="notif" class="notif">
+    <div class="notif-title" id="notif-title">INFO</div>
+    <div class="notif-msg" id="notif-msg"></div>
+  </div>
 
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
-            loadStatus();
-            loadChannels();
-            checkCookieStatus();
-            setInterval(loadStatus, 5000);
-            setInterval(checkCookieStatus, 60000); // 1분마다 쿠키 상태 확인
-        });
+<script>
+  /* =====================================================================
+     YT-W :: OPERATOR CONSOLE :: client
+     ===================================================================== */
+  const API = '';
+  const state = {
+    activeTab: 'monitor',
+    files: [],
+    selectedPaths: new Set(),
+    sequence: [],
+    mergeMode: 'concat',
+    dlFormat: 'video',
+    bootTime: null,
+  };
 
-        // 탭 전환
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-button').forEach(btn => {
-                btn.classList.remove('active', 'text-white');
-                btn.classList.add('text-gray-500');
-            });
-            document.getElementById(`tab-${tab}`).classList.add('active', 'text-white');
-            document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
+  /* ── helpers ───────────────────────────────────────────────────────── */
+  const $ = (id) => document.getElementById(id);
+  const fmtBytes = (n) => {
+    if (!n && n !== 0) return '─';
+    const u = ['B','KB','MB','GB','TB'];
+    let i = 0; while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+    return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)}${u[i]}`;
+  };
+  const fmtDuration = (sec) => {
+    if (sec == null) return '─';
+    sec = Math.max(0, Math.floor(sec));
+    const d = Math.floor(sec / 86400);
+    const h = Math.floor((sec % 86400) / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (d > 0) return `${d}d ${h}h`;
+    if (h > 0) return `${h}h ${String(m).padStart(2,'0')}m`;
+    if (m > 0) return `${m}m ${String(s).padStart(2,'0')}s`;
+    return `${s}s`;
+  };
+  const fmtAge = (mtime) => {
+    if (!mtime) return '─';
+    const sec = Math.max(0, Math.floor(Date.now() / 1000 - mtime));
+    return fmtDuration(sec) + ' ago';
+  };
+  const fmtClock = (d = new Date()) =>
+    [d.getHours(), d.getMinutes(), d.getSeconds()]
+      .map(n => String(n).padStart(2, '0')).join(':');
+  const escapeHtml = (s) => {
+    const div = document.createElement('div');
+    div.textContent = s ?? '';
+    return div.innerHTML;
+  };
 
-            if (tab === 'download') {
-                document.getElementById('content-download').classList.remove('hidden');
-                document.getElementById('content-monitor').classList.add('hidden');
-            } else {
-                document.getElementById('content-download').classList.add('hidden');
-                document.getElementById('content-monitor').classList.remove('hidden');
-            }
-            lucide.createIcons();
+  /* ── tabs ──────────────────────────────────────────────────────────── */
+  function switchTab(tab) {
+    state.activeTab = tab;
+    document.querySelectorAll('.tab').forEach(b =>
+      b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.panel').forEach(p =>
+      p.classList.toggle('active', p.id === `panel-${tab}`));
+    if (tab === 'merge') { loadFiles(); loadJobs(); }
+    if (tab === 'channels') { loadChannels(); }
+  }
+
+  /* ── boot / clock / system status ──────────────────────────────────── */
+  $('boot-host').textContent = location.hostname || 'localhost';
+  $('boot-port').textContent = location.port || '80';
+  setInterval(() => $('boot-time').textContent = fmtClock(), 1000);
+  $('boot-time').textContent = fmtClock();
+
+  async function systemRefresh() {
+    try {
+      const res = await fetch(`${API}/api/system/status`);
+      if (!res.ok) return;
+      const s = await res.json();
+      state.bootTime = s.boot_time;
+
+      $('boot-uptime').textContent = fmtDuration(s.uptime_seconds);
+      $('boot-dlpath').textContent = s.downloads.directory;
+      $('boot-files').textContent = s.downloads.file_count.toLocaleString();
+
+      // monitor stat
+      const monStat = $('stat-monitor');
+      const isRunning = s.monitor.is_running;
+      monStat.classList.toggle('ok', isRunning);
+      monStat.classList.toggle('warn', !isRunning);
+      $('stat-monitor-val').textContent = isRunning
+        ? `RUNNING · ${s.monitor.active_channels}/${s.monitor.total_channels}`
+        : `STOPPED · 0/${s.monitor.total_channels}`;
+
+      // discord stat
+      const dStat = $('stat-discord');
+      dStat.classList.toggle('ok', s.discord_enabled);
+      dStat.classList.toggle('warn', !s.discord_enabled);
+      $('stat-discord-val').textContent = s.discord_enabled ? 'WEBHOOK ✓' : 'NOT SET';
+      $('discord-state-text').textContent = s.discord_enabled
+        ? 'DISCORD_WEBHOOK_URL 환경변수 설정됨 — 라이브/완료/에러 알림 활성'
+        : 'DISCORD_WEBHOOK_URL 환경변수가 설정되지 않음 — 알림 비활성';
+
+      // disk stat
+      const used = s.disk.used_bytes;
+      const total = s.disk.total_bytes;
+      const pct = total > 0 ? Math.round(used / total * 100) : 0;
+      const dlSize = s.downloads.total_size_bytes;
+      $('stat-disk-val').textContent = total > 0
+        ? `${fmtBytes(used)} / ${fmtBytes(total)}`
+        : '─';
+      $('stat-disk-sub').textContent = `${pct}% · DL ${fmtBytes(dlSize)}`;
+      const dStat2 = $('stat-disk');
+      dStat2.classList.toggle('warn', pct >= 80 && pct < 92);
+      dStat2.classList.toggle('err', pct >= 92);
+      dStat2.classList.toggle('ok', pct < 80);
+
+      // monitor tile
+      $('tile-monitor-state').textContent = isRunning ? 'RUNNING' : 'STOPPED';
+      $('tile-monitor-state').style.color = isRunning ? 'var(--ok)' : 'var(--fg-dim)';
+      $('tile-active').textContent = s.monitor.active_channels;
+      $('tile-total').textContent = s.monitor.total_channels;
+      $('tile-uptime').textContent = fmtDuration(s.uptime_seconds);
+
+      // start/stop buttons
+      $('btn-start').disabled = isRunning;
+      $('btn-stop').disabled = !isRunning;
+    } catch (e) { /* silent */ }
+  }
+
+  /* ── cookie ────────────────────────────────────────────────────────── */
+  async function checkCookie() {
+    try {
+      const r = await fetch(`${API}/api/cookie/status`);
+      const c = await r.json();
+      const cStat = $('stat-cookie');
+      cStat.classList.toggle('ok', c.valid);
+      cStat.classList.toggle('err', !c.valid);
+      cStat.classList.remove('warn');
+      $('stat-cookie-val').textContent = c.valid ? 'VALID' : 'EXPIRED';
+    } catch (e) {}
+  }
+
+  /* ── monitor / channels ────────────────────────────────────────────── */
+  async function startMonitor() {
+    try {
+      const r = await fetch(`${API}/api/monitor/start`, { method: 'POST' });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      notify('OK', 'monitor.start ✓', 'ok');
+      systemRefresh();
+    } catch (e) { notify('ERR', e.message || 'start failed', 'err'); }
+  }
+  async function stopMonitor() {
+    try {
+      const r = await fetch(`${API}/api/monitor/stop`, { method: 'POST' });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      notify('OK', 'monitor.stop ✓', 'ok');
+      systemRefresh();
+    } catch (e) { notify('ERR', e.message || 'stop failed', 'err'); }
+  }
+
+  async function loadChannels() {
+    try {
+      const r = await fetch(`${API}/api/channels`);
+      const channels = await r.json();
+      renderChannelTable(channels);
+      renderMonitorChannelList(channels);
+    } catch (e) {}
+  }
+
+  function renderChannelTable(channels) {
+    const host = $('channel-table');
+    if (!channels.length) {
+      host.innerHTML = `
+        <div class="empty">
+          <div class="ascii">┌────────────────────┐
+│  NO CHANNELS YET   │
+└────────────────────┘</div>
+          <div>채널을 추가하여 모니터링을 시작하세요</div>
+        </div>`;
+      return;
+    }
+    host.innerHTML = `
+      <table class="table">
+        <thead><tr>
+          <th class="col-num">#</th>
+          <th>NAME</th>
+          <th>URL</th>
+          <th>STATE</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          ${channels.map((c, i) => `
+            <tr>
+              <td class="col-num">${String(i + 1).padStart(2, '0')}</td>
+              <td><b>${escapeHtml(c.name)}</b></td>
+              <td style="color:var(--fg-dim); max-width: 320px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(c.url)}</td>
+              <td><span class="chip ${c.enabled ? 'ok' : 'dim'}">${c.enabled ? 'ENABLED' : 'DISABLED'}</span></td>
+              <td>
+                <div class="actions">
+                  <button class="btn sm" onclick="toggleChannel('${c.id}', ${!c.enabled})">${c.enabled ? '◐ DISABLE' : '◑ ENABLE'}</button>
+                  <button class="btn sm danger" onclick="deleteChannel('${c.id}', '${escapeHtml(c.name).replace(/'/g, "\\'")}')">✕</button>
+                </div>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function renderMonitorChannelList(channels) {
+    const host = $('monitor-channel-list');
+    if (!channels.length) {
+      host.innerHTML = `
+        <div class="empty">
+          <div class="ascii">[ NO CHANNELS — ADD ONE ABOVE ]</div>
+        </div>`;
+      return;
+    }
+    host.innerHTML = `
+      <table class="table">
+        <thead><tr>
+          <th class="col-num">#</th>
+          <th>CHANNEL</th>
+          <th>STATE</th>
+          <th></th>
+        </tr></thead>
+        <tbody>
+          ${channels.map((c, i) => `
+            <tr>
+              <td class="col-num">${String(i + 1).padStart(2, '0')}</td>
+              <td><b>${escapeHtml(c.name)}</b><br><span style="color:var(--fg-mute); font-size:11px;">${escapeHtml(c.url)}</span></td>
+              <td><span class="chip ${c.enabled ? 'ok' : 'dim'}">${c.enabled ? 'ENABLED' : 'DISABLED'}</span></td>
+              <td><div class="actions">
+                <button class="btn sm" onclick="toggleChannel('${c.id}', ${!c.enabled})">${c.enabled ? 'PAUSE' : 'RESUME'}</button>
+              </div></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  function openAddChannelModal() { $('add-channel-overlay').classList.add('active'); }
+  function closeAddChannelModal() {
+    $('add-channel-overlay').classList.remove('active');
+    $('channel-name').value = ''; $('channel-url').value = '';
+  }
+  async function addChannel(e) {
+    e.preventDefault();
+    const name = $('channel-name').value, url = $('channel-url').value;
+    try {
+      const r = await fetch(`${API}/api/channels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, url, enabled: true }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      notify('OK', `channel +${name}`, 'ok');
+      closeAddChannelModal(); loadChannels(); systemRefresh();
+    } catch (e) { notify('ERR', e.message, 'err'); }
+  }
+  async function toggleChannel(id, enabled) {
+    try {
+      const r = await fetch(`${API}/api/channels/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      notify('OK', `channel ${enabled ? 'enabled' : 'disabled'}`, 'ok');
+      loadChannels(); systemRefresh();
+    } catch (e) { notify('ERR', e.message, 'err'); }
+  }
+  async function deleteChannel(id, name) {
+    if (!confirm(`DELETE channel '${name}'?`)) return;
+    try {
+      const r = await fetch(`${API}/api/channels/${id}`, { method: 'DELETE' });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      notify('OK', `channel -${name}`, 'ok');
+      loadChannels(); systemRefresh();
+    } catch (e) { notify('ERR', e.message, 'err'); }
+  }
+
+  /* ── discord test ──────────────────────────────────────────────────── */
+  async function testDiscord() {
+    try {
+      const r = await fetch(`${API}/api/system/discord/test`, { method: 'POST' });
+      const d = await r.json();
+      if (d.sent) notify('OK', 'discord ping sent', 'ok');
+      else notify('ERR', `discord: ${d.reason || 'send failed'}`, 'err');
+    } catch (e) { notify('ERR', 'discord test failed', 'err'); }
+  }
+
+  /* ── merge :: file list ────────────────────────────────────────────── */
+  async function loadFiles() {
+    try {
+      const r = await fetch(`${API}/api/files`);
+      state.files = await r.json();
+      renderFileList();
+    } catch (e) {}
+  }
+  function renderFileList() {
+    const host = $('merge-file-list');
+    $('merge-file-count').textContent = `${state.files.length} FILES`;
+    const selectAllBtn = $('btn-select-all');
+    if (selectAllBtn) {
+      const allSelected = state.files.length > 0
+        && state.files.every(f => state.selectedPaths.has(f.path));
+      selectAllBtn.textContent = allSelected ? 'CLEAR ALL' : 'SELECT ALL';
+      selectAllBtn.disabled = state.files.length === 0;
+    }
+    if (!state.files.length) {
+      host.innerHTML = `
+        <div class="empty">
+          <div class="ascii">┌─ ./downloads ─┐
+│   (empty)     │
+└───────────────┘</div>
+          <div>다운로드된 영상이 없습니다</div>
+        </div>`;
+      return;
+    }
+    host.innerHTML = state.files.map((f) => {
+      const dirIdx = f.path.lastIndexOf('/');
+      const dir = dirIdx >= 0 ? f.path.slice(0, dirIdx + 1) : '';
+      const checked = state.selectedPaths.has(f.path);
+      return `
+        <label class="file-row ${checked ? 'selected' : ''}" data-path="${escapeHtml(f.path)}">
+          <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleFileSelect('${escapeHtml(f.path).replace(/'/g, "\\'")}', this.checked)" />
+          <div class="file-name"><span class="dir">${escapeHtml(dir)}</span>${escapeHtml(f.name)}</div>
+          <div class="file-meta nowrap">${fmtBytes(f.size_bytes)}</div>
+          <div class="file-meta nowrap">${fmtAge(f.mtime)}</div>
+        </label>`;
+    }).join('');
+  }
+  function toggleFileSelect(path, on) {
+    if (on) {
+      state.selectedPaths.add(path);
+      if (!state.sequence.includes(path)) state.sequence.push(path);
+    } else {
+      state.selectedPaths.delete(path);
+      state.sequence = state.sequence.filter(p => p !== path);
+    }
+    renderFileList(); renderSequence();
+  }
+  function toggleSelectAll() {
+    if (!state.files.length) return;
+    const allSelected = state.files.every(f => state.selectedPaths.has(f.path));
+    if (allSelected) {
+      const filePaths = new Set(state.files.map(f => f.path));
+      filePaths.forEach(p => state.selectedPaths.delete(p));
+      state.sequence = state.sequence.filter(p => !filePaths.has(p));
+    } else {
+      state.files.forEach(f => {
+        if (!state.selectedPaths.has(f.path)) {
+          state.selectedPaths.add(f.path);
+          if (!state.sequence.includes(f.path)) state.sequence.push(f.path);
         }
-
-        // 테마
-        function toggleTheme() {
-            isDarkMode = !isDarkMode;
-            const html = document.documentElement;
-            const themeBtn = document.getElementById('theme-btn');
-
-            if (isDarkMode) {
-                html.classList.add('dark');
-                themeBtn.innerHTML = '<i data-lucide="sun" class="w-5 h-5"></i>';
-            } else {
-                html.classList.remove('dark');
-                themeBtn.innerHTML = '<i data-lucide="moon" class="w-5 h-5"></i>';
-            }
-            lucide.createIcons();
-        }
-
-        // 포맷 선택
-        function setFormat(format) {
-            currentFormat = format;
-            const btnVideo = document.getElementById('btn-video');
-            const btnAudio = document.getElementById('btn-audio');
-            const qualityContainer = document.getElementById('quality-container');
-
-            if (format === 'video') {
-                btnVideo.className = "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-red-500 bg-red-500/10 text-red-500 transition-all";
-                btnAudio.className = "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-transparent bg-gray-700 text-gray-500 transition-all";
-                qualityContainer.classList.remove('hidden');
-            } else {
-                btnVideo.className = "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-transparent bg-gray-700 text-gray-500 transition-all";
-                btnAudio.className = "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl border-2 border-purple-500 bg-purple-500/10 text-purple-500 transition-all";
-                qualityContainer.classList.add('hidden');
-            }
-            lucide.createIcons();
-        }
-
-        // 스텝 관리
-        function showStep(stepName) {
-            console.log('Showing step:', stepName);
-            const resultArea = document.getElementById('result-area');
-            resultArea.classList.add('active');
-
-            // 모든 step-section에서 active 제거
-            document.querySelectorAll('.step-section').forEach(el => {
-                el.classList.remove('active');
-            });
-
-            // 선택한 step만 active 추가
-            const targetStep = document.getElementById(`step-${stepName}`);
-            if (targetStep) {
-                targetStep.classList.add('active');
-                console.log('Step displayed:', stepName);
-            } else {
-                console.error('Step not found:', stepName);
-            }
-
-            lucide.createIcons();
-        }
-
-        // 결과 닫기
-        function closeResult() {
-            const resultArea = document.getElementById('result-area');
-            resultArea.classList.remove('active');
-            document.getElementById('url-input').value = '';
-        }
-
-        // 다운로드 분석
-        async function handleAnalyze(e) {
-            e.preventDefault();
-            const url = document.getElementById('url-input').value.trim();
-            if (!url) {
-                alert('YouTube URL을 입력해주세요.');
-                return;
-            }
-
-            console.log('Starting analysis for URL:', url);
-            showStep('analyzing');
-
-            try {
-                console.log('Fetching video info from API...');
-                const response = await fetch(`${API_BASE}/api/video/info`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url})
-                });
-
-                console.log('Response status:', response.status);
-
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('API Error:', errorData);
-                    throw new Error(errorData.detail || 'Failed to get video info');
-                }
-
-                const data = await response.json();
-                console.log('Video info received:', data);
-
-                // 동영상 정보 표시
-                document.getElementById('video-title').textContent = data.title || "YouTube 동영상";
-                document.getElementById('video-author').textContent = `업로더: ${data.uploader || 'Unknown'}`;
-                document.getElementById('video-thumb').src = data.thumbnail || "https://via.placeholder.com/320x180/333/fff?text=Video";
-
-                // 시간 포맷팅
-                const duration = data.duration || 0;
-                const hours = Math.floor(duration / 3600);
-                const minutes = Math.floor((duration % 3600) / 60);
-                const seconds = duration % 60;
-                const durationStr = hours > 0
-                    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
-                    : `${minutes}:${String(seconds).padStart(2, '0')}`;
-                document.getElementById('video-duration').textContent = durationStr;
-
-                // 조회수 포맷팅
-                const views = data.view_count || 0;
-                const viewsStr = views.toLocaleString();
-                document.getElementById('video-views').textContent = `${viewsStr} views`;
-
-                showStep('result');
-            } catch (error) {
-                console.error('Error:', error);
-                showNotification('오류', '동영상 정보를 가져올 수 없습니다', 'error');
-                closeResult();
-            }
-        }
-
-        // 다운로드 시작
-        async function startDownload() {
-            const url = document.getElementById('url-input').value.trim();
-            const quality = document.getElementById('quality-select').value;
-            const audioOnly = currentFormat === 'audio';
-
-            showStep('downloading');
-
-            try {
-                console.log('Starting download...');
-                const response = await fetch(`${API_BASE}/api/download`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({url, quality, audio_only: audioOnly})
-                });
-
-                if (!response.ok) {
-                    const error = await response.json();
-                    throw new Error(error.detail || 'Download failed');
-                }
-
-                const data = await response.json();
-                console.log('Download completed:', data);
-
-                // 브라우저에서 자동으로 파일 다운로드
-                const downloadUrl = `${API_BASE}/api/download/file/${data.filename}`;
-                const a = document.createElement('a');
-                a.href = downloadUrl;
-                a.download = data.filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-
-                // 다운로드 완료 화면으로
-                document.getElementById('finish-message').textContent =
-                    `파일이 브라우저로 다운로드됩니다: ${data.filename}`;
-                showStep('finished');
-                showNotification('성공', '다운로드가 완료되었습니다!', 'success');
-
-            } catch (error) {
-                console.error('Download error:', error);
-                showNotification('오류', error.message || '다운로드 중 오류가 발생했습니다', 'error');
-                closeResult();
-            }
-        }
-
-
-        // 리셋 (레거시 - closeResult()로 통일)
-        function resetApp() {
-            closeResult();
-        }
-
-        // 모니터링 상태 로드
-        async function loadStatus() {
-            try {
-                const response = await fetch(`${API_BASE}/api/monitor/status`);
-                const status = await response.json();
-
-                document.getElementById('active-channels').textContent = status.active_channels;
-                document.getElementById('total-channels').textContent = status.total_channels;
-
-                const statusDot = document.getElementById('status-dot');
-                const statusText = document.getElementById('status-text');
-                const startBtn = document.getElementById('start-btn');
-                const stopBtn = document.getElementById('stop-btn');
-
-                if (status.is_running) {
-                    statusDot.className = 'w-3 h-3 rounded-full bg-green-500 animate-pulse';
-                    statusText.textContent = '실행 중';
-                    startBtn.disabled = true;
-                    startBtn.className = 'flex-1 bg-gray-700 text-gray-500 py-4 rounded-xl font-bold cursor-not-allowed';
-                    stopBtn.disabled = false;
-                    stopBtn.className = 'flex-1 bg-red-600 hover:bg-red-700 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2';
-                } else {
-                    statusDot.className = 'w-3 h-3 rounded-full bg-gray-500';
-                    statusText.textContent = '중지됨';
-                    startBtn.disabled = false;
-                    startBtn.className = 'flex-1 bg-green-600 hover:bg-green-700 text-white py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2';
-                    stopBtn.disabled = true;
-                    stopBtn.className = 'flex-1 bg-gray-700 text-gray-500 py-4 rounded-xl font-bold cursor-not-allowed';
-                }
-            } catch (error) {
-                console.error('Failed to load status:', error);
-            }
-        }
-
-        // 채널 목록 로드
-        async function loadChannels() {
-            try {
-                const response = await fetch(`${API_BASE}/api/channels`);
-                const channels = await response.json();
-
-                const channelList = document.getElementById('channel-list');
-
-                if (channels.length === 0) {
-                    channelList.innerHTML = `
-                        <div class="text-center py-12 text-gray-500">
-                            <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-4 opacity-50"></i>
-                            <p>등록된 채널이 없습니다</p>
-                            <p class="text-sm mt-2">채널을 추가하여 라이브 방송 모니터링을 시작하세요</p>
-                        </div>
-                    `;
-                } else {
-                    channelList.innerHTML = channels.map(channel => `
-                        <div class="bg-gray-900 p-6 rounded-xl flex items-center justify-between">
-                            <div class="flex-1">
-                                <h4 class="font-bold text-lg mb-1">${escapeHtml(channel.name)}</h4>
-                                <p class="text-sm text-gray-400 mb-2">${escapeHtml(channel.url)}</p>
-                                <span class="px-2 py-1 rounded-full text-xs font-semibold ${channel.enabled ? 'bg-green-900/30 text-green-500' : 'bg-gray-700 text-gray-400'}">
-                                    ${channel.enabled ? '활성화' : '비활성화'}
-                                </span>
-                            </div>
-                            <div class="flex gap-2">
-                                <button onclick="toggleChannel('${channel.id}', ${!channel.enabled})" class="p-2 rounded-lg ${channel.enabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-green-600 hover:bg-green-700'} transition-all">
-                                    <i data-lucide="${channel.enabled ? 'pause' : 'play'}" class="w-5 h-5"></i>
-                                </button>
-                                <button onclick="deleteChannel('${channel.id}', '${escapeHtml(channel.name)}')" class="p-2 rounded-lg bg-red-600 hover:bg-red-700 transition-all">
-                                    <i data-lucide="trash-2" class="w-5 h-5"></i>
-                                </button>
-                            </div>
-                        </div>
-                    `).join('');
-                }
-                lucide.createIcons();
-            } catch (error) {
-                console.error('Failed to load channels:', error);
-            }
-        }
-
-        // 모니터링 시작/중지
-        async function startMonitor() {
-            try {
-                const response = await fetch(`${API_BASE}/api/monitor/start`, {method: 'POST'});
-                if (response.ok) {
-                    showNotification('성공', '모니터링을 시작했습니다', 'success');
-                    await loadStatus();
-                } else {
-                    const error = await response.json();
-                    showNotification('오류', error.detail || '모니터링 시작 실패', 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '모니터링 시작 중 오류가 발생했습니다', 'error');
-            }
-        }
-
-        async function stopMonitor() {
-            try {
-                const response = await fetch(`${API_BASE}/api/monitor/stop`, {method: 'POST'});
-                if (response.ok) {
-                    showNotification('성공', '모니터링을 중지했습니다', 'success');
-                    await loadStatus();
-                } else {
-                    const error = await response.json();
-                    showNotification('오류', error.detail || '모니터링 중지 실패', 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '모니터링 중지 중 오류가 발생했습니다', 'error');
-            }
-        }
-
-        // 채널 추가
-        function openAddChannelModal() {
-            document.getElementById('add-channel-modal').classList.remove('hidden');
-        }
-
-        function closeAddChannelModal() {
-            document.getElementById('add-channel-modal').classList.add('hidden');
-            document.getElementById('channel-name').value = '';
-            document.getElementById('channel-url').value = '';
-        }
-
-        async function addChannel(e) {
-            e.preventDefault();
-            const name = document.getElementById('channel-name').value;
-            const url = document.getElementById('channel-url').value;
-
-            try {
-                const response = await fetch(`${API_BASE}/api/channels`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({name, url, enabled: true})
-                });
-
-                if (response.ok) {
-                    showNotification('성공', '채널이 추가되었습니다', 'success');
-                    closeAddChannelModal();
-                    await loadChannels();
-                    await loadStatus();
-                } else {
-                    const error = await response.json();
-                    showNotification('오류', error.detail || '채널 추가 실패', 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '채널 추가 중 오류가 발생했습니다', 'error');
-            }
-        }
-
-        async function toggleChannel(channelId, enabled) {
-            try {
-                const response = await fetch(`${API_BASE}/api/channels/${channelId}`, {
-                    method: 'PATCH',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({enabled})
-                });
-
-                if (response.ok) {
-                    showNotification('성공', `채널이 ${enabled ? '활성화' : '비활성화'}되었습니다`, 'success');
-                    await loadChannels();
-                    await loadStatus();
-                } else {
-                    const error = await response.json();
-                    showNotification('오류', error.detail || '채널 상태 변경 실패', 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '채널 상태 변경 중 오류가 발생했습니다', 'error');
-            }
-        }
-
-        async function deleteChannel(channelId, channelName) {
-            if (!confirm(`'${channelName}' 채널을 삭제하시겠습니까?`)) return;
-
-            try {
-                const response = await fetch(`${API_BASE}/api/channels/${channelId}`, {method: 'DELETE'});
-
-                if (response.ok) {
-                    showNotification('성공', '채널이 삭제되었습니다', 'success');
-                    await loadChannels();
-                    await loadStatus();
-                } else {
-                    const error = await response.json();
-                    showNotification('오류', error.detail || '채널 삭제 실패', 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '채널 삭제 중 오류가 발생했습니다', 'error');
-            }
-        }
-
-        // 알림
-        // 쿠키 상태 확인
-        async function checkCookieStatus() {
-            if (cookieWarningDismissed) return;
-            try {
-                const response = await fetch(`${API_BASE}/api/cookie/status`);
-                const result = await response.json();
-                const banner = document.getElementById('cookie-warning');
-                const message = document.getElementById('cookie-warning-message');
-
-                if (!result.valid) {
-                    message.textContent = result.has_cookies
-                        ? 'YouTube 쿠키가 만료되었습니다. 브라우저에서 쿠키를 다시 내보내주세요.'
-                        : 'cookies.txt 파일이 없습니다. 쿠키 파일을 추가해주세요.';
-                    banner.classList.remove('hidden');
-                    lucide.createIcons();
-                } else {
-                    banner.classList.add('hidden');
-                }
-            } catch (error) {
-                console.error('Cookie status check failed:', error);
-            }
-        }
-
-        async function recheckCookies() {
-            try {
-                const response = await fetch(`${API_BASE}/api/cookie/refresh-check`, { method: 'POST' });
-                const result = await response.json();
-                if (result.valid) {
-                    document.getElementById('cookie-warning').classList.add('hidden');
-                    showNotification('성공', '쿠키가 유효합니다!', 'success');
-                } else {
-                    showNotification('경고', result.message, 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '쿠키 확인 중 오류 발생', 'error');
-            }
-        }
-
-        async function extractCookies() {
-            const btn = document.getElementById('cookie-extract-btn');
-            const originalText = btn.textContent;
-            btn.textContent = '추출 중...';
-            btn.disabled = true;
-
-            try {
-                const response = await fetch(`${API_BASE}/api/cookie/extract`, {
-                    method: 'POST',
-                });
-                const result = await response.json();
-
-                if (result.success && result.valid) {
-                    document.getElementById('cookie-warning').classList.add('hidden');
-                    showNotification('성공', '브라우저에서 쿠키 추출 및 검증 완료!', 'success');
-                    cookieWarningDismissed = false;
-                } else if (result.success && !result.valid) {
-                    showNotification('경고', '쿠키가 추출되었지만 유효하지 않습니다.', 'error');
-                } else {
-                    // 추출 실패 (Docker 등) → 파일 업로드 안내
-                    showNotification('안내', 'Docker 환경에서는 자동 추출이 불가합니다. refresh_cookies.bat을 실행하거나 파일을 직접 업로드해주세요.', 'error');
-                }
-            } catch (error) {
-                showNotification('오류', '쿠키 추출 중 오류 발생', 'error');
-            } finally {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }
-        }
-
-        async function uploadCookieFile(input) {
-            if (!input.files || !input.files[0]) return;
-            const file = input.files[0];
-
-            // Disable button and show uploading state
-            const uploadBtn = document.getElementById('cookie-upload-btn');
-            const originalText = uploadBtn.textContent;
-            uploadBtn.textContent = '검증 중...';
-            uploadBtn.disabled = true;
-
-            try {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                const response = await fetch(`${API_BASE}/api/cookie/upload`, {
-                    method: 'POST',
-                    body: formData,
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    throw new Error(result.detail || '업로드 실패');
-                }
-
-                if (result.valid) {
-                    document.getElementById('cookie-warning').classList.add('hidden');
-                    showNotification('성공', `쿠키 업로드 완료! (${result.cookie_count}개 항목, 유효)`, 'success');
-                    cookieWarningDismissed = false;
-                } else {
-                    showNotification('경고', `쿠키가 업로드되었지만 유효하지 않습니다: ${result.message}`, 'error');
-                }
-            } catch (error) {
-                showNotification('오류', error.message || '쿠키 업로드 중 오류 발생', 'error');
-            } finally {
-                uploadBtn.textContent = originalText;
-                uploadBtn.disabled = false;
-                input.value = ''; // Reset file input
-            }
-        }
-
-        function dismissCookieWarning() {
-            document.getElementById('cookie-warning').classList.add('hidden');
-            cookieWarningDismissed = true;
-            // 10분 후 다시 표시 허용
-            setTimeout(() => { cookieWarningDismissed = false; }, 600000);
-        }
-
-        function showNotification(title, message, type = 'success') {
-            const notification = document.getElementById('notification');
-            const notificationTitle = document.getElementById('notification-title');
-            const notificationMessage = document.getElementById('notification-message');
-            const notificationIcon = document.getElementById('notification-icon');
-
-            notificationTitle.textContent = title;
-            notificationMessage.textContent = message;
-
-            const iconColor = type === 'success' ? 'text-green-500' : 'text-red-500';
-            const iconName = type === 'success' ? 'check-circle' : 'alert-circle';
-            notificationIcon.innerHTML = `<i data-lucide="${iconName}" class="w-6 h-6 ${iconColor}"></i>`;
-
-            notification.classList.remove('hidden');
-            lucide.createIcons();
-
-            setTimeout(() => {
-                notification.classList.add('hidden');
-            }, 3000);
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
+      });
+    }
+    renderFileList(); renderSequence();
+  }
+
+  /* ── merge :: sequence ─────────────────────────────────────────────── */
+  function renderSequence() {
+    const host = $('merge-seq-list');
+    $('merge-seq-count').textContent = `${state.sequence.length} CLIPS`;
+    if (!state.sequence.length) {
+      host.classList.add('empty-seq');
+      host.innerHTML = '── DRAG OR SELECT FILES ──';
+      return;
+    }
+    host.classList.remove('empty-seq');
+    host.innerHTML = state.sequence.map((p, i) => `
+      <div class="seq-item" draggable="true" data-idx="${i}"
+           ondragstart="seqDragStart(event, ${i})"
+           ondragover="seqDragOver(event, ${i})"
+           ondragleave="seqDragLeave(event, ${i})"
+           ondrop="seqDrop(event, ${i})"
+           ondragend="seqDragEnd(event)">
+        <div class="grip">⋮⋮</div>
+        <div class="idx">${String(i + 1).padStart(2, '0')}</div>
+        <div class="name">${escapeHtml(p)}</div>
+        <button class="btn sm danger" onclick="removeSeqItem(${i})">✕</button>
+      </div>`).join('');
+  }
+  function clearSequence() {
+    state.sequence = []; state.selectedPaths.clear();
+    renderFileList(); renderSequence();
+  }
+  function removeSeqItem(idx) {
+    const path = state.sequence[idx];
+    state.sequence.splice(idx, 1);
+    state.selectedPaths.delete(path);
+    renderFileList(); renderSequence();
+  }
+  let dragSrc = null;
+  function seqDragStart(e, idx) {
+    dragSrc = idx; e.currentTarget.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  }
+  function seqDragOver(e, idx) {
+    e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+    if (idx !== dragSrc) e.currentTarget.classList.add('drop-target');
+  }
+  function seqDragLeave(e) { e.currentTarget.classList.remove('drop-target'); }
+  function seqDrop(e, idx) {
+    e.preventDefault();
+    if (dragSrc === null || dragSrc === idx) return;
+    const moved = state.sequence.splice(dragSrc, 1)[0];
+    state.sequence.splice(idx, 0, moved);
+    renderSequence();
+  }
+  function seqDragEnd() {
+    document.querySelectorAll('.seq-item').forEach(el => {
+      el.classList.remove('dragging', 'drop-target');
+    });
+    dragSrc = null;
+  }
+
+  /* ── merge :: execute ──────────────────────────────────────────────── */
+  function setMergeMode(mode) {
+    state.mergeMode = mode;
+    $('mode-concat').classList.toggle('active', mode === 'concat');
+    $('mode-reencode').classList.toggle('active', mode === 'reencode');
+  }
+  async function executeMerge() {
+    if (state.sequence.length < 2) {
+      notify('WARN', '최소 2개 파일이 필요합니다', 'err'); return;
+    }
+    const out = $('merge-output').value.trim() || `merged_${new Date().toISOString().slice(0,19).replace(/[-:T]/g, '')}.mp4`;
+    const btn = $('btn-execute-merge');
+    btn.disabled = true; const orig = btn.textContent; btn.textContent = '◴ SUBMITTING...';
+    try {
+      const r = await fetch(`${API}/api/merge`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inputs: state.sequence, output: out, mode: state.mergeMode }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.detail || 'merge failed');
+      notify('OK', `merge job ${d.id} queued`, 'ok');
+      $('merge-output').value = '';
+      loadJobs();
+    } catch (e) { notify('ERR', e.message, 'err'); }
+    finally { btn.disabled = false; btn.textContent = orig; }
+  }
+
+  /* ── merge :: jobs ─────────────────────────────────────────────────── */
+  async function loadJobs() {
+    try {
+      const r = await fetch(`${API}/api/merge/jobs`);
+      const jobs = await r.json();
+      renderJobs(jobs);
+    } catch (e) {}
+  }
+  function renderJobs(jobs) {
+    const host = $('merge-jobs');
+    if (!jobs.length) {
+      host.innerHTML = `<div class="empty">
+        <div class="ascii">[ NO JOBS YET ]</div>
+        <div>병합 잡을 실행하면 여기에 표시됩니다</div>
+      </div>`;
+      return;
+    }
+    const stateChip = (st) => {
+      const map = {
+        queued:    ['QUEUED', 'dim'],
+        running:   ['RUNNING', 'amber'],
+        done:      ['DONE', 'ok'],
+        failed:    ['FAILED', 'err'],
+        cancelled: ['CANCELLED', 'warn'],
+      };
+      const [t, c] = map[st] || [st, 'dim'];
+      return `<span class="chip ${c}">${t}</span>`;
+    };
+    host.innerHTML = `
+      <div class="job-row" style="background: var(--bg-2); font-size: 10px; letter-spacing: 0.16em; color: var(--fg-mute); text-transform: uppercase;">
+        <div>JOB</div>
+        <div>OUTPUT</div>
+        <div>MODE</div>
+        <div>ELAPSED</div>
+        <div></div>
+      </div>
+      ${jobs.map(j => `
+        <div class="job-row">
+          <div class="job-id">${j.id.slice(0,8)}</div>
+          <div>
+            <div>${escapeHtml(j.output)}</div>
+            <div style="color:var(--fg-mute); font-size:10px; margin-top:2px;">
+              ${j.inputs.length} clips · ${escapeHtml((j.message || '').slice(0,80))}
+            </div>
+          </div>
+          <div class="job-mode">${j.mode.toUpperCase()}</div>
+          <div class="mono-num" style="color: var(--fg-dim);">${fmtDuration(j.elapsed_seconds)}</div>
+          <div class="actions" style="text-align:right">
+            ${stateChip(j.status)}
+            ${j.status === 'done' ? `<a class="btn sm ok" href="${API}/api/merge/jobs/${j.id}/download">▼ GET</a>` : ''}
+            ${(j.status === 'queued' || j.status === 'running') ? `<button class="btn sm danger" onclick="cancelJob('${j.id}')">CANCEL</button>` : ''}
+          </div>
+        </div>
+      `).join('')}
+    `;
+  }
+  async function cancelJob(id) {
+    try {
+      const r = await fetch(`${API}/api/merge/jobs/${id}/cancel`, { method: 'POST' });
+      if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+      notify('OK', `job ${id.slice(0,8)} cancelled`, 'ok');
+      loadJobs();
+    } catch (e) { notify('ERR', e.message, 'err'); }
+  }
+
+  /* ── single download ───────────────────────────────────────────────── */
+  function showDLStep(name) {
+    ['analyzing', 'result', 'downloading', 'finished'].forEach(s => {
+      $(`dl-step-${s}`).style.display = s === name ? 'block' : 'none';
+    });
+  }
+  function closeResult() {
+    showDLStep(null);
+    ['analyzing','result','downloading','finished'].forEach(s => $(`dl-step-${s}`).style.display = 'none');
+    $('url-input').value = '';
+  }
+  function setFormat(fmt) {
+    state.dlFormat = fmt;
+    $('btn-video-fmt').classList.toggle('active', fmt === 'video');
+    $('btn-audio-fmt').classList.toggle('active', fmt === 'audio');
+    $('quality-container').style.display = fmt === 'video' ? '' : 'none';
+  }
+  async function handleAnalyze(e) {
+    e.preventDefault();
+    const url = $('url-input').value.trim();
+    if (!url) return;
+    showDLStep('analyzing');
+    try {
+      const r = await fetch(`${API}/api/video/info`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      if (!r.ok) { const er = await r.json(); throw new Error(er.detail || 'fetch failed'); }
+      const d = await r.json();
+      $('video-title').textContent = d.title || 'YouTube Video';
+      $('video-author').textContent = `▸ ${d.uploader || 'Unknown'}`;
+      $('video-thumb').src = d.thumbnail || '';
+      const dur = d.duration || 0;
+      const h = Math.floor(dur / 3600), m = Math.floor((dur % 3600) / 60), s = dur % 60;
+      $('video-duration').textContent = h > 0
+        ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+        : `${m}:${String(s).padStart(2,'0')}`;
+      $('video-views').textContent = `${(d.view_count || 0).toLocaleString()} views`;
+      showDLStep('result');
+    } catch (e) {
+      notify('ERR', e.message || 'analyze failed', 'err');
+      closeResult();
+    }
+  }
+  async function startDownload() {
+    const url = $('url-input').value.trim();
+    const quality = $('quality-select').value;
+    showDLStep('downloading');
+    try {
+      const r = await fetch(`${API}/api/download`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, quality, audio_only: state.dlFormat === 'audio' }),
+      });
+      if (!r.ok) { const er = await r.json(); throw new Error(er.detail || 'download failed'); }
+      const d = await r.json();
+      const a = document.createElement('a');
+      a.href = `${API}/api/download/file/${d.filename}`;
+      a.download = d.filename;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      $('finish-message').textContent = `▸ ${d.filename}`;
+      showDLStep('finished');
+      notify('OK', `dl ✓ ${d.filename}`, 'ok');
+    } catch (e) {
+      notify('ERR', e.message, 'err');
+      closeResult();
+    }
+  }
+
+  /* ── notif ─────────────────────────────────────────────────────────── */
+  let notifTimer = null;
+  function notify(title, msg, kind = 'info') {
+    const n = $('notif');
+    n.className = `notif active ${kind}`;
+    $('notif-title').textContent = title;
+    $('notif-msg').textContent = msg;
+    if (notifTimer) clearTimeout(notifTimer);
+    notifTimer = setTimeout(() => n.classList.remove('active'), 3500);
+  }
+
+  /* ── boot ──────────────────────────────────────────────────────────── */
+  systemRefresh();
+  checkCookie();
+  loadChannels();
+  setInterval(systemRefresh, 5000);
+  setInterval(checkCookie, 60000);
+  setInterval(() => { if (state.activeTab === 'merge') loadJobs(); }, 3000);
+</script>
 </body>
 </html>

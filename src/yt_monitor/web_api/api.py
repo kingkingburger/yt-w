@@ -1,17 +1,22 @@
 """WebAPI 조립자 — FastAPI 앱 + 미들웨어 + 라우트 등록 + cleanup 스케줄러."""
 
+import time
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from ..channel_manager import ChannelManager
 from ..logger import Logger
+from ..video_merger import MergeJobManager
 from .cleanup_scheduler import CleanupScheduler
 from .routes import (
     register_channel_routes,
-    register_cleanup_routes,
     register_cookie_routes,
+    register_merge_routes,
     register_meta_routes,
     register_monitor_routes,
+    register_system_routes,
     register_video_routes,
 )
 from .state import MonitorState
@@ -36,10 +41,15 @@ class WebAPI:
 
         self.channel_manager = ChannelManager(channels_file=channels_file)
         self.monitor_state = MonitorState()
+        self.boot_time = time.time()
 
         global_settings = self.channel_manager.get_global_settings()
         Logger.initialize(log_file=global_settings.log_file)
         self.logger = Logger.get()
+
+        self.merge_job_manager = MergeJobManager(
+            root=Path(global_settings.download_directory)
+        )
 
         self._register_routes()
 
@@ -52,7 +62,15 @@ class WebAPI:
         register_monitor_routes(self.app, self.channel_manager, self.monitor_state)
         register_video_routes(self.app, self.channel_manager)
         register_cookie_routes(self.app)
-        register_cleanup_routes(self.app, self.channel_manager)
+        register_merge_routes(
+            self.app, self.channel_manager, self.merge_job_manager
+        )
+        register_system_routes(
+            self.app,
+            self.channel_manager,
+            self.monitor_state,
+            boot_time=self.boot_time,
+        )
 
     def run(self, host: str = "0.0.0.0", port: int = 8000) -> None:
         """개발용 서버 실행."""

@@ -1,4 +1,4 @@
-"""/api/channels, /api/settings 엔드포인트."""
+"""/api/channels 엔드포인트."""
 
 from typing import Any, Dict, List
 
@@ -6,12 +6,8 @@ from fastapi import FastAPI, HTTPException
 
 from ...channel_manager import ChannelManager
 from ...util.sanitize_url import sanitize_youtube_url
-from ..dto_converters import channel_to_dict, settings_to_dict
-from ..schemas import (
-    ChannelCreateRequest,
-    ChannelUpdateRequest,
-    GlobalSettingsUpdateRequest,
-)
+from ..dto_converters import channel_to_dict
+from ..schemas import ChannelCreateRequest, ChannelUpdateRequest
 from ..state import MonitorState
 
 
@@ -24,13 +20,6 @@ def register_channel_routes(
     async def list_channels(enabled_only: bool = False):
         channels = channel_manager.list_channels(enabled_only=enabled_only)
         return [channel_to_dict(ch) for ch in channels]
-
-    @app.get("/api/channels/{channel_id}", response_model=Dict[str, Any])
-    async def get_channel(channel_id: str):
-        channel = channel_manager.get_channel(channel_id)
-        if not channel:
-            raise HTTPException(status_code=404, detail="Channel not found")
-        return channel_to_dict(channel)
 
     @app.post("/api/channels", response_model=Dict[str, Any])
     async def create_channel(channel: ChannelCreateRequest):
@@ -85,18 +74,3 @@ def register_channel_routes(
             raise HTTPException(status_code=404, detail="Channel not found")
 
         return {"message": "Channel deleted successfully"}
-
-    @app.get("/api/settings", response_model=Dict[str, Any])
-    async def get_settings():
-        settings = channel_manager.get_global_settings()
-        return settings_to_dict(settings)
-
-    @app.patch("/api/settings", response_model=Dict[str, Any])
-    async def update_settings(settings: GlobalSettingsUpdateRequest):
-        try:
-            updated = channel_manager.update_global_settings(
-                **settings.model_dump(exclude_none=True)
-            )
-            return settings_to_dict(updated)
-        except ValueError as error:
-            raise HTTPException(status_code=400, detail=str(error))
