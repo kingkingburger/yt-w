@@ -7,7 +7,6 @@ from fastapi import FastAPI
 from ...cookie_validator import validate_cookies
 from ...discord_notifier import get_notifier
 from ...logger import Logger
-from ..dto_converters import cookie_validation_error_response
 
 
 def register_cookie_routes(app: FastAPI) -> None:
@@ -23,4 +22,9 @@ def register_cookie_routes(app: FastAPI) -> None:
             return result
         except Exception as error:
             logger.error(f"Cookie validation error: {error}")
-            return cookie_validation_error_response(error)
+            return {
+                "valid": False,
+                "message": f"검증 오류: {str(error)[:100]}",
+                "checked_at": 0,
+                "cached": False,
+            }

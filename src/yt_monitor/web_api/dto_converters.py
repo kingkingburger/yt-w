@@ -13,12 +13,3 @@ def channel_to_dict(channel: ChannelDTO) -> Dict[str, Any]:
         "enabled": channel.enabled,
         "download_format": channel.download_format,
     }
-
-
-def cookie_validation_error_response(error: Exception) -> Dict[str, Any]:
-    return {
-        "valid": False,
-        "message": f"검증 오류: {str(error)[:100]}",
-        "checked_at": 0,
-        "cached": False,
-    }

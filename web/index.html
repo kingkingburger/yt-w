@@ -1079,7 +1079,6 @@
           </div>
           <div class="sysrow-val" id="stat-monitor-val">대기 중</div>
         </div>
-        <div id="stat-monitor" style="display:none"></div>
 
         <div class="sysrow">
           <div class="sysrow-label">
@@ -1088,7 +1087,6 @@
           </div>
           <div class="sysrow-val dim" id="stat-discord-val">─</div>
         </div>
-        <div id="stat-discord" style="display:none"></div>
 
         <div class="sysrow">
           <div class="sysrow-label">
@@ -1097,7 +1095,6 @@
           </div>
           <div class="sysrow-val dim" id="stat-cookie-val">─</div>
         </div>
-        <div id="stat-cookie" style="display:none"></div>
 
         <div class="sysrow">
           <div class="sysrow-label">
@@ -1109,7 +1106,6 @@
             <div class="sub" id="stat-disk-sub">─</div>
           </div>
         </div>
-        <div id="stat-disk" style="display:none"></div>
 
         <div class="syspanel-foot">
           <div><span style="color:var(--fg-dim)">호스트</span> <span id="boot-host">localhost</span>:<span id="boot-port">8088</span></div>
@@ -1976,7 +1972,6 @@
   }
   function closeResult() {
     showDLStep(null);
-    ['analyzing','result','downloading','finished'].forEach(s => $(`dl-step-${s}`).style.display = 'none');
     $('url-input').value = '';
     $('url-input').focus();
   }

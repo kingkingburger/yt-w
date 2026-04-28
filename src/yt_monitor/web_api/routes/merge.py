@@ -1,5 +1,6 @@
 """/api/files, /api/merge/* 엔드포인트 — 병합 워크스페이스."""
 
+from dataclasses import asdict
 from pathlib import Path
 from typing import List, Literal
 
@@ -9,12 +10,7 @@ from pydantic import BaseModel
 
 from ...channel_manager import ChannelManager
 from ...logger import Logger
-from ...video_merger import (
-    MergeJobManager,
-    file_info_to_dict,
-    list_video_files,
-    merge_job_to_dict,
-)
+from ...video_merger import MergeJobManager, list_video_files
 
 
 class MergeRequest(BaseModel):
@@ -35,7 +31,7 @@ def register_merge_routes(
 
     @app.get("/api/files")
     async def list_files():
-        return [file_info_to_dict(f) for f in list_video_files(_root())]
+        return [asdict(f) for f in list_video_files(_root())]
 
     @app.post("/api/merge")
     async def submit_merge(request: MergeRequest):
@@ -49,20 +45,20 @@ def register_merge_routes(
                 f"Merge job submitted: id={job.id} mode={job.mode} "
                 f"inputs={len(job.inputs)} output={job.output}"
             )
-            return merge_job_to_dict(job)
+            return asdict(job)
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error))
 
     @app.get("/api/merge/jobs")
     async def list_jobs():
-        return [merge_job_to_dict(j) for j in job_manager.list_jobs()]
+        return [asdict(j) for j in job_manager.list_jobs()]
 
     @app.get("/api/merge/jobs/{job_id}")
     async def get_job(job_id: str):
         job = job_manager.get(job_id)
         if not job:
             raise HTTPException(status_code=404, detail="Job not found")
-        return merge_job_to_dict(job)
+        return asdict(job)
 
     @app.post("/api/merge/jobs/{job_id}/cancel")
     async def cancel_job(job_id: str):

@@ -10,9 +10,9 @@ import subprocess
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional
 
 
 VideoExtensions = frozenset(
@@ -284,16 +284,3 @@ class MergeJobManager:
                     list_file.unlink()
                 except OSError:
                     pass
-
-
-def file_info_to_dict(info: FileInfoDTO) -> Dict[str, Any]:
-    return {
-        "path": info.path,
-        "name": info.name,
-        "size_bytes": info.size_bytes,
-        "mtime": info.mtime,
-    }
-
-
-def merge_job_to_dict(job: MergeJobDTO) -> Dict[str, Any]:
-    return asdict(job)
