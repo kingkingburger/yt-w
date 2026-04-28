@@ -16,30 +16,30 @@
      - 색감만 조정: 브라운 → 뉴트럴 그래파이트, amber → 다듬은 골드
      ====================================================================== */
   :root {
-    --bg:        #0f0f11;
-    --bg-1:      #17171a;
-    --bg-2:      #1f1f24;
-    --bg-3:      #28282e;
-    --line:      #25252b;
-    --line-2:    #34343c;
-    --line-3:    #43434c;
-    --fg:        #ebeaf0;
-    --fg-2:      #cecad4;
-    --fg-dim:    #8e8c98;
-    --fg-mute:   #5d5b65;
+    --bg:        #13110d;
+    --bg-1:      #1a1814;
+    --bg-2:      #22201b;
+    --bg-3:      #2a2722;
+    --line:      #28241d;
+    --line-2:    #363127;
+    --line-3:    #443e31;
+    --fg:        #ede5d4;
+    --fg-2:      #d4c8b3;
+    --fg-dim:    #9c9382;
+    --fg-mute:   #685f53;
 
-    --accent:    #d9a14d;
-    --accent-2:  #ecbb74;
+    --accent:    #e6a04d;
+    --accent-2:  #f0bb74;
     --accent-3:  #ffd28a;
-    --accent-tint: rgba(217, 161, 77, 0.09);
-    --accent-glow: rgba(217, 161, 77, 0.16);
+    --accent-tint: rgba(230, 160, 77, 0.09);
+    --accent-glow: rgba(230, 160, 77, 0.17);
 
-    --ok:        #5fc78a;
-    --ok-tint:   rgba(95,199,138,0.10);
-    --warn:      #e2b25a;
-    --warn-tint: rgba(226,178,90,0.10);
-    --danger:    #e07070;
-    --danger-tint: rgba(224,112,112,0.10);
+    --ok:        #7ccc92;
+    --ok-tint:   rgba(124,204,146,0.10);
+    --warn:      #e8ab5e;
+    --warn-tint: rgba(232,171,94,0.10);
+    --danger:    #de7068;
+    --danger-tint: rgba(222,112,104,0.10);
 
     --sidebar-w: 256px;
 
@@ -68,8 +68,8 @@
     position: fixed;
     inset: 0;
     background:
-      radial-gradient(900px 600px at 90% -10%, rgba(217,161,77,0.05), transparent 60%),
-      radial-gradient(700px 500px at -10% 110%, rgba(217,161,77,0.03), transparent 60%);
+      radial-gradient(900px 600px at 90% -10%, rgba(230,160,77,0.05), transparent 60%),
+      radial-gradient(700px 500px at -10% 110%, rgba(230,160,77,0.03), transparent 60%);
     pointer-events: none;
     z-index: 0;
   }
@@ -232,12 +232,12 @@
   .dot.warn { background: var(--warn); }
   .dot.err { background: var(--danger); animation: pulse-err 1.2s infinite; }
   @keyframes pulse-ok {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(95,199,138,0.5); }
-    60%      { box-shadow: 0 0 0 5px rgba(95,199,138,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124,204,146,0.5); }
+    60%      { box-shadow: 0 0 0 5px rgba(124,204,146,0); }
   }
   @keyframes pulse-err {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(224,112,112,0.55); }
-    60%      { box-shadow: 0 0 0 6px rgba(224,112,112,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(222,112,104,0.55); }
+    60%      { box-shadow: 0 0 0 6px rgba(222,112,104,0); }
   }
   .sysrow-val {
     color: var(--fg);
@@ -430,7 +430,7 @@
 
   .btn.danger {
     color: var(--danger);
-    border-color: rgba(224,112,112,0.3);
+    border-color: rgba(222,112,104,0.3);
     background: transparent;
   }
   .btn.danger:hover:not(:disabled) {
@@ -601,11 +601,11 @@
     border-radius: 50%;
     background: currentColor;
   }
-  .chip.ok { color: var(--ok); background: var(--ok-tint); border-color: rgba(95,199,138,0.3); }
-  .chip.warn { color: var(--warn); background: var(--warn-tint); border-color: rgba(226,178,90,0.3); }
-  .chip.err { color: var(--danger); background: var(--danger-tint); border-color: rgba(224,112,112,0.3); }
+  .chip.ok { color: var(--ok); background: var(--ok-tint); border-color: rgba(124,204,146,0.3); }
+  .chip.warn { color: var(--warn); background: var(--warn-tint); border-color: rgba(232,171,94,0.3); }
+  .chip.err { color: var(--danger); background: var(--danger-tint); border-color: rgba(222,112,104,0.3); }
   .chip.dim { color: var(--fg-mute); border-color: var(--line-2); }
-  .chip.amber { color: var(--accent-2); background: var(--accent-tint); border-color: rgba(217,161,77,0.3); }
+  .chip.amber { color: var(--accent-2); background: var(--accent-tint); border-color: rgba(230,160,77,0.3); }
   .chip.no-dot::before { display: none; }
 
   /* ──── Helper banners ─────────────────────────────────────────────── */
@@ -664,16 +664,16 @@
     background: var(--fg-mute);
   }
   .monitor-hero.running .monitor-pulse {
-    background: rgba(95,199,138,0.08);
-    border-color: rgba(95,199,138,0.4);
+    background: rgba(124,204,146,0.08);
+    border-color: rgba(124,204,146,0.4);
   }
   .monitor-hero.running .monitor-pulse::after {
     background: var(--ok);
     animation: hero-pulse 1.6s ease-in-out infinite;
   }
   @keyframes hero-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(95,199,138,0.55); }
-    50%      { box-shadow: 0 0 0 12px rgba(95,199,138,0); }
+    0%, 100% { box-shadow: 0 0 0 0 rgba(124,204,146,0.55); }
+    50%      { box-shadow: 0 0 0 12px rgba(124,204,146,0); }
   }
   .monitor-state-text {
     font-family: 'Fraunces', serif;
@@ -895,7 +895,7 @@
     margin: 0 auto 16px;
     border-radius: 50%;
     background: var(--ok-tint);
-    border: 1px solid rgba(95,199,138,0.3);
+    border: 1px solid rgba(124,204,146,0.3);
     color: var(--ok);
     display: flex;
     align-items: center;
