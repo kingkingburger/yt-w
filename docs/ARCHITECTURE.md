@@ -42,12 +42,15 @@ yt-w/
 │   │   ├── api.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
 │   │   ├── state.py                     # 실행 중 모니터 상태 컨테이너
 │   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
-│   │   ├── dto_converters.py            # internal DTO → dict
+│   │   ├── dto_converters.py            # ChannelDTO → API dict 변환
 │   │   ├── cleanup_scheduler.py         # 백그라운드 자동 정리 스케줄러
 │   │   └── routes/                      # 라우트 모듈 (channels/monitor/video/cookies/merge/system/meta)
 │   └── util/sanitize_url.py             # URL 정규화
 ├── test/                                # pytest 단위/회귀 테스트
-├── web/index.html                       # Operator console (vanilla JS, JetBrains Mono)
+├── web/
+│   ├── index.html                       # Operator console markup
+│   ├── app.css                          # Operator console styles
+│   └── app.js                           # Operator console client logic
 ├── reviews/                             # 8인 리뷰 리포트 (히스토리)
 ├── main.py                              # 웹 서버 엔트리
 ├── monitoring.py                        # 모니터 데몬 + CLI 엔트리
@@ -89,6 +92,8 @@ main.py → uvicorn → web_api.api.create_app()
 ```
 
 `/api/monitor/start`는 `MultiChannelMonitor.start()`를 데몬 스레드에서 호출한다. 이 경우 `MultiChannelMonitor`는 `signal.signal()` 등록을 건너뛴다(메인 스레드가 아니므로 `ValueError` 회피). 컨테이너의 SIGTERM 처리는 호스트 프로세스(uvicorn)가 담당한다.
+
+`meta` 라우트는 `/`에서 `web/index.html`을 반환하고, `/static`으로 `web/` 디렉터리의 CSS/JS 정적 자산을 서빙한다.
 
 ### 3. 다운로드 라이프사이클 종료
 

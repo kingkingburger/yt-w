@@ -195,7 +195,7 @@ yt-w/
 │   │   ├── api.py               # 앱 조립 + 라우트 등록 + 스케줄러 시작
 │   │   ├── routes/              # /api/* 라우트 모듈
 │   │   ├── schemas.py           # Pydantic 요청/응답 스키마
-│   │   ├── dto_converters.py    # Internal DTO → dict 변환
+│   │   ├── dto_converters.py    # ChannelDTO → API dict 변환
 │   │   ├── state.py             # MonitorState 공유 컨테이너
 │   │   └── cleanup_scheduler.py # 백그라운드 자동 정리 스케줄러
 │   ├── multi_channel_monitor.py # 멀티 채널 모니터링
@@ -213,7 +213,9 @@ yt-w/
 │   └── util/
 │       └── sanitize_url.py      # URL 정규화
 ├── web/
-│   └── index.html               # Operator console (vanilla JS, JetBrains Mono)
+│   ├── index.html               # Operator console markup
+│   ├── app.css                  # Operator console styles
+│   └── app.js                   # Operator console client logic
 ├── main.py                      # CLI + 웹 서버 엔트리포인트
 ├── monitoring.py                # 모니터링 데몬 엔트리포인트
 ├── docker-compose.yml
@@ -248,8 +250,9 @@ downloads/
 ## 개발
 
 ```bash
-uv run pytest           # 테스트 실행
-uv run pytest -v        # 상세 출력
+uv run pytest                         # 전체 테스트 실행
+uv run pytest -v                      # 상세 출력
+uv run pytest test/test_web_api.py    # 웹 콘솔/정적 자산 최소 검증
 ```
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)
