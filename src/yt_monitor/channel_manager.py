@@ -1,6 +1,7 @@
 """Channel management module for multiple YouTube channels."""
 
 import json
+import os
 import threading
 from dataclasses import dataclass, asdict
 from pathlib import Path
@@ -79,8 +80,9 @@ class ChannelManager:
         Returns:
             Dictionary containing channels and settings
         """
-        with open(self.channels_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+        with self._lock:
+            with open(self.channels_file, "r", encoding="utf-8") as f:
+                return json.load(f)
 
     def _write_data(self, data: Dict[str, Any]) -> None:
         """
@@ -89,8 +91,13 @@ class ChannelManager:
         Args:
             data: Dictionary containing channels and settings
         """
-        with open(self.channels_file, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
+        with self._lock:
+            tmp_path = self.channels_file.with_name(
+                f".{self.channels_file.name}.{uuid4().hex}.tmp"
+            )
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            os.replace(tmp_path, self.channels_file)
 
     def add_channel(
         self,

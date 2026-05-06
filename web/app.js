@@ -272,7 +272,13 @@ async function loadFiles() {
   try {
     const r = await fetch(`${API}/api/files`);
     state.files = await r.json();
+    const validPaths = new Set(state.files.map(f => f.path));
+    state.selectedPaths = new Set(
+      [...state.selectedPaths].filter(path => validPaths.has(path))
+    );
+    state.sequence = state.sequence.filter(path => validPaths.has(path));
     renderFileList();
+    renderSequence();
   } catch (e) {}
 }
 function renderFileList() {

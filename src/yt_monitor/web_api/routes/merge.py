@@ -1,5 +1,7 @@
 """/api/files, /api/merge/* 엔드포인트 — 병합 워크스페이스."""
 
+import asyncio
+import time
 from dataclasses import asdict
 from pathlib import Path
 from typing import List, Literal
@@ -11,6 +13,8 @@ from pydantic import BaseModel
 from ...channel_manager import ChannelManager
 from ...logger import Logger
 from ...video_merger import MergeJobManager, list_video_files
+
+FILE_LIST_CACHE_TTL_SECONDS = 5.0
 
 
 class MergeRequest(BaseModel):
@@ -25,17 +29,37 @@ def register_merge_routes(
     job_manager: MergeJobManager,
 ) -> None:
     logger = Logger.get()
+    file_cache = {
+        "root": "",
+        "expires_at": 0.0,
+        "files": [],
+    }
 
     def _root() -> Path:
         return Path(channel_manager.get_global_settings().download_directory)
 
     @app.get("/api/files")
     async def list_files():
-        return [asdict(f) for f in list_video_files(_root())]
+        root = _root()
+        now = time.time()
+        root_key = str(root.resolve())
+        if file_cache["root"] == root_key and float(file_cache["expires_at"]) > now:
+            files = file_cache["files"]
+        else:
+            files = await asyncio.to_thread(list_video_files, root)
+            file_cache.update(
+                {
+                    "root": root_key,
+                    "expires_at": now + FILE_LIST_CACHE_TTL_SECONDS,
+                    "files": files,
+                }
+            )
+        return [asdict(f) for f in files]
 
     @app.post("/api/merge")
     async def submit_merge(request: MergeRequest):
         try:
+            job_manager.set_root(_root())
             job = job_manager.submit(
                 input_relative_paths=request.inputs,
                 output_filename=request.output,
@@ -71,7 +95,7 @@ def register_merge_routes(
         job = job_manager.get(job_id)
         if not job or job.status != "done":
             raise HTTPException(status_code=404, detail="Job output not ready")
-        path = _root() / job.output
+        path = job_manager.output_path(job_id) or (_root() / job.output)
         if not path.exists():
             raise HTTPException(status_code=404, detail="Merged file missing")
         return FileResponse(path=str(path), filename=path.name)

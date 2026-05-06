@@ -1,5 +1,6 @@
 """/api/system/* — operator console에 필요한 통합 헬스/상태."""
 
+import asyncio
 import shutil
 import time
 from pathlib import Path
@@ -10,12 +11,41 @@ from ...channel_manager import ChannelManager
 from ...discord_notifier import NotificationLevel, get_notifier
 from ...monitor_status import read_monitor_status
 
+DOWNLOADS_CACHE_TTL_SECONDS = 30.0
+
+
+def _scan_downloads(download_root: Path) -> tuple[int, int]:
+    downloads_size = 0
+    downloads_count = 0
+    if not download_root.exists():
+        return downloads_size, downloads_count
+
+    try:
+        entries = download_root.rglob("*")
+        for entry in entries:
+            try:
+                if entry.is_file():
+                    downloads_size += entry.stat().st_size
+                    downloads_count += 1
+            except OSError:
+                continue
+    except OSError:
+        pass
+    return downloads_size, downloads_count
+
 
 def register_system_routes(
     app: FastAPI,
     channel_manager: ChannelManager,
     boot_time: float,
 ) -> None:
+    downloads_cache = {
+        "root": "",
+        "expires_at": 0.0,
+        "size": 0,
+        "count": 0,
+    }
+
     @app.get("/api/system/status")
     async def system_status():
         settings = channel_manager.get_global_settings()
@@ -30,15 +60,26 @@ def register_system_routes(
         except OSError:
             disk_total = disk_used = disk_free = 0
 
-        downloads_size = 0
-        downloads_count = 0
-        try:
-            for entry in download_root.rglob("*"):
-                if entry.is_file():
-                    downloads_size += entry.stat().st_size
-                    downloads_count += 1
-        except OSError:
-            pass
+        now = time.time()
+        root_key = str(download_root.resolve())
+        if (
+            downloads_cache["root"] == root_key
+            and float(downloads_cache["expires_at"]) > now
+        ):
+            downloads_size = int(downloads_cache["size"])
+            downloads_count = int(downloads_cache["count"])
+        else:
+            downloads_size, downloads_count = await asyncio.to_thread(
+                _scan_downloads, download_root
+            )
+            downloads_cache.update(
+                {
+                    "root": root_key,
+                    "expires_at": now + DOWNLOADS_CACHE_TTL_SECONDS,
+                    "size": downloads_size,
+                    "count": downloads_count,
+                }
+            )
 
         notifier = get_notifier()
         configured_active_channels = len(

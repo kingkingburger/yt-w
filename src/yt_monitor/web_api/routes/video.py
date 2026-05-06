@@ -101,8 +101,15 @@ def register_video_routes(
     async def download_file(filename: str):
         try:
             settings = channel_manager.get_global_settings()
-            download_dir = Path(settings.download_directory) / "web_downloads"
-            file_path = download_dir / filename
+            download_dir = (
+                Path(settings.download_directory) / "web_downloads"
+            ).resolve()
+            file_path = (download_dir / filename).resolve()
+
+            try:
+                file_path.relative_to(download_dir)
+            except ValueError:
+                raise HTTPException(status_code=404, detail="File not found")
 
             if not file_path.exists():
                 raise HTTPException(status_code=404, detail="File not found")

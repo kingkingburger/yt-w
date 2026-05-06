@@ -41,6 +41,23 @@ def test_merge_submit_preserves_requested_input_order(
     assert absolute_inputs == [(root / name).resolve() for name in requested]
 
 
+def test_merge_rejects_sibling_prefix_path_escape(tmp_path: Path):
+    """A sibling path that shares the root prefix must not pass containment."""
+    root = tmp_path / "downloads"
+    sibling = tmp_path / "downloads_evil"
+    root.mkdir()
+    sibling.mkdir()
+    (root / "a.mp4").write_bytes(b"video")
+    (sibling / "b.mp4").write_bytes(b"video")
+
+    with pytest.raises(ValueError, match="잘못된 입력 경로"):
+        MergeJobManager(root).submit(
+            ["a.mp4", "../downloads_evil/b.mp4"],
+            "out.mp4",
+            "concat",
+        )
+
+
 def test_frontend_name_sort_uses_natural_filename_order():
     """The merge sequence name-sort must order 1, 2, 10 naturally."""
     node = shutil.which("node")

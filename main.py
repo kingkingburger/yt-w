@@ -8,7 +8,11 @@ from src.yt_monitor.web_api import WebAPI
 
 def main():
     """Run the web server."""
-    default_port = int(os.environ.get("YT_WEB_PORT", "8011"))
+    raw_port = os.environ.get("YT_WEB_PORT") or "8011"
+    try:
+        default_port = int(raw_port)
+    except ValueError:
+        raise SystemExit(f"Invalid YT_WEB_PORT: {raw_port!r}")
 
     parser = argparse.ArgumentParser(description="YouTube Live Monitor - Web Interface")
 

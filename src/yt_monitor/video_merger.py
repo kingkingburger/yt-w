@@ -115,7 +115,12 @@ class MergeJobManager:
         self._history_limit: int = history_limit
         self._jobs: Dict[str, MergeJobDTO] = {}
         self._processes: Dict[str, subprocess.Popen] = {}
+        self._output_paths: Dict[str, Path] = {}
         self._lock: threading.Lock = threading.Lock()
+
+    def set_root(self, root: Path) -> None:
+        with self._lock:
+            self._root = root
 
     def list_jobs(self) -> List[MergeJobDTO]:
         with self._lock:
@@ -126,6 +131,10 @@ class MergeJobManager:
     def get(self, job_id: str) -> Optional[MergeJobDTO]:
         with self._lock:
             return self._jobs.get(job_id)
+
+    def output_path(self, job_id: str) -> Optional[Path]:
+        with self._lock:
+            return self._output_paths.get(job_id)
 
     def cancel(self, job_id: str) -> bool:
         with self._lock:
@@ -156,11 +165,15 @@ class MergeJobManager:
         if len(input_relative_paths) < 2:
             raise ValueError("병합하려면 최소 2개 파일이 필요합니다")
 
-        root_resolved = self._root.resolve()
+        with self._lock:
+            root = self._root
+        root_resolved = root.resolve()
         absolute_inputs: List[Path] = []
         for relative_path in input_relative_paths:
-            full_path = (self._root / relative_path).resolve()
-            if not str(full_path).startswith(str(root_resolved)):
+            full_path = (root / relative_path).resolve()
+            try:
+                full_path.relative_to(root_resolved)
+            except ValueError:
                 raise ValueError(f"잘못된 입력 경로: {relative_path}")
             if not full_path.is_file():
                 raise ValueError(f"파일이 존재하지 않습니다: {relative_path}")
@@ -171,7 +184,7 @@ class MergeJobManager:
         if not output_filename.lower().endswith((".mp4", ".mkv")):
             output_filename = f"{output_filename}.mp4"
 
-        output_dir = self._root / "merged"
+        output_dir = root / "merged"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = (output_dir / output_filename).resolve()
 
@@ -189,6 +202,7 @@ class MergeJobManager:
         )
         with self._lock:
             self._jobs[job_id] = job
+            self._output_paths[job_id] = output_path
             self._evict_history_locked()
         threading.Thread(
             target=self._run,
@@ -208,6 +222,7 @@ class MergeJobManager:
         excess = len(self._jobs) - self._history_limit
         for old in finished[:excess]:
             self._jobs.pop(old.id, None)
+            self._output_paths.pop(old.id, None)
 
     def _run(
         self,
