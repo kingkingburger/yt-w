@@ -7,6 +7,7 @@ from src.yt_monitor import (
     Logger,
     VideoDownloader,
     ChannelManager,
+    GlobalSettingsDTO,
     MultiChannelMonitor,
     FileCleaner,
 )
@@ -51,7 +52,7 @@ def download_mode(args):
 
     try:
         downloader = VideoDownloader(
-            output_dir=args.output or "./downloads",
+            output_dir=args.output or GlobalSettingsDTO().download_directory,
             quality=args.quality,
             audio_only=args.audio_only,
         )

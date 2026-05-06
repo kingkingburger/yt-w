@@ -1,6 +1,7 @@
 """WebAPI 조립자 — FastAPI 앱 + 미들웨어 + 라우트 등록 + cleanup 스케줄러."""
 
 import time
+import tomllib
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -20,6 +21,11 @@ from .routes import (
     register_video_routes,
 )
 
+_PYPROJECT_PATH = Path(__file__).resolve().parents[3] / "pyproject.toml"
+_APP_VERSION = tomllib.loads(_PYPROJECT_PATH.read_text(encoding="utf-8"))["project"][
+    "version"
+]
+
 
 class WebAPI:
     """YouTube Live Stream Monitor 용 Web API."""
@@ -29,7 +35,7 @@ class WebAPI:
         Args:
             channels_file: 채널 설정 파일 경로
         """
-        self.app = FastAPI(title="YouTube Live Monitor", version="1.0.0")
+        self.app = FastAPI(title="YouTube Live Monitor", version=_APP_VERSION)
         self.app.add_middleware(
             CORSMiddleware,
             allow_origins=["*"],

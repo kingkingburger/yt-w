@@ -1,6 +1,7 @@
 """Tests for web_api module — /health 엔드포인트 검증."""
 
 import json
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -37,6 +38,12 @@ def client(channels_file: str) -> TestClient:
 
 class TestHealthEndpoint:
     """GET /health 엔드포인트 검증."""
+
+    def test_app_version_matches_pyproject(self, channels_file: str):
+        pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+        web_api = WebAPI(channels_file=channels_file)
+
+        assert web_api.app.version == pyproject["project"]["version"]
 
     def test_health_returns_200(self, client: TestClient):
         """GET /health는 HTTP 200을 반환한다."""
