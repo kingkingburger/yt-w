@@ -8,13 +8,12 @@ from fastapi import FastAPI
 
 from ...channel_manager import ChannelManager
 from ...discord_notifier import NotificationLevel, get_notifier
-from ..state import MonitorState
+from ...monitor_status import read_monitor_status
 
 
 def register_system_routes(
     app: FastAPI,
     channel_manager: ChannelManager,
-    monitor_state: MonitorState,
     boot_time: float,
 ) -> None:
     @app.get("/api/system/status")
@@ -42,6 +41,21 @@ def register_system_routes(
             pass
 
         notifier = get_notifier()
+        configured_active_channels = len(
+            channel_manager.list_channels(enabled_only=True)
+        )
+        configured_total_channels = len(channel_manager.list_channels())
+        monitor = read_monitor_status(settings.log_file)
+        monitor.update(
+            {
+                "active_channels": monitor["active_channels"]
+                if monitor["active_channels"] is not None
+                else configured_active_channels,
+                "total_channels": monitor["total_channels"]
+                if monitor["total_channels"] is not None
+                else configured_total_channels,
+            }
+        )
         return {
             "boot_time": boot_time,
             "uptime_seconds": time.time() - boot_time,
@@ -56,13 +70,7 @@ def register_system_routes(
                 "used_bytes": disk_used,
                 "free_bytes": disk_free,
             },
-            "monitor": {
-                "is_running": monitor_state.is_running,
-                "active_channels": len(
-                    channel_manager.list_channels(enabled_only=True)
-                ),
-                "total_channels": len(channel_manager.list_channels()),
-            },
+            "monitor": monitor,
         }
 
     @app.post("/api/system/discord/test")

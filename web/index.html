@@ -236,10 +236,10 @@
         <header class="hero">
           <div>
             <div class="hero-eyebrow">/ 라이브 녹화</div>
-            <h1 class="hero-title">채널이 라이브 켜면 <em>자동 녹화</em></h1>
+            <h1 class="hero-title">yt-monitor <em>녹화 상태</em></h1>
             <p class="hero-sub">
-              등록한 유튜브 채널들을 1분마다 확인합니다. 라이브가 시작되면 자동으로 녹화하고
-              디스코드로 알림을 보냅니다.
+              자동 녹화는 별도 yt-monitor 컨테이너가 담당합니다. 이 화면에서는 데몬이 실제로
+              살아 있는지와 감시 대상 채널 수만 확인합니다.
             </p>
           </div>
         </header>
@@ -249,12 +249,11 @@
             <div class="monitor-pulse"></div>
             <div>
               <div class="monitor-state-text" id="tile-monitor-state">대기 중</div>
-              <div class="monitor-state-sub" id="tile-monitor-state-sub">시작 버튼을 눌러 자동 감시를 켜세요</div>
+              <div class="monitor-state-sub" id="tile-monitor-state-sub">yt-monitor 컨테이너 상태를 확인합니다</div>
             </div>
           </div>
           <div class="monitor-hero-right">
-            <button class="btn primary lg" id="btn-start" onclick="startMonitor()">▶ 자동 녹화 시작</button>
-            <button class="btn danger lg" id="btn-stop" onclick="stopMonitor()" disabled>■ 중지</button>
+            <button class="btn primary lg" onclick="systemRefresh()">↻ 상태 새로고침</button>
           </div>
         </section>
 

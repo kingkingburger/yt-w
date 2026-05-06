@@ -29,3 +29,9 @@ class MonitorStatus(BaseModel):
     is_running: bool
     active_channels: int
     total_channels: int
+    state: str = "missing"
+    source: str = "yt-monitor"
+    last_seen: Optional[float] = None
+    age_seconds: Optional[float] = None
+    stale: bool = True
+    message: str = ""

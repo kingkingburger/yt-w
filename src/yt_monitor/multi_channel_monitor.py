@@ -11,6 +11,7 @@ from .alert_cooldown import AlertCooldown
 from .channel_manager import ChannelManager, ChannelDTO, GlobalSettingsDTO
 from .discord_notifier import DiscordNotifier, get_notifier
 from .logger import Logger
+from .monitor_status import write_monitor_status
 from .youtube_client import YouTubeClient, YouTubeAuthError
 
 
@@ -199,6 +200,21 @@ class MultiChannelMonitor:
         self.is_running = False
         self._notifier: DiscordNotifier = notifier or get_notifier()
 
+    def _write_status(self, state: str, message: str = "") -> None:
+        """Publish daemon status for yt-web through the shared logs volume."""
+        try:
+            settings = self.channel_manager.get_global_settings()
+            total_channels = len(self.channel_manager.list_channels())
+            write_monitor_status(
+                settings.log_file,
+                state=state,
+                active_channels=len(self.monitor_threads),
+                total_channels=total_channels,
+                message=message,
+            )
+        except Exception as error:
+            self.logger.warning(f"Failed to write monitor status: {error}")
+
     def _build_channel_thread(
         self,
         channel: ChannelDTO,
@@ -220,6 +236,7 @@ class MultiChannelMonitor:
 
         if not channels:
             self.logger.warning("No enabled channels found to monitor")
+            self._write_status("stopped", "no enabled channels")
             return
 
         global_settings = self.channel_manager.get_global_settings()
@@ -236,6 +253,7 @@ class MultiChannelMonitor:
             self.monitor_threads[channel.id] = monitor_thread
 
         self.logger.info("All channel monitors started")
+        self._write_status("running", "monitor daemon running")
         self._notifier.notify_monitor_started(channel_count=len(channels))
 
         # SIGTERM은 메인 스레드에서만 등록 가능 — 웹 라우트가 백그라운드
@@ -250,6 +268,7 @@ class MultiChannelMonitor:
 
         try:
             while self.is_running:
+                self._write_status("running", "monitor daemon running")
                 time.sleep(1)
         except KeyboardInterrupt:
             self.logger.info("Received shutdown signal")
@@ -267,6 +286,7 @@ class MultiChannelMonitor:
 
         self.monitor_threads.clear()
         self.logger.info("Multi-channel monitor stopped")
+        self._write_status("stopped", "monitor daemon stopped")
 
     def add_channel_and_start_monitoring(self, channel: ChannelDTO) -> None:
         """

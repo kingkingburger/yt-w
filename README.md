@@ -6,7 +6,7 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 
 ### 웹 인터페이스
 - 브라우저에서 모든 기능 사용 (채널 관리, 다운로드, 모니터링)
-- 실시간 모니터링 상태 확인
+- `yt-monitor` 컨테이너의 실제 모니터링 상태 확인
 - 반응형 디자인 (모바일/태블릿/PC)
 
 ### 멀티 채널 라이브 모니터링
@@ -80,7 +80,7 @@ python monitoring.py
 
 | 서비스 | 역할 | 포트 |
 |--------|------|------|
-| `yt-web` | 웹 API + UI | 8088 (외부) → 8011 (내부) |
+| `yt-web` | 웹 API + UI, `yt-monitor` 상태 표시 | 8088 (외부) → 8011 (내부) |
 | `yt-monitor` | 채널 모니터링 데몬 | - |
 | `pot-provider` | PO Token provider (YouTube 봇 감지 우회) | - |
 
@@ -94,6 +94,7 @@ docker compose up -d --build  # 재빌드 + 실행
 ### Healthcheck
 
 `yt-web`은 `/health` 엔드포인트, `yt-monitor`는 프로세스 생존 여부로 상태를 확인합니다.
+웹 UI의 모니터링 화면은 `yt-monitor`가 공유 `logs/monitor_status.json`에 쓰는 heartbeat를 읽어 실제 데몬 상태를 표시합니다. 웹에서 모니터를 직접 시작/중지하지 않습니다.
 
 ```bash
 # 헬스 상태 확인
@@ -196,7 +197,6 @@ yt-w/
 │   │   ├── routes/              # /api/* 라우트 모듈
 │   │   ├── schemas.py           # Pydantic 요청/응답 스키마
 │   │   ├── dto_converters.py    # ChannelDTO → API dict 변환
-│   │   ├── state.py             # MonitorState 공유 컨테이너
 │   │   └── cleanup_scheduler.py # 백그라운드 자동 정리 스케줄러
 │   ├── multi_channel_monitor.py # 멀티 채널 모니터링
 │   ├── channel_manager.py       # 채널 설정 관리
@@ -208,6 +208,7 @@ yt-w/
 │   ├── alert_cooldown.py        # 알림 쿨다운 (봇 감지 폭주 방지)
 │   ├── cookie_options.py        # yt-dlp 쿠키/인증 옵션 빌더 (Firefox profile 직접 읽기)
 │   ├── cookie_validator.py      # 쿠키 유효성 검증 + 캐시
+│   ├── monitor_status.py        # yt-monitor heartbeat 상태 파일
 │   ├── video_merger.py          # ffmpeg 기반 영상 병합 잡 매니저
 │   ├── logger.py                # 로깅 (일별 로테이션)
 │   └── util/

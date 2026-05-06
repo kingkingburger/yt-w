@@ -637,9 +637,9 @@ class TestChannelMonitorThreadNotifications:
 class TestMultiChannelMonitorBackgroundThread:
     """백그라운드 스레드에서 start() 호출 시 SIGTERM 등록을 건너뛰는지 검증.
 
-    웹 라우트의 /api/monitor/start는 데몬 스레드 위에서 monitor.start()를
-    호출한다. signal.signal()은 메인 스레드에서만 호출 가능하므로,
-    백그라운드 스레드 진입 시 등록을 건너뛰어야 한다.
+    현재 Compose 운영에서는 yt-monitor가 메인 스레드에서 실행되지만,
+    라이브러리 사용자가 별도 스레드에서 monitor.start()를 호출해도
+    signal.signal() 때문에 죽지 않아야 한다.
     """
 
     def test_start_in_background_thread_skips_signal_registration(

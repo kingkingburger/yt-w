@@ -8,13 +8,11 @@ from ...channel_manager import ChannelManager
 from ...util.sanitize_url import sanitize_youtube_url
 from ..dto_converters import channel_to_dict
 from ..schemas import ChannelCreateRequest, ChannelUpdateRequest
-from ..state import MonitorState
 
 
 def register_channel_routes(
     app: FastAPI,
     channel_manager: ChannelManager,
-    monitor_state: MonitorState,
 ) -> None:
     @app.get("/api/channels", response_model=List[Dict[str, Any]])
     async def list_channels(enabled_only: bool = False):
@@ -31,9 +29,6 @@ def register_channel_routes(
                 enabled=channel.enabled,
                 download_format=channel.download_format,
             )
-
-            if monitor_state.is_running and new_channel.enabled:
-                monitor_state.monitor.add_channel_and_start_monitoring(new_channel)
 
             return channel_to_dict(new_channel)
 
@@ -55,19 +50,10 @@ def register_channel_routes(
         if not updated_channel:
             raise HTTPException(status_code=404, detail="Channel not found")
 
-        if monitor_state.is_running and channel.enabled is not None:
-            if channel.enabled:
-                monitor_state.monitor.add_channel_and_start_monitoring(updated_channel)
-            else:
-                monitor_state.monitor.remove_channel_and_stop_monitoring(channel_id)
-
         return channel_to_dict(updated_channel)
 
     @app.delete("/api/channels/{channel_id}")
     async def delete_channel(channel_id: str):
-        if monitor_state.is_running:
-            monitor_state.monitor.remove_channel_and_stop_monitoring(channel_id)
-
         success = channel_manager.remove_channel(channel_id)
 
         if not success:

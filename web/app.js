@@ -85,10 +85,17 @@ async function systemRefresh() {
     $('boot-files').textContent = s.downloads.file_count.toLocaleString();
 
     const isRunning = s.monitor.is_running;
-    setDot('sys-monitor-dot', isRunning ? 'ok' : 'warn');
-    $('stat-monitor-val').textContent = isRunning
+    const monitorState = s.monitor.state || 'missing';
+    const monitorAge = s.monitor.age_seconds;
+    const monitorLabel = isRunning
       ? `녹화 감시 중 · ${s.monitor.active_channels}/${s.monitor.total_channels}`
-      : `대기 중`;
+      : monitorState === 'missing'
+        ? 'yt-monitor 신호 없음'
+        : monitorState === 'stopped'
+          ? 'yt-monitor 중지됨'
+          : 'yt-monitor 확인 필요';
+    setDot('sys-monitor-dot', isRunning ? 'ok' : (monitorState === 'missing' ? 'err' : 'warn'));
+    $('stat-monitor-val').textContent = monitorLabel;
 
     setDot('sys-discord-dot', s.discord_enabled ? 'ok' : 'warn');
     $('stat-discord-val').textContent = s.discord_enabled ? '연결됨' : '미설정';
@@ -108,16 +115,15 @@ async function systemRefresh() {
 
     const heroEl = $('monitor-hero');
     if (heroEl) heroEl.classList.toggle('running', isRunning);
-    $('tile-monitor-state').innerHTML = isRunning ? '<em>녹화 감시 중</em>' : '대기 중';
+    $('tile-monitor-state').innerHTML = isRunning ? '<em>녹화 감시 중</em>' : '데몬 상태 확인';
     $('tile-monitor-state-sub').textContent = isRunning
-      ? `${s.monitor.active_channels}개 채널을 1분마다 확인하고 있어요`
-      : '시작 버튼을 눌러 자동 감시를 켜세요';
+      ? `${s.monitor.active_channels}개 채널을 yt-monitor 컨테이너에서 확인하고 있어요`
+      : monitorState === 'missing'
+        ? 'yt-monitor 컨테이너 heartbeat가 아직 없습니다'
+        : `마지막 신호 ${fmtDuration(monitorAge || 0)} 전 · ${s.monitor.message || monitorState}`;
     $('tile-active').textContent = s.monitor.active_channels;
     $('tile-total').textContent = s.monitor.total_channels;
     $('tile-uptime').textContent = fmtDuration(s.uptime_seconds);
-
-    $('btn-start').disabled = isRunning;
-    $('btn-stop').disabled = !isRunning;
   } catch (e) { /* silent */ }
 }
 
@@ -133,23 +139,6 @@ async function checkCookie() {
 }
 
 /* ── monitor / channels ────────────────────────────────────────────── */
-async function startMonitor() {
-  try {
-    const r = await fetch(`${API}/api/monitor/start`, { method: 'POST' });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-    notify('완료', '자동 녹화 감시를 시작했습니다', 'ok');
-    systemRefresh();
-  } catch (e) { notify('오류', e.message || '시작 실패', 'err'); }
-}
-async function stopMonitor() {
-  try {
-    const r = await fetch(`${API}/api/monitor/stop`, { method: 'POST' });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
-    notify('완료', '자동 녹화 감시를 중지했습니다', 'ok');
-    systemRefresh();
-  } catch (e) { notify('오류', e.message || '중지 실패', 'err'); }
-}
-
 async function loadChannels() {
   try {
     const r = await fetch(`${API}/api/channels`);

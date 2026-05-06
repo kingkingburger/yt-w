@@ -5,7 +5,7 @@
 YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드 시스템. 두 개의 장기 실행 프로세스(yt-monitor, yt-web)와 한 개의 사이드카(pot-provider)가 Docker Compose로 함께 동작한다.
 
 - **yt-monitor**: `monitoring.py` 진입점. 채널마다 스레드를 띄워 라이브를 감지하고 ffmpeg로 녹화한다.
-- **yt-web**: `main.py` 진입점. FastAPI로 채널 관리 / 모니터 제어 / 일반 동영상 다운로드 / 쿠키 검증 API를 제공하고 정적 웹 UI를 호스팅한다.
+- **yt-web**: `main.py` 진입점. FastAPI로 채널 관리 / 모니터 상태 확인 / 일반 동영상 다운로드 / 병합 / 쿠키 검증 API를 제공하고 정적 웹 UI를 호스팅한다.
 - **pot-provider**: bgutil PO Token 사이드카. yt-dlp가 YouTube 봇 감지를 우회할 PO Token을 받아 온다.
 
 ## 컨테이너 구성 (`docker-compose.yml`)
@@ -36,11 +36,11 @@ yt-w/
 │   ├── alert_cooldown.py                # 쿨다운 값 객체 (알림 폭주 방지)
 │   ├── cookie_options.py                # yt-dlp cookie/PO-Token 옵션 빌더 (Firefox profile 직접 읽기)
 │   ├── cookie_validator.py              # 쿠키 유효성 검증 + 캐시
+│   ├── monitor_status.py                # yt-monitor heartbeat 파일 read/write
 │   ├── video_merger.py                  # ffmpeg 기반 영상 병합 (concat / re-encode 잡 매니저)
 │   ├── logger.py                        # TimedRotatingFileHandler 로거
 │   ├── web_api/                         # FastAPI 웹 서버
 │   │   ├── api.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
-│   │   ├── state.py                     # 실행 중 모니터 상태 컨테이너
 │   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
 │   │   ├── dto_converters.py            # ChannelDTO → API dict 변환
 │   │   ├── cleanup_scheduler.py         # 백그라운드 자동 정리 스케줄러
@@ -86,12 +86,15 @@ monitoring.py
 
 ```
 main.py → uvicorn → web_api.api.create_app()
-  ├─ MonitorState 생성 (라우트 간 공유)
-  ├─ register_*_routes (channels / monitor / video / cookies / cleanup / meta)
+  ├─ register_*_routes (channels / monitor / video / cookies / merge / system / meta)
   └─ CleanupScheduler.start_in_background()
 ```
 
-`/api/monitor/start`는 `MultiChannelMonitor.start()`를 데몬 스레드에서 호출한다. 이 경우 `MultiChannelMonitor`는 `signal.signal()` 등록을 건너뛴다(메인 스레드가 아니므로 `ValueError` 회피). 컨테이너의 SIGTERM 처리는 호스트 프로세스(uvicorn)가 담당한다.
+`yt-web`은 모니터를 직접 시작하거나 중지하지 않는다. 실제 자동 녹화는 `yt-monitor` 컨테이너의 `monitoring.py`가 담당한다.
+
+`yt-monitor`는 공유 `logs/monitor_status.json`에 heartbeat를 기록한다. `/api/monitor/status`와 `/api/system/status`는 이 파일을 읽어 `yt-monitor` 데몬이 실제로 살아 있는지 표시한다. heartbeat가 없거나 오래되면 `is_running=false`로 본다. Docker socket을 `yt-web`에 마운트하지 않기 위한 의도적인 구조다.
+
+`/api/monitor/start`와 `/api/monitor/stop`은 405를 반환한다. 운영자가 모니터 데몬을 제어해야 할 때는 Docker Compose에서 `yt-monitor` 컨테이너를 시작/중지한다.
 
 `meta` 라우트는 `/`에서 `web/index.html`을 반환하고, `/static`으로 `web/` 디렉터리의 CSS/JS 정적 자산을 서빙한다.
 
@@ -132,7 +135,7 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다.
 | `DiscordNotifier` rate-limit | `Lock` |
 | `ChannelMonitorThread.is_downloading` | `bool` (단일 라이터 가정) |
 
-`ChannelManager`의 file lock은 단일 프로세스 내 한정. yt-monitor 컨테이너는 `channels.json`을 read-only로만 쓰므로 yt-web의 RLock으로 충분하다.
+`ChannelManager`의 file lock은 단일 프로세스 내 한정. `yt-web`은 `channels.json`을 수정하고, `yt-monitor`는 시작 시 설정을 읽어 실제 감시 스레드를 만든다. 실행 중인 데몬이 이미 띄운 스레드 수는 `monitor_status.json`의 `active_channels`가 기준이다.
 
 ## 테스트 전략
 

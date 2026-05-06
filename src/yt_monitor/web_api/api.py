@@ -19,7 +19,6 @@ from .routes import (
     register_system_routes,
     register_video_routes,
 )
-from .state import MonitorState
 
 
 class WebAPI:
@@ -40,7 +39,6 @@ class WebAPI:
         )
 
         self.channel_manager = ChannelManager(channels_file=channels_file)
-        self.monitor_state = MonitorState()
         self.boot_time = time.time()
 
         global_settings = self.channel_manager.get_global_settings()
@@ -58,8 +56,8 @@ class WebAPI:
 
     def _register_routes(self) -> None:
         register_meta_routes(self.app)
-        register_channel_routes(self.app, self.channel_manager, self.monitor_state)
-        register_monitor_routes(self.app, self.channel_manager, self.monitor_state)
+        register_channel_routes(self.app, self.channel_manager)
+        register_monitor_routes(self.app, self.channel_manager)
         register_video_routes(self.app, self.channel_manager)
         register_cookie_routes(self.app)
         register_merge_routes(
@@ -68,7 +66,6 @@ class WebAPI:
         register_system_routes(
             self.app,
             self.channel_manager,
-            self.monitor_state,
             boot_time=self.boot_time,
         )
 

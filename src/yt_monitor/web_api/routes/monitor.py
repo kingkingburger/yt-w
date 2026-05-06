@@ -1,68 +1,54 @@
-"""/api/monitor/* 엔드포인트."""
+"""/api/monitor/* endpoints.
 
-import threading
+yt-web is a status surface only. The actual recorder daemon runs in the
+separate yt-monitor container and publishes a heartbeat into the shared logs
+volume.
+"""
 
 from fastapi import FastAPI, HTTPException
 
 from ...channel_manager import ChannelManager
-from ...logger import Logger
-from ...multi_channel_monitor import MultiChannelMonitor
+from ...monitor_status import read_monitor_status
 from ..schemas import MonitorStatus
-from ..state import MonitorState
 
 
 def register_monitor_routes(
     app: FastAPI,
     channel_manager: ChannelManager,
-    monitor_state: MonitorState,
 ) -> None:
-    logger = Logger.get()
-
     @app.get("/api/monitor/status", response_model=MonitorStatus)
     async def get_monitor_status():
         total_channels = len(channel_manager.list_channels())
         active_channels = len(channel_manager.list_channels(enabled_only=True))
+        settings = channel_manager.get_global_settings()
+        daemon_status = read_monitor_status(settings.log_file)
 
         return MonitorStatus(
-            is_running=monitor_state.is_running,
-            active_channels=active_channels,
-            total_channels=total_channels,
+            is_running=daemon_status["is_running"],
+            active_channels=daemon_status["active_channels"]
+            if daemon_status["active_channels"] is not None
+            else active_channels,
+            total_channels=daemon_status["total_channels"]
+            if daemon_status["total_channels"] is not None
+            else total_channels,
+            state=daemon_status["state"],
+            source=daemon_status["source"],
+            last_seen=daemon_status["last_seen"],
+            age_seconds=daemon_status["age_seconds"],
+            stale=daemon_status["stale"],
+            message=daemon_status["message"],
         )
 
     @app.post("/api/monitor/start")
     async def start_monitor():
-        if monitor_state.is_running:
-            raise HTTPException(status_code=400, detail="Monitor is already running")
-
-        channels = channel_manager.list_channels(enabled_only=True)
-        if not channels:
-            raise HTTPException(
-                status_code=400, detail="No enabled channels to monitor"
-            )
-
-        monitor_state.monitor = MultiChannelMonitor(channel_manager=channel_manager)
-
-        def run_monitor():
-            try:
-                monitor_state.monitor.start()
-            except Exception as error:
-                logger.error(f"Monitor error: {error}")
-
-        monitor_state.monitor_thread = threading.Thread(
-            target=run_monitor, daemon=True
+        raise HTTPException(
+            status_code=405,
+            detail="Monitor is managed by the yt-monitor container",
         )
-        monitor_state.monitor_thread.start()
-
-        return {"message": "Monitor started successfully"}
 
     @app.post("/api/monitor/stop")
     async def stop_monitor():
-        if not monitor_state.is_running:
-            raise HTTPException(status_code=400, detail="Monitor is not running")
-
-        monitor_state.monitor.stop()
-
-        if monitor_state.monitor_thread is not None:
-            monitor_state.monitor_thread.join(timeout=5.0)
-
-        return {"message": "Monitor stopped successfully"}
+        raise HTTPException(
+            status_code=405,
+            detail="Monitor is managed by the yt-monitor container",
+        )
