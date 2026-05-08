@@ -225,6 +225,35 @@ class TestChannelMonitorThread:
 
         assert monitor_thread.is_downloading is False
 
+    def test_handle_live_stream_resets_flag_when_notifier_raises(
+        self,
+        sample_channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+        initialized_logger,
+    ):
+        """notify_live_detected가 예외를 던져도 is_downloading은 False로 복구되어야 한다.
+
+        과거에는 is_downloading=True 세팅이 try 블록 밖에 있어, 알림 호출 단계에서
+        예외가 발생하면 flag가 영원히 True로 남아 채널 모니터링이 정지하는 버그가 있었다.
+        """
+        notifier = MagicMock()
+        notifier.notify_live_detected.side_effect = RuntimeError("webhook 5xx")
+
+        thread = ChannelMonitorThread(
+            channel=sample_channel,
+            global_settings=global_settings,
+            youtube_client=MagicMock(),
+            notifier=notifier,
+        )
+
+        with pytest.raises(RuntimeError):
+            thread._handle_live_stream(
+                "https://www.youtube.com/watch?v=test",
+                "Test Stream",
+            )
+
+        assert thread.is_downloading is False
+
 
 class TestMultiChannelMonitor:
     """Test cases for MultiChannelMonitor class."""
@@ -416,6 +445,46 @@ class TestMultiChannelMonitor:
         multi_monitor.remove_channel_and_stop_monitoring("unknown-channel")
 
         assert len(multi_monitor.monitor_threads) == 0
+
+    def test_concurrent_add_and_remove_serialized_by_lock(
+        self,
+        multi_monitor: MultiChannelMonitor,
+    ):
+        """add/remove를 백그라운드 스레드에서 동시 호출해도 dict 손상이 없어야 한다.
+
+        FastAPI 라우트 핸들러가 별도 스레드에서 add/remove를 호출하므로,
+        monitor_threads dict 접근이 락으로 직렬화되어야 한다.
+        """
+        import threading as real_threading
+
+        multi_monitor.is_running = True
+        existing_threads = {
+            f"channel-{i}": MagicMock() for i in range(20)
+        }
+        with multi_monitor._monitor_threads_lock:
+            multi_monitor.monitor_threads.update(existing_threads)
+
+        errors: list = []
+
+        def remover(channel_id: str) -> None:
+            try:
+                multi_monitor.remove_channel_and_stop_monitoring(channel_id)
+            except Exception as error:
+                errors.append(error)
+
+        workers = [
+            real_threading.Thread(target=remover, args=(f"channel-{i}",))
+            for i in range(20)
+        ]
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(timeout=5.0)
+
+        assert errors == []
+        assert len(multi_monitor.monitor_threads) == 0
+        for thread in existing_threads.values():
+            thread.stop.assert_called_once()
 
 
 class TestChannelMonitorThreadNotifications:

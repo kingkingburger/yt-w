@@ -142,17 +142,23 @@ class ChannelMonitorThread:
         """감지된 라이브 스트림을 다운로드하고 결과를 알린다."""
         self.logger.info(f"[{self.channel.name}] Live stream detected: {stream_url}")
         self.is_downloading = True
-
-        self._notifier.notify_live_detected(
-            channel_name=self.channel.name,
-            stream_url=stream_url,
-            title=title,
-        )
-
         try:
-            success = self.downloader.download(
-                stream_url=stream_url, filename_prefix=f"{self.channel.name}_라이브"
+            self._notifier.notify_live_detected(
+                channel_name=self.channel.name,
+                stream_url=stream_url,
+                title=title,
             )
+
+            try:
+                success = self.downloader.download(
+                    stream_url=stream_url, filename_prefix=f"{self.channel.name}_라이브"
+                )
+            except Exception as e:
+                self._notifier.notify_download_failed(
+                    channel_name=self.channel.name,
+                    error_message=str(e),
+                )
+                raise
 
             if success:
                 self.logger.info(f"[{self.channel.name}] Download finished")
@@ -166,14 +172,6 @@ class ChannelMonitorThread:
                     channel_name=self.channel.name,
                     error_message="다운로드가 실패했습니다 (success=False)",
                 )
-
-        except Exception as e:
-            self._notifier.notify_download_failed(
-                channel_name=self.channel.name,
-                error_message=str(e),
-            )
-            raise
-
         finally:
             self.is_downloading = False
 
@@ -197,6 +195,7 @@ class MultiChannelMonitor:
         self.youtube_client = youtube_client or YouTubeClient()
         self.logger = Logger.get()
         self.monitor_threads: Dict[str, ChannelMonitorThread] = {}
+        self._monitor_threads_lock: threading.Lock = threading.Lock()
         self.is_running = False
         self._notifier: DiscordNotifier = notifier or get_notifier()
 
@@ -205,10 +204,12 @@ class MultiChannelMonitor:
         try:
             settings = self.channel_manager.get_global_settings()
             total_channels = len(self.channel_manager.list_channels())
+            with self._monitor_threads_lock:
+                active_channels = len(self.monitor_threads)
             write_monitor_status(
                 settings.log_file,
                 state=state,
-                active_channels=len(self.monitor_threads),
+                active_channels=active_channels,
                 total_channels=total_channels,
                 message=message,
             )
@@ -250,7 +251,8 @@ class MultiChannelMonitor:
         for channel in channels:
             monitor_thread = self._build_channel_thread(channel, global_settings)
             monitor_thread.start()
-            self.monitor_threads[channel.id] = monitor_thread
+            with self._monitor_threads_lock:
+                self.monitor_threads[channel.id] = monitor_thread
 
         self.logger.info("All channel monitors started")
         self._write_status("running", "monitor daemon running")
@@ -281,10 +283,13 @@ class MultiChannelMonitor:
 
         self.is_running = False
 
-        for monitor_thread in self.monitor_threads.values():
+        with self._monitor_threads_lock:
+            threads_to_stop = list(self.monitor_threads.values())
+            self.monitor_threads.clear()
+
+        for monitor_thread in threads_to_stop:
             monitor_thread.stop()
 
-        self.monitor_threads.clear()
         self.logger.info("Multi-channel monitor stopped")
         self._write_status("stopped", "monitor daemon stopped")
 
@@ -298,15 +303,16 @@ class MultiChannelMonitor:
         if not self.is_running:
             return
 
-        if channel.id in self.monitor_threads:
-            self.logger.warning(f"Channel {channel.name} is already being monitored")
-            return
-
         global_settings = self.channel_manager.get_global_settings()
-
         monitor_thread = self._build_channel_thread(channel, global_settings)
+
+        with self._monitor_threads_lock:
+            if channel.id in self.monitor_threads:
+                self.logger.warning(f"Channel {channel.name} is already being monitored")
+                return
+            self.monitor_threads[channel.id] = monitor_thread
+
         monitor_thread.start()
-        self.monitor_threads[channel.id] = monitor_thread
 
     def remove_channel_and_stop_monitoring(self, channel_id: str) -> None:
         """
@@ -315,6 +321,8 @@ class MultiChannelMonitor:
         Args:
             channel_id: ID of channel to remove
         """
-        if channel_id in self.monitor_threads:
-            self.monitor_threads[channel_id].stop()
-            del self.monitor_threads[channel_id]
+        with self._monitor_threads_lock:
+            monitor_thread = self.monitor_threads.pop(channel_id, None)
+
+        if monitor_thread is not None:
+            monitor_thread.stop()
