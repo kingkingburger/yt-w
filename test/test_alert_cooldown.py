@@ -60,3 +60,16 @@ class TestAlertCooldown:
         """음수 쿨다운은 허용되지 않는다."""
         with pytest.raises(ValueError):
             AlertCooldown(cooldown_seconds=-1.0)
+
+    def test_clock_returning_zero_does_not_short_circuit(self):
+        """clock이 0.0을 반환해도 sentinel과 구분되어 쿨다운이 정상 적용된다.
+
+        과거 _last_at=0.0 sentinel은 falsy 단락으로 cooldown 분기를 건너뛰어,
+        clock이 0.0을 돌려주면 두 번째 호출도 통과로 잘못 처리될 위험이 있었다.
+        """
+        clock = iter([0.0, 1.0])
+        cooldown = AlertCooldown(cooldown_seconds=60.0, clock=lambda: next(clock))
+
+        assert cooldown.try_acquire() is True
+        # 1초만 경과 — 쿨다운 60초 안이므로 False여야 한다
+        assert cooldown.try_acquire() is False

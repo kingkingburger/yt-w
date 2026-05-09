@@ -34,6 +34,7 @@ def register_merge_routes(
         "expires_at": 0.0,
         "files": [],
     }
+    file_cache_lock = asyncio.Lock()
 
     def _root() -> Path:
         return Path(channel_manager.get_global_settings().download_directory)
@@ -41,19 +42,22 @@ def register_merge_routes(
     @app.get("/api/files")
     async def list_files():
         root = _root()
-        now = time.time()
         root_key = str(root.resolve())
-        if file_cache["root"] == root_key and float(file_cache["expires_at"]) > now:
-            files = file_cache["files"]
-        else:
-            files = await asyncio.to_thread(list_video_files, root)
-            file_cache.update(
-                {
-                    "root": root_key,
-                    "expires_at": now + FILE_LIST_CACHE_TTL_SECONDS,
-                    "files": files,
-                }
-            )
+
+        # cache stampede 방지: lock으로 동시 cache miss 시 스캔이 1회만 실행되게.
+        async with file_cache_lock:
+            now = time.time()
+            if file_cache["root"] == root_key and float(file_cache["expires_at"]) > now:
+                files = file_cache["files"]
+            else:
+                files = await asyncio.to_thread(list_video_files, root)
+                file_cache.update(
+                    {
+                        "root": root_key,
+                        "expires_at": now + FILE_LIST_CACHE_TTL_SECONDS,
+                        "files": files,
+                    }
+                )
         return [asdict(f) for f in files]
 
     @app.post("/api/merge")

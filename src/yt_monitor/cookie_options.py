@@ -102,7 +102,12 @@ def get_cookie_options() -> Dict[str, Any]:
         return base_options
 
     if os.path.exists(_COOKIE_SOURCE_PATH):
-        return {**base_options, "cookiefile": _COOKIE_SOURCE_PATH}
+        # 로컬에서도 yt-dlp가 cookiefile을 덮어쓸 수 있어 원본 보호용 임시본을
+        # 사용한다. 임시본을 만들지 못하면 옵션 자체를 비워 원본 오염을 회피.
+        writable_path = _get_writable_cookie_path()
+        if writable_path:
+            return {**base_options, "cookiefile": writable_path}
+        return base_options
 
     browser = os.environ.get("YT_COOKIE_BROWSER", "firefox")
     return {**base_options, "cookiesfrombrowser": (browser,)}

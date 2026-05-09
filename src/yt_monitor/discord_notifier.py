@@ -60,9 +60,11 @@ class DiscordNotifier:
             return False
 
         with self._lock:
-            now = time.time()
-            if now < self._rate_limit_until:
-                time.sleep(self._rate_limit_until - now)
+            wait_seconds = max(0.0, self._rate_limit_until - time.time())
+        if wait_seconds > 0:
+            # sleep을 lock 밖에서 수행 — 한 스레드의 레이트리밋 대기가 다른 스레드의
+            # rate_limit_until 갱신(95-103줄)을 차단하지 않도록 한다.
+            time.sleep(wait_seconds)
 
         embed: dict = {
             "title": title,
