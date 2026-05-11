@@ -229,6 +229,69 @@ class MultiChannelMonitor:
             notifier=self._notifier,
         )
 
+    def _thread_needs_restart(
+        self,
+        monitor_thread: ChannelMonitorThread,
+        channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+    ) -> bool:
+        """Return whether a running thread no longer matches channel config."""
+        return (
+            monitor_thread.channel.name != channel.name
+            or monitor_thread.channel.url != channel.url
+            or monitor_thread.channel.download_format != channel.download_format
+            or monitor_thread.global_settings != global_settings
+        )
+
+    def _start_channel_monitoring(
+        self,
+        channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+    ) -> None:
+        monitor_thread = self._build_channel_thread(channel, global_settings)
+
+        with self._monitor_threads_lock:
+            if channel.id in self.monitor_threads:
+                self.logger.warning(f"Channel {channel.name} is already being monitored")
+                return
+            self.monitor_threads[channel.id] = monitor_thread
+
+        monitor_thread.start()
+
+    def _sync_channel_monitors(self) -> None:
+        """Reconcile running monitor threads with the shared channels file."""
+        if not self.is_running:
+            return
+
+        channels = self.channel_manager.list_channels(enabled_only=True)
+        channels_by_id = {channel.id: channel for channel in channels}
+        global_settings = self.channel_manager.get_global_settings()
+
+        with self._monitor_threads_lock:
+            running_threads = list(self.monitor_threads.items())
+
+        for channel_id, monitor_thread in running_threads:
+            channel = channels_by_id.get(channel_id)
+            if channel is None:
+                self.logger.info(
+                    f"Stopping monitor for disabled or removed channel: {channel_id}"
+                )
+                self.remove_channel_and_stop_monitoring(channel_id)
+                continue
+
+            if self._thread_needs_restart(monitor_thread, channel, global_settings):
+                self.logger.info(f"Restarting monitor for updated channel: {channel.name}")
+                self.remove_channel_and_stop_monitoring(channel_id)
+                self._start_channel_monitoring(channel, global_settings)
+
+        with self._monitor_threads_lock:
+            running_channel_ids = set(self.monitor_threads)
+
+        for channel in channels:
+            if channel.id not in running_channel_ids:
+                self.logger.info(f"Starting monitor for newly enabled channel: {channel.name}")
+                self._start_channel_monitoring(channel, global_settings)
+
     def start(self) -> None:
         """Start monitoring all enabled channels."""
         self.logger.info("Starting multi-channel monitor...")
@@ -249,10 +312,7 @@ class MultiChannelMonitor:
         self.is_running = True
 
         for channel in channels:
-            monitor_thread = self._build_channel_thread(channel, global_settings)
-            monitor_thread.start()
-            with self._monitor_threads_lock:
-                self.monitor_threads[channel.id] = monitor_thread
+            self._start_channel_monitoring(channel, global_settings)
 
         self.logger.info("All channel monitors started")
         self._write_status("running", "monitor daemon running")
@@ -270,6 +330,7 @@ class MultiChannelMonitor:
 
         try:
             while self.is_running:
+                self._sync_channel_monitors()
                 self._write_status("running", "monitor daemon running")
                 time.sleep(1)
         except KeyboardInterrupt:
@@ -304,15 +365,7 @@ class MultiChannelMonitor:
             return
 
         global_settings = self.channel_manager.get_global_settings()
-        monitor_thread = self._build_channel_thread(channel, global_settings)
-
-        with self._monitor_threads_lock:
-            if channel.id in self.monitor_threads:
-                self.logger.warning(f"Channel {channel.name} is already being monitored")
-                return
-            self.monitor_threads[channel.id] = monitor_thread
-
-        monitor_thread.start()
+        self._start_channel_monitoring(channel, global_settings)
 
     def remove_channel_and_stop_monitoring(self, channel_id: str) -> None:
         """

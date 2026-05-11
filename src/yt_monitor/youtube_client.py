@@ -1,13 +1,12 @@
 """YouTube 라이브 감지 클라이언트.
 
-2개 탐지 방식(/streams 탭, 채널 페이지)이 공통 로직을 공유한다.
+3개 탐지 방식(/streams 탭, 채널 페이지, /live 엔드포인트)이 공통 로직을 공유한다.
 URL/옵션/파싱 방식만 다르므로 DetectionStrategy로 캡슐화한다.
 
-이전에 있던 /live 엔드포인트 탐지(_check_live_endpoint)는 제거했다 —
-`extract_flat=False`로 전체 메타데이터를 추출하는 호출이었고, 이게 매 분
-폴링 시 YouTube 봇 감지 패턴과 정확히 일치해서 "Sign in to confirm"
-에러를 유발했다. /streams와 채널 페이지는 `extract_flat=in_playlist`로
-가벼운 playlist 스캔만 수행하므로 봇 감지 트리거 없이 동작한다.
+/streams와 채널 페이지는 `extract_flat=in_playlist`로 가벼운 playlist
+스캔만 수행한다. 다만 YouTube가 라이브 중인 최신 항목에도 live_status를
+비워 내려주는 경우가 있어, 마지막 fallback으로 /live 루트 메타데이터를
+확인한다.
 """
 
 from dataclasses import dataclass
@@ -75,6 +74,12 @@ _CHANNEL_PAGE_STRATEGY = DetectionStrategy(
     extra_opts={"extract_flat": "in_playlist", "ignoreerrors": True},
 )
 
+_LIVE_ENDPOINT_STRATEGY = DetectionStrategy(
+    name="live_endpoint",
+    url_suffix="/live",
+    extra_opts={"extract_flat": "in_playlist", "ignoreerrors": True},
+)
+
 
 class YouTubeClient:
     """Client for interacting with YouTube to detect live streams."""
@@ -86,6 +91,7 @@ class YouTubeClient:
         detection_methods = [
             self._check_streams_tab,
             self._check_channel_page,
+            self._check_live_endpoint,
         ]
 
         auth_errors: List[str] = []
@@ -121,6 +127,9 @@ class YouTubeClient:
     def _check_channel_page(self, channel_url: str) -> Optional[LiveStreamInfo]:
         return self._detect_with(channel_url, _CHANNEL_PAGE_STRATEGY)
 
+    def _check_live_endpoint(self, channel_url: str) -> Optional[LiveStreamInfo]:
+        return self._detect_with(channel_url, _LIVE_ENDPOINT_STRATEGY)
+
     def _detect_with(
         self,
         channel_url: str,
@@ -138,14 +147,27 @@ class YouTubeClient:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(target_url, download=False)
 
-        return self._parse_entries(info, strategy.name)
+        return self._parse_info(info, strategy.name)
 
-    def _parse_entries(
+    def _parse_info(
         self,
         info: Optional[Dict[str, Any]],
         source_name: str,
     ) -> Optional[LiveStreamInfo]:
-        if not info or "entries" not in info:
+        if not info:
+            return None
+
+        if info.get("id") and self._is_entry_live(info):
+            video_id = info.get("id")
+            title = info.get("title")
+            self.logger.info(f"Live stream found in {source_name}: {video_id}")
+            return LiveStreamInfo(
+                video_id=video_id,
+                url=f"https://www.youtube.com/watch?v={video_id}",
+                title=title,
+            )
+
+        if "entries" not in info:
             return None
 
         for entry in info["entries"]:

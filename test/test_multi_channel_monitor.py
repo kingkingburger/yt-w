@@ -446,6 +446,99 @@ class TestMultiChannelMonitor:
 
         assert len(multi_monitor.monitor_threads) == 0
 
+    def test_sync_channel_monitors_starts_new_enabled_channel(
+        self,
+        multi_monitor: MultiChannelMonitor,
+        mock_channel_manager: MagicMock,
+        global_settings: GlobalSettingsDTO,
+    ):
+        """웹에서 추가된 enabled 채널이 실행 중인 monitor thread로 반영된다."""
+        channel = ChannelDTO(
+            id="new-channel",
+            name="New Channel",
+            url="https://www.youtube.com/@NewChannel",
+        )
+        mock_channel_manager.list_channels.return_value = [channel]
+        mock_channel_manager.get_global_settings.return_value = global_settings
+        new_thread = MagicMock()
+        new_thread.channel = channel
+        new_thread.global_settings = global_settings
+        multi_monitor.is_running = True
+
+        with patch.object(
+            multi_monitor,
+            "_build_channel_thread",
+            return_value=new_thread,
+        ):
+            multi_monitor._sync_channel_monitors()
+
+        assert multi_monitor.monitor_threads["new-channel"] is new_thread
+        new_thread.start.assert_called_once()
+
+    def test_sync_channel_monitors_stops_disabled_or_removed_channel(
+        self,
+        multi_monitor: MultiChannelMonitor,
+        mock_channel_manager: MagicMock,
+        global_settings: GlobalSettingsDTO,
+    ):
+        """channels.json에서 빠진 enabled 채널의 기존 thread를 중지한다."""
+        old_channel = ChannelDTO(
+            id="old-channel",
+            name="Old Channel",
+            url="https://www.youtube.com/@OldChannel",
+        )
+        old_thread = MagicMock()
+        old_thread.channel = old_channel
+        old_thread.global_settings = global_settings
+        multi_monitor.monitor_threads["old-channel"] = old_thread
+        multi_monitor.is_running = True
+        mock_channel_manager.list_channels.return_value = []
+        mock_channel_manager.get_global_settings.return_value = global_settings
+
+        multi_monitor._sync_channel_monitors()
+
+        assert "old-channel" not in multi_monitor.monitor_threads
+        old_thread.stop.assert_called_once()
+
+    def test_sync_channel_monitors_restarts_updated_channel(
+        self,
+        multi_monitor: MultiChannelMonitor,
+        mock_channel_manager: MagicMock,
+        global_settings: GlobalSettingsDTO,
+    ):
+        """URL/포맷 등 채널 설정 변경은 기존 thread 재시작으로 반영한다."""
+        old_channel = ChannelDTO(
+            id="channel",
+            name="Channel",
+            url="https://www.youtube.com/@OldChannel",
+        )
+        updated_channel = ChannelDTO(
+            id="channel",
+            name="Channel",
+            url="https://www.youtube.com/@NewChannel",
+        )
+        old_thread = MagicMock()
+        old_thread.channel = old_channel
+        old_thread.global_settings = global_settings
+        new_thread = MagicMock()
+        new_thread.channel = updated_channel
+        new_thread.global_settings = global_settings
+        multi_monitor.monitor_threads["channel"] = old_thread
+        multi_monitor.is_running = True
+        mock_channel_manager.list_channels.return_value = [updated_channel]
+        mock_channel_manager.get_global_settings.return_value = global_settings
+
+        with patch.object(
+            multi_monitor,
+            "_build_channel_thread",
+            return_value=new_thread,
+        ):
+            multi_monitor._sync_channel_monitors()
+
+        assert multi_monitor.monitor_threads["channel"] is new_thread
+        old_thread.stop.assert_called_once()
+        new_thread.start.assert_called_once()
+
     def test_concurrent_add_and_remove_serialized_by_lock(
         self,
         multi_monitor: MultiChannelMonitor,

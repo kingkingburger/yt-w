@@ -70,9 +70,12 @@ class TestYouTubeClient:
             with patch.object(
                 youtube_client, "_check_channel_page", return_value=None
             ):
-                result = youtube_client.check_if_live(
-                    "https://www.youtube.com/@TestChannel"
-                )
+                with patch.object(
+                    youtube_client, "_check_live_endpoint", return_value=None
+                ):
+                    result = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
                 assert isinstance(result, tuple)
                 assert len(result) == 2
@@ -83,9 +86,12 @@ class TestYouTubeClient:
             with patch.object(
                 youtube_client, "_check_channel_page", return_value=None
             ):
-                is_live, stream_info = youtube_client.check_if_live(
-                    "https://www.youtube.com/@TestChannel"
-                )
+                with patch.object(
+                    youtube_client, "_check_live_endpoint", return_value=None
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
                 assert is_live is False
                 assert stream_info is None
@@ -127,6 +133,28 @@ class TestYouTubeClient:
                 assert is_live is True
                 assert stream_info == mock_info
 
+    def test_check_if_live_found_via_live_endpoint(self, youtube_client: YouTubeClient):
+        """/streams와 채널 페이지가 놓친 라이브를 /live fallback에서 잡는다."""
+        mock_info = LiveStreamInfo(
+            video_id="live123",
+            url="https://www.youtube.com/watch?v=live123",
+            title="Live Stream",
+        )
+
+        with patch.object(youtube_client, "_check_streams_tab", return_value=None):
+            with patch.object(
+                youtube_client, "_check_channel_page", return_value=None
+            ):
+                with patch.object(
+                    youtube_client, "_check_live_endpoint", return_value=mock_info
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
+
+        assert is_live is True
+        assert stream_info == mock_info
+
     def test_check_if_live_handles_exception(self, youtube_client: YouTubeClient):
         """Test that check_if_live handles non-auth exceptions gracefully."""
         mock_method = MagicMock(side_effect=Exception("API Error"))
@@ -136,9 +164,12 @@ class TestYouTubeClient:
             with patch.object(
                 youtube_client, "_check_channel_page", return_value=None
             ):
-                is_live, stream_info = youtube_client.check_if_live(
-                    "https://www.youtube.com/@TestChannel"
-                )
+                with patch.object(
+                    youtube_client, "_check_live_endpoint", return_value=None
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
                 assert is_live is False
                 assert stream_info is None
@@ -227,6 +258,43 @@ class TestYouTubeClient:
                 "https://www.youtube.com/@TestChannel", download=False
             )
 
+    def test_check_live_endpoint_constructs_correct_url(
+        self, youtube_client: YouTubeClient
+    ):
+        """Test that _check_live_endpoint targets the /live URL."""
+        with patch("yt_dlp.YoutubeDL") as mock_ydl:
+            mock_instance = MagicMock()
+            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
+            mock_instance.__exit__ = MagicMock(return_value=False)
+            mock_instance.extract_info.return_value = {"entries": []}
+            mock_ydl.return_value = mock_instance
+
+            youtube_client._check_live_endpoint(
+                "https://www.youtube.com/@TestChannel/"
+            )
+
+            mock_instance.extract_info.assert_called_once_with(
+                "https://www.youtube.com/@TestChannel/live", download=False
+            )
+
+    def test_parse_info_detects_live_root_metadata(
+        self, youtube_client: YouTubeClient
+    ):
+        """/live가 반환하는 루트 is_live/live_status 메타데이터를 감지한다."""
+        result = youtube_client._parse_info(
+            {
+                "id": "live123",
+                "is_live": True,
+                "live_status": "is_live",
+                "title": "Live Now",
+            },
+            "live_endpoint",
+        )
+
+        assert result is not None
+        assert result.video_id == "live123"
+        assert result.title == "Live Now"
+
 
 class TestAuthErrorDetection:
     """_is_auth_error helper 및 YouTubeAuthError 승격 로직 검증."""
@@ -268,22 +336,25 @@ class TestCheckIfLiveAuthError:
     def test_raises_auth_error_when_all_methods_hit_bot_detection(
         self, youtube_client: YouTubeClient
     ):
-        """2개 탐지 방식 모두 봇 감지에 걸리면 YouTubeAuthError를 던진다."""
+        """모든 탐지 방식이 봇 감지에 걸리면 YouTubeAuthError를 던진다."""
         bot_error = Exception("Sign in to confirm you're not a bot")
 
         m1 = MagicMock(side_effect=bot_error)
         m1.__name__ = "_check_streams_tab"
         m2 = MagicMock(side_effect=bot_error)
         m2.__name__ = "_check_channel_page"
+        m3 = MagicMock(side_effect=bot_error)
+        m3.__name__ = "_check_live_endpoint"
 
         with patch.object(youtube_client, "_check_streams_tab", m1):
             with patch.object(youtube_client, "_check_channel_page", m2):
-                with pytest.raises(YouTubeAuthError) as exc_info:
-                    youtube_client.check_if_live(
-                        "https://www.youtube.com/@TestChannel"
-                    )
+                with patch.object(youtube_client, "_check_live_endpoint", m3):
+                    with pytest.raises(YouTubeAuthError) as exc_info:
+                        youtube_client.check_if_live(
+                            "https://www.youtube.com/@TestChannel"
+                        )
 
-        assert "2/2" in str(exc_info.value)
+        assert "3/3" in str(exc_info.value)
         assert "Sign in to confirm" in str(exc_info.value)
 
     def test_raises_auth_error_on_partial_bot_detection(
@@ -299,12 +370,15 @@ class TestCheckIfLiveAuthError:
             with patch.object(
                 youtube_client, "_check_channel_page", return_value=None
             ):
-                with pytest.raises(YouTubeAuthError) as exc_info:
-                    youtube_client.check_if_live(
-                        "https://www.youtube.com/@TestChannel"
-                    )
+                with patch.object(
+                    youtube_client, "_check_live_endpoint", return_value=None
+                ):
+                    with pytest.raises(YouTubeAuthError) as exc_info:
+                        youtube_client.check_if_live(
+                            "https://www.youtube.com/@TestChannel"
+                        )
 
-        assert "1/2" in str(exc_info.value)
+        assert "1/3" in str(exc_info.value)
 
     def test_does_not_raise_for_non_auth_errors(
         self, youtube_client: YouTubeClient
@@ -317,9 +391,12 @@ class TestCheckIfLiveAuthError:
             with patch.object(
                 youtube_client, "_check_channel_page", return_value=None
             ):
-                is_live, stream_info = youtube_client.check_if_live(
-                    "https://www.youtube.com/@TestChannel"
-                )
+                with patch.object(
+                    youtube_client, "_check_live_endpoint", return_value=None
+                ):
+                    is_live, stream_info = youtube_client.check_if_live(
+                        "https://www.youtube.com/@TestChannel"
+                    )
 
         assert is_live is False
         assert stream_info is None
