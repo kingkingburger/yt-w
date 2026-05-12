@@ -1,0 +1,22 @@
+{
+  "id": "@LofiGirl",
+  "title": "Lofi Girl",
+  "_type": "playlist",
+  "entries": [
+    {
+      "id": "UCSJ4gkVC6NrvII8umztf0Ow",
+      "title": "Lofi Girl - Videos",
+      "_type": "playlist"
+    },
+    {
+      "id": "UCSJ4gkVC6NrvII8umztf0Ow",
+      "title": "Lofi Girl - Live",
+      "_type": "playlist"
+    },
+    {
+      "id": "UCSJ4gkVC6NrvII8umztf0Ow",
+      "title": "Lofi Girl - Shorts",
+      "_type": "playlist"
+    }
+  ]
+}

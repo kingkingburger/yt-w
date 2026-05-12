@@ -1,0 +1,22 @@
+{
+  "id": "@TED",
+  "title": "TED",
+  "_type": "playlist",
+  "entries": [
+    {
+      "id": "UCAuUUnT6oDeKwE6v1NGQxug",
+      "title": "TED - Videos",
+      "_type": "playlist"
+    },
+    {
+      "id": "UCAuUUnT6oDeKwE6v1NGQxug",
+      "title": "TED - Live",
+      "_type": "playlist"
+    },
+    {
+      "id": "UCAuUUnT6oDeKwE6v1NGQxug",
+      "title": "TED - Shorts",
+      "_type": "playlist"
+    }
+  ]
+}
