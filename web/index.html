@@ -324,6 +324,10 @@
                 <div class="card-sub"><span id="merge-seq-count">0 CLIPS</span> · 드래그로 순서 변경</div>
               </div>
               <div class="card-head-actions">
+                <div class="toggle-group seq-view-toggle" role="group" aria-label="병합 순서 보기 방식">
+                  <button type="button" id="seq-view-compact" class="active" onclick="setSequenceViewMode('compact')">간략</button>
+                  <button type="button" id="seq-view-full" onclick="setSequenceViewMode('full')">전체</button>
+                </div>
                 <button class="btn ghost sm" id="btn-sort-sequence-name" onclick="sortSequenceByName()">이름순 정렬</button>
               </div>
             </div>
