@@ -1,7 +1,7 @@
 /* yt-w operator console client. */
 const API = '';
 const state = {
-  activeTab: 'download',
+  activeTab: 'merge',
   files: [],
   selectedPaths: new Set(),
   sequence: [],
@@ -984,7 +984,7 @@ function notify(title, msg, kind = 'info') {
 systemRefresh();
 checkCookie();
 loadChannels();
+switchTab(state.activeTab);
 setInterval(systemRefresh, 5000);
 setInterval(checkCookie, 60000);
 setInterval(() => { if (state.activeTab === 'merge') loadJobs(); }, 3000);
-setTimeout(() => $('url-input')?.focus(), 100);
