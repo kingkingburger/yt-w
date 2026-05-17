@@ -14,5 +14,8 @@ def test_frontend_opens_merge_tab_by_default():
 
     assert '<button class="nav-btn active" data-tab="merge"' in index_html
     assert '<button class="nav-btn active" data-tab="download"' not in index_html
+    assert index_html.index('data-tab="merge"') < index_html.index(
+        'data-tab="download"'
+    )
     assert '<main id="panel-merge" class="panel active">' in index_html
     assert '<main id="panel-download" class="panel active">' not in index_html

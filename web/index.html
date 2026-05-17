@@ -25,6 +25,18 @@
       <nav class="nav">
         <div class="nav-label">메뉴</div>
 
+        <button class="nav-btn active" data-tab="merge" onclick="switchTab('merge')">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="6 3 18 3 18 9" />
+            <polyline points="6 21 18 21 18 15" />
+            <line x1="6" y1="3" x2="6" y2="21" />
+            <line x1="18" y1="9" x2="6" y2="12" />
+            <line x1="18" y1="15" x2="6" y2="12" />
+          </svg>
+          <span>영상 합치기</span>
+          <span class="arrow">→</span>
+        </button>
+
         <button class="nav-btn" data-tab="download" onclick="switchTab('download')">
           <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -41,18 +53,6 @@
             <circle cx="12" cy="12" r="3" fill="currentColor" />
           </svg>
           <span>라이브 녹화</span>
-          <span class="arrow">→</span>
-        </button>
-
-        <button class="nav-btn active" data-tab="merge" onclick="switchTab('merge')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="6 3 18 3 18 9" />
-            <polyline points="6 21 18 21 18 15" />
-            <line x1="6" y1="3" x2="6" y2="21" />
-            <line x1="18" y1="9" x2="6" y2="12" />
-            <line x1="18" y1="15" x2="6" y2="12" />
-          </svg>
-          <span>영상 합치기</span>
           <span class="arrow">→</span>
         </button>
 
