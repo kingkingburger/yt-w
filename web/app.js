@@ -41,6 +41,30 @@ const fmtAge = (mtime) => {
 const fmtClock = (d = new Date()) =>
   [d.getHours(), d.getMinutes(), d.getSeconds()]
     .map(n => String(n).padStart(2, '0')).join(':');
+function defaultMergeOutputName(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}.mp4`;
+}
+function setDefaultMergeOutputName() {
+  const output = $('merge-output');
+  if (!output) return;
+  const next = defaultMergeOutputName();
+  output.value = next;
+  output.dataset.defaultValue = next;
+}
+function currentMergeOutputName() {
+  const output = $('merge-output');
+  const value = output.value.trim();
+  const next = defaultMergeOutputName();
+  if (!value || value === output.dataset.defaultValue) {
+    output.value = next;
+    output.dataset.defaultValue = next;
+    return next;
+  }
+  return value;
+}
 const escapeHtml = (s) => {
   const div = document.createElement('div');
   div.textContent = s ?? '';
@@ -815,7 +839,7 @@ async function executeMerge() {
   if (state.sequence.length < 2) {
     notify('알림', '최소 2개의 파일이 필요해요', 'err'); return;
   }
-  const out = $('merge-output').value.trim() || `merged_${new Date().toISOString().slice(0,19).replace(/[-:T]/g, '')}.mp4`;
+  const out = currentMergeOutputName();
   const btn = $('btn-execute-merge');
   btn.disabled = true; const orig = btn.textContent; btn.textContent = '◴ 작업 등록 중…';
   try {
@@ -827,7 +851,7 @@ async function executeMerge() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail || '합치기 실패');
     notify('완료', `합치기 작업 ${d.id.slice(0,8)} 등록`, 'ok');
-    $('merge-output').value = '';
+    setDefaultMergeOutputName();
     loadJobs();
   } catch (e) { notify('오류', e.message, 'err'); }
   finally { btn.disabled = false; btn.textContent = orig; }
@@ -984,6 +1008,7 @@ function notify(title, msg, kind = 'info') {
 systemRefresh();
 checkCookie();
 loadChannels();
+setDefaultMergeOutputName();
 switchTab(state.activeTab);
 setInterval(systemRefresh, 5000);
 setInterval(checkCookie, 60000);
