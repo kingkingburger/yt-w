@@ -41,30 +41,6 @@ const fmtAge = (mtime) => {
 const fmtClock = (d = new Date()) =>
   [d.getHours(), d.getMinutes(), d.getSeconds()]
     .map(n => String(n).padStart(2, '0')).join(':');
-function defaultMergeOutputName(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}.mp4`;
-}
-function setDefaultMergeOutputName() {
-  const output = $('merge-output');
-  if (!output) return;
-  const next = defaultMergeOutputName();
-  output.value = next;
-  output.dataset.defaultValue = next;
-}
-function currentMergeOutputName() {
-  const output = $('merge-output');
-  const value = output.value.trim();
-  const next = defaultMergeOutputName();
-  if (!value || value === output.dataset.defaultValue) {
-    output.value = next;
-    output.dataset.defaultValue = next;
-    return next;
-  }
-  return value;
-}
 const escapeHtml = (s) => {
   const div = document.createElement('div');
   div.textContent = s ?? '';
@@ -405,6 +381,7 @@ function toggleSourceGroupSelect(groupIdx, on) {
   } else {
     group.paths.forEach(path => state.selectedPaths.delete(path));
     state.sequence = state.sequence.filter(path => !group.paths.includes(path));
+    refreshDefaultMergeOutputName();
     renderFileList();
     renderSequence();
   }
@@ -417,6 +394,7 @@ function toggleFileSelect(path, on) {
     state.selectedPaths.delete(path);
     state.sequence = state.sequence.filter(p => p !== path);
   }
+  refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
 function toggleSelectAll() {
@@ -435,6 +413,7 @@ function toggleSelectAll() {
       }
     });
   }
+  refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
 
@@ -601,6 +580,7 @@ function addPathsToSequence(paths, insertAt = state.sequence.length) {
   const target = Math.max(0, Math.min(insertAt, state.sequence.length));
   state.sequence.splice(target, 0, ...uniquePaths);
   uniquePaths.forEach(path => state.selectedPaths.add(path));
+  refreshDefaultMergeOutputName();
   renderFileList();
   renderSequence();
   return uniquePaths.length;
@@ -725,6 +705,7 @@ function renderSequence() {
 }
 function clearSequence() {
   state.sequence = []; state.selectedPaths.clear();
+  refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
 function removeSeqItem(idx) {
@@ -734,6 +715,7 @@ function removeSeqBlock(start, end) {
   const count = end - start + 1;
   const removed = state.sequence.splice(start, count);
   removed.forEach(path => state.selectedPaths.delete(path));
+  refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
 function sortSequenceByName() {
