@@ -310,13 +310,14 @@ async function loadFiles() {
 }
 function renderFileList() {
   const host = $('merge-file-list');
-  $('merge-file-count').textContent = `${state.files.length}개 파일`;
+  const sourceFiles = availableSourceFiles();
+  $('merge-file-count').textContent = `${sourceFiles.length}개 파일`;
   const selectAllBtn = $('btn-select-all');
   if (selectAllBtn) {
-    const allSelected = state.files.length > 0
-      && state.files.every(f => state.selectedPaths.has(f.path));
+    const allSelected = sourceFiles.length > 0
+      && sourceFiles.every(f => state.selectedPaths.has(f.path));
     selectAllBtn.textContent = allSelected ? '전체 해제' : '전체 선택';
-    selectAllBtn.disabled = state.files.length === 0;
+    selectAllBtn.disabled = sourceFiles.length === 0;
   }
   if (!state.files.length) {
     host.innerHTML = `
@@ -327,7 +328,17 @@ function renderFileList() {
       </div>`;
     return;
   }
-  state.sourceGroups = buildFileGroups();
+  if (!sourceFiles.length) {
+    state.sourceGroups = [];
+    host.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">✓</div>
+        <div class="empty-title">추가할 소스 파일이 없어요</div>
+        <div class="empty-sub">현재 파일은 모두 merge 목록에 있습니다</div>
+      </div>`;
+    return;
+  }
+  state.sourceGroups = buildFileGroups(sourceFiles);
   host.innerHTML = state.sourceGroups.map((group, groupIdx) => {
     const open = state.sourceGroupOpen.has(group.id);
     const selectedCount = group.paths.filter(path => state.selectedPaths.has(path)).length;
@@ -409,14 +420,15 @@ function toggleFileSelect(path, on) {
   renderFileList(); renderSequence();
 }
 function toggleSelectAll() {
-  if (!state.files.length) return;
-  const allSelected = state.files.every(f => state.selectedPaths.has(f.path));
+  const sourceFiles = availableSourceFiles();
+  if (!sourceFiles.length) return;
+  const allSelected = sourceFiles.every(f => state.selectedPaths.has(f.path));
   if (allSelected) {
-    const filePaths = new Set(state.files.map(f => f.path));
+    const filePaths = new Set(sourceFiles.map(f => f.path));
     filePaths.forEach(p => state.selectedPaths.delete(p));
     state.sequence = state.sequence.filter(p => !filePaths.has(p));
   } else {
-    state.files.forEach(f => {
+    sourceFiles.forEach(f => {
       if (!state.selectedPaths.has(f.path)) {
         state.selectedPaths.add(f.path);
         if (!state.sequence.includes(f.path)) state.sequence.push(f.path);
@@ -436,6 +448,10 @@ function splitMergePath(path) {
 }
 function mergeFileName(path) {
   return splitMergePath(path).name;
+}
+function availableSourceFiles(files = state.files, sequence = state.sequence) {
+  const inSequence = new Set(sequence);
+  return files.filter(file => !inSequence.has(file.path));
 }
 const GROUP_COLORS = [
   '#e6a04d',

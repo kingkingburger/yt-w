@@ -286,6 +286,62 @@ console.log(JSON.stringify(groups.map(group => ({{
     ]
 
 
+def test_frontend_source_tree_hides_files_already_in_sequence():
+    """The source tree should only show files not already staged for merge."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is required for the frontend source tree regression test")
+
+    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    helpers = "\n".join(
+        extract_js_function(app_js, name)
+        for name in [
+            "splitMergePath",
+            "mergeFileName",
+            "availableSourceFiles",
+            "colorForGroup",
+            "inferPartGroup",
+            "getPartInfo",
+            "getPartRangeLabel",
+            "buildFileGroups",
+        ]
+    )
+
+    script = f"""
+const GROUP_COLORS = ['#e6a04d', '#6fb7ff'];
+const state = {{
+  files: [
+    {{ path: 'live/channel/channel_20260514_025824_part000.mp4', size_bytes: 1, mtime: 1 }},
+    {{ path: 'live/channel/channel_20260514_025824_part001.mp4', size_bytes: 1, mtime: 1 }},
+    {{ path: 'live/channel/loose_video.mp4', size_bytes: 1, mtime: 1 }}
+  ],
+  sequence: [
+    'live/channel/channel_20260514_025824_part001.mp4',
+    'live/channel/loose_video.mp4'
+  ]
+}};
+{helpers}
+const groups = buildFileGroups(availableSourceFiles());
+console.log(JSON.stringify(groups.map(group => ({{
+  name: group.name,
+  paths: group.paths
+}}))));
+"""
+    result = subprocess.run(
+        [node, "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(result.stdout) == [
+        {
+            "name": "20260514_025824",
+            "paths": ["live/channel/channel_20260514_025824_part000.mp4"],
+        },
+    ]
+
+
 def test_frontend_moves_contiguous_sequence_part_block_together():
     """Dragging a sequence item in a consecutive part run should move the run."""
     node = shutil.which("node")
