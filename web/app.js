@@ -406,10 +406,10 @@ function toggleSelectAll() {
     filePaths.forEach(p => state.selectedPaths.delete(p));
     state.sequence = state.sequence.filter(p => !filePaths.has(p));
   } else {
-    sourceFiles.forEach(f => {
-      if (!state.selectedPaths.has(f.path)) {
-        state.selectedPaths.add(f.path);
-        if (!state.sequence.includes(f.path)) state.sequence.push(f.path);
+    buildFileGroups(sourceFiles).flatMap(group => group.paths).forEach(path => {
+      if (!state.selectedPaths.has(path)) {
+        state.selectedPaths.add(path);
+        if (!state.sequence.includes(path)) state.sequence.push(path);
       }
     });
   }
