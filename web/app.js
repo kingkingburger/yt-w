@@ -9,6 +9,9 @@ const state = {
   sourceGroupOpen: new Set(),
   sourceGroups: [],
   mergeMode: 'concat',
+  mergeJobs: [],
+  mergeDownloadDirectory: null,
+  savingMergeJobs: new Set(),
   dlFormat: 'video',
   bootTime: null,
 };
@@ -833,6 +836,72 @@ function setMergeMode(mode) {
   $('mode-concat').classList.toggle('active', mode === 'concat');
   $('mode-reencode').classList.toggle('active', mode === 'reencode');
 }
+
+function supportsMergeDownloadDirectory() {
+  return window.isSecureContext
+    && typeof window.showDirectoryPicker === 'function'
+    && Boolean(window.indexedDB);
+}
+
+function renderMergeDownloadDirectory() {
+  const path = $('merge-download-directory');
+  const note = $('merge-download-directory-note');
+  const button = $('btn-merge-download-directory');
+  if (!supportsMergeDownloadDirectory()) {
+    path.textContent = '지원하지 않는 브라우저';
+    note.textContent = 'Chrome 또는 Edge의 HTTPS/localhost 환경에서 사용할 수 있습니다.';
+    button.disabled = true;
+    return;
+  }
+
+  const handle = state.mergeDownloadDirectory;
+  path.textContent = handle ? handle.name : '선택되지 않음';
+  note.textContent = handle
+    ? '폴더 선택이 이 브라우저에 저장되었습니다. 다시 열면 쓰기 권한을 확인할 수 있습니다.'
+    : '브라우저 보안상 전체 경로 대신 선택한 폴더 이름만 표시됩니다.';
+  button.textContent = handle ? '폴더 변경' : '폴더 선택';
+}
+
+async function restoreMergeDownloadDirectory() {
+  if (!supportsMergeDownloadDirectory()) {
+    renderMergeDownloadDirectory();
+    return;
+  }
+  try {
+    const handle = await loadMergeDownloadDirectoryHandle(window.indexedDB);
+    if (handle?.kind === 'directory') state.mergeDownloadDirectory = handle;
+  } catch (error) {
+    console.warn('저장된 merge 다운로드 폴더를 불러오지 못했습니다.', error);
+  }
+  renderMergeDownloadDirectory();
+}
+
+async function chooseMergeDownloadDirectory() {
+  if (!supportsMergeDownloadDirectory()) {
+    notify('알림', 'Chrome 또는 Edge의 HTTPS/localhost 환경이 필요해요', 'err');
+    return null;
+  }
+  try {
+    const handle = await window.showDirectoryPicker({
+      id: 'yt-w-merge-download',
+      mode: 'readwrite',
+      startIn: 'downloads',
+    });
+    if (!await ensureMergeDownloadDirectoryPermission(handle)) {
+      throw new Error('선택한 폴더의 쓰기 권한이 필요합니다');
+    }
+    await saveMergeDownloadDirectoryHandle(handle, window.indexedDB);
+    state.mergeDownloadDirectory = handle;
+    renderMergeDownloadDirectory();
+    notify('저장됨', `${handle.name} 폴더를 기억했어요`, 'ok');
+    return handle;
+  } catch (error) {
+    if (error?.name === 'AbortError') return null;
+    notify('오류', error.message || '폴더를 선택하지 못했습니다', 'err');
+    return null;
+  }
+}
+
 async function executeMerge() {
   if (state.sequence.length < 2) {
     notify('알림', '최소 2개의 파일이 필요해요', 'err'); return;
@@ -860,6 +929,7 @@ async function loadJobs() {
   try {
     const r = await fetch(`${API}/api/merge/jobs`);
     const jobs = await r.json();
+    state.mergeJobs = jobs;
     renderJobs(jobs);
   } catch (e) {}
 }
@@ -905,12 +975,41 @@ function renderJobs(jobs) {
         <div class="mono" style="color: var(--fg-dim); font-size:12px;">${fmtDuration(j.elapsed_seconds)}</div>
         <div class="actions" style="text-align:right">
           ${stateChip(j.status)}
-          ${j.status === 'done' ? `<a class="btn sm" href="${API}/api/merge/jobs/${j.id}/download">↓ 받기</a>` : ''}
+          ${j.status === 'done' && supportsMergeDownloadDirectory()
+            ? `<button class="btn sm" type="button" onclick="saveMergedJob('${j.id}')" ${state.savingMergeJobs.has(j.id) ? 'disabled' : ''}>${state.savingMergeJobs.has(j.id) ? '저장 중…' : '↓ 저장'}</button>`
+            : ''}
+          ${j.status === 'done' ? `<a class="btn sm ghost" href="${API}/api/merge/jobs/${j.id}/download">기본 받기</a>` : ''}
           ${(j.status === 'queued' || j.status === 'running') ? `<button class="btn sm danger" onclick="cancelJob('${j.id}')">취소</button>` : ''}
         </div>
       </div>
     `).join('')}
   `;
+}
+async function saveMergedJob(jobId) {
+  const job = state.mergeJobs.find(item => item.id === jobId);
+  if (!job || state.savingMergeJobs.has(jobId)) return;
+
+  state.savingMergeJobs.add(jobId);
+  renderJobs(state.mergeJobs);
+  try {
+    let directoryHandle = state.mergeDownloadDirectory;
+    if (!directoryHandle) directoryHandle = await chooseMergeDownloadDirectory();
+    if (!directoryHandle) return;
+    if (!await ensureMergeDownloadDirectoryPermission(directoryHandle)) {
+      throw new Error('선택한 폴더의 쓰기 권한이 필요합니다');
+    }
+    const savedFileName = await writeMergedFileToDirectory(
+      `${API}/api/merge/jobs/${jobId}/download`,
+      job.output,
+      directoryHandle,
+    );
+    notify('저장 완료', `${savedFileName} 파일을 저장했어요`, 'ok');
+  } catch (error) {
+    notify('오류', error.message || '병합 파일을 저장하지 못했습니다', 'err');
+  } finally {
+    state.savingMergeJobs.delete(jobId);
+    renderJobs(state.mergeJobs);
+  }
 }
 async function cancelJob(id) {
   try {
@@ -1007,6 +1106,7 @@ systemRefresh();
 checkCookie();
 loadChannels();
 setDefaultMergeOutputName();
+restoreMergeDownloadDirectory();
 switchTab(state.activeTab);
 setInterval(systemRefresh, 5000);
 setInterval(checkCookie, 60000);

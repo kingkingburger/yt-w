@@ -342,6 +342,17 @@
               </div>
 
               <div>
+                <label class="label">PC 다운로드 폴더</label>
+                <div class="row-flex">
+                  <div class="merge-download-path mono" id="merge-download-directory">불러오는 중…</div>
+                  <button class="btn ghost" type="button" id="btn-merge-download-directory" onclick="chooseMergeDownloadDirectory()">폴더 선택</button>
+                </div>
+                <div class="merge-download-note" id="merge-download-directory-note">
+                  선택한 폴더는 이 브라우저에 저장됩니다.
+                </div>
+              </div>
+
+              <div>
                 <label class="label">합치기 방식</label>
                 <div class="toggle-group" style="width:100%; display:flex;">
                   <button type="button" id="mode-concat" class="active" style="flex:1" onclick="setMergeMode('concat')">빠르게 (concat)</button>
@@ -466,6 +477,7 @@
   </div>
 
 <script src="/static/merge_output_name.js"></script>
+<script src="/static/merge_download_directory.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>
