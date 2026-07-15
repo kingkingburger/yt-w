@@ -5,6 +5,7 @@ from .cookies import register_cookie_routes
 from .merge import register_merge_routes
 from .meta import register_meta_routes
 from .monitor import register_monitor_routes
+from .split import register_split_routes
 from .system import register_system_routes
 from .video import register_video_routes
 
@@ -14,6 +15,7 @@ __all__ = [
     "register_merge_routes",
     "register_meta_routes",
     "register_monitor_routes",
+    "register_split_routes",
     "register_system_routes",
     "register_video_routes",
 ]

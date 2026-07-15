@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from ..channel_manager import ChannelManager
 from ..logger import Logger
 from ..video_merger import MergeJobManager
+from ..video_splitter import SplitJobManager
 from .cleanup_scheduler import CleanupScheduler
 from .routes import (
     register_channel_routes,
@@ -17,6 +18,7 @@ from .routes import (
     register_merge_routes,
     register_meta_routes,
     register_monitor_routes,
+    register_split_routes,
     register_system_routes,
     register_video_routes,
 )
@@ -54,6 +56,9 @@ class WebAPI:
         self.merge_job_manager = MergeJobManager(
             root=Path(global_settings.download_directory)
         )
+        self.split_job_manager = SplitJobManager(
+            root=Path(global_settings.download_directory)
+        )
 
         self._register_routes()
 
@@ -68,6 +73,9 @@ class WebAPI:
         register_cookie_routes(self.app)
         register_merge_routes(
             self.app, self.channel_manager, self.merge_job_manager
+        )
+        register_split_routes(
+            self.app, self.channel_manager, self.split_job_manager
         )
         register_system_routes(
             self.app,
