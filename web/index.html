@@ -37,6 +37,17 @@
           <span class="arrow">→</span>
         </button>
 
+        <button class="nav-btn" data-tab="split" onclick="switchTab('split')">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="6" cy="7" r="3" />
+            <circle cx="6" cy="17" r="3" />
+            <line x1="8.7" y1="8.3" x2="20" y2="14" />
+            <line x1="8.7" y1="15.7" x2="20" y2="10" />
+          </svg>
+          <span>영상 나누기</span>
+          <span class="arrow">→</span>
+        </button>
+
         <button class="nav-btn" data-tab="download" onclick="switchTab('download')">
           <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -384,6 +395,117 @@
             </div>
           </div>
           <div id="merge-jobs" class="card-body tight"></div>
+        </section>
+      </main>
+
+      <!-- ╔══════════════════════════════ SPLIT ══════════════════════╗ -->
+      <main id="panel-split" class="panel">
+        <header class="hero">
+          <div>
+            <div class="hero-eyebrow">/ 영상 나누기</div>
+            <h1 class="hero-title">긴 영상을 <em>업로드 가능한 길이로</em></h1>
+            <p class="hero-sub">
+              영상 하나를 골라 원하는 시간 간격 또는 같은 길이의 N개 파일로 나눕니다.
+              재인코딩하지 않으며 원본 파일은 그대로 유지됩니다.
+            </p>
+          </div>
+        </header>
+
+        <div class="merge-grid">
+          <section class="card">
+            <div class="card-head">
+              <div class="card-title-group">
+                <div class="card-title">나눌 영상</div>
+                <div class="card-sub"><span id="split-file-count">0 FILES</span> · 영상 하나를 선택해 주세요</div>
+              </div>
+              <div class="card-head-actions">
+                <button class="btn primary sm" type="button" id="btn-split-upload" onclick="chooseSplitUpload()">↑ PC 영상 업로드</button>
+                <button class="btn ghost sm" onclick="loadFiles()">↻ 다시 읽기</button>
+                <input type="file" id="split-upload-input" hidden
+                       accept="video/*,audio/*,.mkv,.webm,.m4a,.mp3,.aac,.ts,.mov"
+                       onchange="uploadSplitVideo(this.files?.[0]); this.value=''" />
+              </div>
+            </div>
+            <div class="split-file-tools">
+              <input class="input" type="search" id="split-file-search"
+                     placeholder="파일명 또는 경로 검색"
+                     oninput="setSplitSearch(this.value)" />
+              <div class="split-upload-status" id="split-upload-status" style="display:none">
+                <div class="split-upload-track"><div id="split-upload-progress"></div></div>
+                <span id="split-upload-text">업로드 준비 중…</span>
+              </div>
+            </div>
+            <div class="file-list" id="split-file-list"></div>
+          </section>
+
+          <section class="card">
+            <div class="card-head">
+              <div class="card-title-group">
+                <div class="card-title">나누기 설정</div>
+                <div class="card-sub">실행 전에 선택한 영상과 범위를 다시 확인합니다</div>
+              </div>
+            </div>
+            <div class="card-body stack">
+              <div>
+                <label class="label">선택한 영상</label>
+                <div class="split-selected-file mono" id="split-selected-file">왼쪽에서 영상을 선택해 주세요</div>
+              </div>
+
+              <div>
+                <label class="label">나누기 방식</label>
+                <div class="toggle-group" style="width:100%; display:flex;">
+                  <button type="button" id="split-mode-interval" class="active" style="flex:1" onclick="setSplitStrategy('interval')">시간 간격</button>
+                  <button type="button" id="split-mode-parts" style="flex:1" onclick="setSplitStrategy('parts')">같은 길이로 N등분</button>
+                </div>
+              </div>
+
+              <div class="split-strategy-panel" id="split-interval-fields">
+                <label class="label" for="split-interval-hours">몇 시간 간격으로 나눌까요?</label>
+                <div class="row-flex">
+                  <input class="input" type="number" id="split-interval-hours" min="0.1" step="0.1" value="4" />
+                  <span class="split-unit">시간마다</span>
+                </div>
+                <div class="merge-download-note">소수도 사용할 수 있습니다. 예: 1.5시간 = 1시간 30분</div>
+              </div>
+
+              <div class="split-strategy-panel" id="split-parts-fields" style="display:none">
+                <label class="label" for="split-parts">몇 등분할까요?</label>
+                <div class="toggle-group split-quick-parts" role="group" aria-label="빠른 등분 선택">
+                  <button type="button" onclick="setSplitParts(2)">2등분</button>
+                  <button type="button" onclick="setSplitParts(3)">3등분</button>
+                  <button type="button" onclick="setSplitParts(4)">4등분</button>
+                </div>
+                <div class="row-flex" style="margin-top:10px">
+                  <input class="input" type="number" id="split-parts" min="2" step="1" value="2" oninput="renderSplitSelection()" />
+                  <span class="split-unit">개 파일</span>
+                </div>
+              </div>
+
+              <div class="split-preview" id="split-output-preview">
+                출력 이름: 원본명-1.ext, 원본명-2.ext, …
+              </div>
+
+              <div class="help">
+                결과는 <b>downloads/split</b> 폴더에 <b>원본명-1, 원본명-2</b> 순서로 저장됩니다.<br/>
+                빠른 stream copy 방식이라 경계는 가장 가까운 키프레임에 맞춰질 수 있습니다.
+              </div>
+
+              <button class="btn primary lg block" id="btn-execute-split" onclick="executeSplit()">✂ 영상 나누기</button>
+            </div>
+          </section>
+        </div>
+
+        <section class="card" style="margin-top: 16px;">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">작업 목록</div>
+              <div class="card-sub">실행 중이거나 완료된 나누기 작업</div>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn ghost sm" onclick="loadSplitJobs()">↻ 새로고침</button>
+            </div>
+          </div>
+          <div id="split-jobs" class="card-body tight"></div>
         </section>
       </main>
 
