@@ -753,11 +753,95 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
 .file-group-head:hover {
   background: color-mix(in srgb, var(--group-color, var(--accent)) 12%, transparent);
 }
-.file-group-head input[type=checkbox] {
-  accent-color: var(--group-color, var(--accent));
-  width: 16px;
-  height: 16px;
+.selection-control {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
   cursor: pointer;
+}
+.selection-control input {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.selection-mark {
+  position: relative;
+  width: 18px;
+  height: 18px;
+  border: 1px solid color-mix(in srgb, var(--group-color, var(--accent)) 52%, var(--line-3));
+  border-radius: 5px;
+  background: linear-gradient(145deg, color-mix(in srgb, var(--bg-3) 82%, white), var(--bg-1));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 1px 2px rgba(0,0,0,0.32);
+  transition: transform .14s ease, border-color .14s ease, background .14s ease, box-shadow .14s ease;
+}
+.selection-mark::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  opacity: 0;
+  transition: opacity .12s ease, transform .16s cubic-bezier(.2,.9,.25,1.35);
+}
+.selection-control:hover .selection-mark {
+  border-color: color-mix(in srgb, var(--group-color, var(--accent)) 76%, var(--fg-dim));
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 3px 7px rgba(0,0,0,0.34);
+}
+.selection-control input:active + .selection-mark { transform: scale(.9); }
+.selection-control input:focus-visible + .selection-mark {
+  border-color: var(--group-color, var(--accent));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--group-color, var(--accent)) 24%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.12),
+    0 2px 6px rgba(0,0,0,0.36);
+}
+.selection-control input:checked + .selection-mark,
+.selection-control input:indeterminate + .selection-mark {
+  border-color: color-mix(in srgb, var(--group-color, var(--accent)) 88%, white);
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--group-color, var(--accent)) 82%, white),
+    var(--group-color, var(--accent))
+  );
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--group-color, var(--accent)) 24%, transparent),
+    0 4px 10px color-mix(in srgb, var(--group-color, var(--accent)) 25%, transparent),
+    inset 0 1px 0 rgba(255,255,255,0.42);
+}
+.selection-checkbox input:checked + .selection-mark::after {
+  width: 5px;
+  height: 9px;
+  border: solid var(--bg);
+  border-width: 0 2px 2px 0;
+  opacity: 1;
+  transform: translate(-50%, -60%) rotate(45deg) scale(1);
+}
+.selection-checkbox input:indeterminate + .selection-mark::after {
+  width: 9px;
+  height: 2px;
+  border: 0;
+  border-radius: 2px;
+  background: var(--bg);
+  opacity: 1;
+  transform: translate(-50%, -50%) scaleX(1);
+}
+.selection-radio .selection-mark { border-radius: 50%; }
+.selection-radio input:checked + .selection-mark::after {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--bg);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.16);
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
 }
 .tree-toggle {
   color: var(--group-color, var(--accent));
@@ -803,12 +887,6 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
 .file-row.dragging {
   opacity: 0.55;
   transform: scale(0.995);
-}
-.file-row input[type=checkbox] {
-  accent-color: var(--group-color, var(--accent));
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }
 .file-grip {
   color: var(--fg-mute);
@@ -962,12 +1040,6 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
 .split-file-row.child { padding-left: 24px; }
 .split-file-group-head {
   grid-template-columns: 18px minmax(0, 1fr) auto auto;
-}
-.split-file-row input[type=radio] {
-  accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }
 .split-file-tools {
   padding: 10px;

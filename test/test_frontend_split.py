@@ -76,6 +76,18 @@ def test_split_file_list_reuses_merge_part_group_ui():
     assert 'class="file-group-head split-file-group-head"' in app_js
 
 
+def test_file_selection_controls_use_custom_visual_marks():
+    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    css = Path("web/app.css").read_text(encoding="utf-8")
+
+    assert app_js.count('class="selection-control selection-checkbox"') == 2
+    assert 'class="selection-control selection-radio"' in app_js
+    assert 'class="selection-mark" aria-hidden="true"' in app_js
+    assert ".selection-control input:focus-visible + .selection-mark" in css
+    assert ".selection-checkbox input:indeterminate + .selection-mark::after" in css
+    assert ".selection-radio input:checked + .selection-mark::after" in css
+
+
 def test_split_frontend_javascript_is_valid():
     node = shutil.which("node")
     if node is None:

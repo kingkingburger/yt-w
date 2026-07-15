@@ -345,11 +345,15 @@ function renderFileList() {
              ondragend="fileDragEnd(event)"
              onclick="toggleSourceGroup(${groupIdx})">
           <span class="tree-toggle" aria-hidden="true">${open ? 'v' : '>'}</span>
-          <input type="checkbox"
-                 ${allSelected ? 'checked' : ''}
-                 ${someSelected ? 'data-partial="true"' : ''}
-                 onclick="event.stopPropagation()"
-                 onchange="toggleSourceGroupSelect(${groupIdx}, this.checked)" />
+          <span class="selection-control selection-checkbox">
+            <input type="checkbox"
+                   aria-label="${escapeHtml(group.name)} 전체 선택"
+                   ${allSelected ? 'checked' : ''}
+                   ${someSelected ? 'data-partial="true"' : ''}
+                   onclick="event.stopPropagation()"
+                   onchange="toggleSourceGroupSelect(${groupIdx}, this.checked)" />
+            <span class="selection-mark" aria-hidden="true"></span>
+          </span>
           <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
           ${partBadge}
           <div class="file-meta nowrap">${group.paths.length} ${fileWord}</div>
@@ -373,7 +377,11 @@ function renderSourceFileRow(f) {
            data-path="${escapeHtml(f.path)}"
            ondragstart="fileDragStart(event, '${safePath}')"
            ondragend="fileDragEnd(event)">
-      <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleFileSelect('${safePath}', this.checked)" />
+      <span class="selection-control selection-checkbox">
+        <input type="checkbox" aria-label="${escapeHtml(fname)} 선택" ${checked ? 'checked' : ''}
+               onchange="toggleFileSelect('${safePath}', this.checked)" />
+        <span class="selection-mark" aria-hidden="true"></span>
+      </span>
       <span class="file-grip" aria-hidden="true">::</span>
       <div class="file-name" title="${escapeHtml(fname)}">${escapeHtml(fname)}</div>
       <div class="file-meta nowrap">${fmtBytes(f.size_bytes)}</div>
@@ -1085,8 +1093,11 @@ function renderSplitFileRow(file) {
   const safePath = escapeHtml(file.path).replace(/'/g, "\\'");
   return `
     <label class="file-row child split-file-row ${selected ? 'selected' : ''}">
-      <input type="radio" name="split-source" ${selected ? 'checked' : ''}
-             onchange="selectSplitFile('${safePath}')" />
+      <span class="selection-control selection-radio">
+        <input type="radio" name="split-source" aria-label="${escapeHtml(file.name)} 선택"
+               ${selected ? 'checked' : ''} onchange="selectSplitFile('${safePath}')" />
+        <span class="selection-mark" aria-hidden="true"></span>
+      </span>
       <div class="file-name" title="${escapeHtml(file.path)}">${escapeHtml(file.name)}</div>
       <div class="file-meta nowrap">${fmtBytes(file.size_bytes)}</div>
       <div class="file-meta nowrap">${fmtAge(file.mtime)}</div>
