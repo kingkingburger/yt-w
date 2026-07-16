@@ -133,11 +133,18 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다.
 
 ## 테스트 전략
 
-- **단위**: 각 모듈 독립 테스트 (`test/test_*.py`).
-- **회귀**: `test/test_regression_20260408.py`에 과거 P0 버그(`is_live`/`live_status` 누락, ffmpeg HTTP 헤더 누락) 보존.
-- **알림**: `test_discord_notifier.py` + `test_cookie_notifications.py`에서 webhook patch 대상은 `urllib.request.urlopen`이 아니라 모듈 내 import 경로.
-- **동시성**: `test_channel_manager.py::test_concurrent_add_no_lost_updates` — 10개 스레드 동시 add 후 항목 유실 없음.
-- **라이프사이클**: `test_multi_channel_monitor.py::TestMultiChannelMonitorBackgroundThread` — 백그라운드 스레드에서 start() 호출 시 SIGTERM 등록을 건너뛰는지 검증.
+테스트는 파일 수나 assertion 수가 아니라 실제 회귀 경계를 기준으로 유지한다. 생성자
+인자가 그대로 대입되는지, 같은 분기를 다른 값으로 반복하는지, 다른 테스트가 이미 같은
+계약을 더 강하게 검증하는지는 별도 테스트로 두지 않는다.
+
+| 보호할 경계 | 소유 테스트 | 필요한 이유 |
+|------------|-------------|-------------|
+| yt-dlp 라이브 메타데이터와 `/live` fallback | `test_youtube_client.py`, `test_youtube_client_golden_fixtures.py` | `extract_flat` 응답은 `is_live` 대신 `live_status`를 주기도 하므로 실제 응답 형태와 탐지 순서를 함께 고정한다. |
+| ffmpeg HTTP header와 입력 순서 | `test_ffmpeg_command.py`, `test_stream_downloader.py` | YouTube HLS 요청에서 header가 빠지거나 `-i` 뒤에 놓이면 403이 발생하므로 순수 command와 downloader 전달 경계를 각각 한 번 검증한다. |
+| 알림 payload와 재전송 억제 | `test_discord_notifier.py`, `test_cookie_notifications.py`, `test_multi_channel_monitor.py` | webhook body, 호출 시점, cooldown은 서로 다른 경계이며 하나라도 빠지면 운영 알림이 누락되거나 폭주한다. |
+| 설정 저장 동시성 | `test_channel_manager.py::test_concurrent_add_no_lost_updates` | FastAPI 요청의 read-modify-write가 겹쳐도 `channels.json` 항목이 유실되지 않아야 한다. |
+| monitor thread 동시성·종료 | `test_multi_channel_monitor.py` | 웹 요청과 감시 loop가 같은 thread map을 다루며, Docker SIGTERM과 background start도 별도 런타임 경계다. |
+| 사용자 화면의 병합·분할 동작 | `test_frontend_*.py`, `test_merge_order.py` | 별도 frontend test runner가 없으므로 Node로 실제 함수를 실행하고, markup-only 계약은 필요한 DOM selector만 확인한다. |
 
 테스트 실행:
 

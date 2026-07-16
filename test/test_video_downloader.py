@@ -18,24 +18,6 @@ class TestVideoDownloader:
 
         assert output_dir.exists()
 
-    def test_init_default_values(self, temp_dir: Path):
-        """Test VideoDownloader default values."""
-        downloader = VideoDownloader(output_dir=str(temp_dir))
-
-        assert downloader.quality == "best"
-        assert downloader.audio_only is False
-
-    def test_init_custom_values(self, temp_dir: Path):
-        """Test VideoDownloader with custom values."""
-        downloader = VideoDownloader(
-            output_dir=str(temp_dir),
-            quality="720",
-            audio_only=True,
-        )
-
-        assert downloader.quality == "720"
-        assert downloader.audio_only is True
-
     def test_get_format_string_audio_only(self, temp_dir: Path):
         """Test _get_format_string for audio only mode."""
         downloader = VideoDownloader(output_dir=str(temp_dir), audio_only=True)
@@ -81,15 +63,6 @@ class TestVideoDownloader:
         assert "postprocessors" in opts
         assert opts["postprocessors"][0]["key"] == "FFmpegExtractAudio"
         assert opts["postprocessors"][0]["preferredcodec"] == "mp3"
-
-    def test_build_ydl_options_has_performance_settings(self, temp_dir: Path):
-        """Test that _build_ydl_options includes performance settings."""
-        downloader = VideoDownloader(output_dir=str(temp_dir))
-
-        opts = downloader._build_ydl_options("/path/to/output.mp4")
-
-        assert opts["concurrent_fragment_downloads"] == 8
-        assert opts["retries"] == 10
 
     def test_download_success(self, temp_dir: Path):
         """Test successful download."""

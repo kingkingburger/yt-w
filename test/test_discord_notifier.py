@@ -7,29 +7,15 @@ from unittest.mock import MagicMock
 from src.yt_monitor.notifications.discord import DiscordNotifier, NotificationLevel, get_notifier
 
 
-class TestNotificationLevel:
-    """Test NotificationLevel enum."""
-
-    def test_all_levels_have_color_values(self):
-        assert NotificationLevel.INFO.value == 0x3498DB
-        assert NotificationLevel.SUCCESS.value == 0x2ECC71
-        assert NotificationLevel.WARNING.value == 0xF39C12
-        assert NotificationLevel.ERROR.value == 0xE74C3C
-
-
 class TestDiscordNotifier:
     """Test cases for DiscordNotifier class."""
 
-    def test_disabled_when_no_webhook_url(self):
-        """webhook URL 없으면 비활성화되고 모든 send가 False."""
+    def test_disabled_without_webhook_skips_network(self, discord_mock_urlopen):
+        """webhook URL이 없으면 비활성화되고 네트워크를 호출하지 않는다."""
         notifier = DiscordNotifier(webhook_url="")
         assert not notifier.is_enabled
         assert not notifier.send("title", "desc")
-
-    def test_enabled_when_webhook_url_set(self):
-        """webhook URL 있으면 활성화."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
-        assert notifier.is_enabled
+        discord_mock_urlopen.assert_not_called()
 
     def test_uses_env_variable_when_no_url_passed(self, monkeypatch):
         """DISCORD_WEBHOOK_URL 환경변수에서 URL 읽기."""
@@ -82,23 +68,6 @@ class TestDiscordNotifier:
 
         assert result is False
 
-    def test_send_disabled_returns_false_without_network(self):
-        """비활성화 시 네트워크 호출 없이 즉시 False."""
-        notifier = DiscordNotifier(webhook_url="")
-        assert not notifier.send("title", "desc", NotificationLevel.ERROR)
-
-    def test_convenience_methods_disabled(self):
-        """비활성화 상태에서 편의 메서드 모두 False."""
-        notifier = DiscordNotifier(webhook_url="")
-        assert not notifier.notify_live_detected("채널", "url", "title")
-        assert not notifier.notify_download_complete("채널", "title")
-        assert not notifier.notify_download_failed("채널", "에러")
-        assert not notifier.notify_cookie_expired("메시지")
-        assert not notifier.notify_monitor_started(3)
-        assert not notifier.notify_monitor_stopped("test")
-        assert not notifier.notify_error("채널", "에러")
-        assert not notifier.notify_bot_detection("채널", "봇 감지")
-
     def test_notify_bot_detection_title_and_level(self, discord_mock_urlopen):
         """봇 감지 알림은 ERROR 레벨이고 제목에 채널명과 봇 감지 표시가 들어간다."""
         notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
@@ -150,11 +119,8 @@ class TestDiscordNotifier:
 class TestGetNotifier:
     """Test get_notifier singleton."""
 
-    def test_get_notifier_returns_discord_notifier(self):
-        """get_notifier()가 DiscordNotifier 인스턴스를 반환하는지."""
+    def test_get_notifier_returns_same_discord_notifier(self):
+        """get_notifier()는 같은 DiscordNotifier 인스턴스를 재사용한다."""
         notifier = get_notifier()
         assert isinstance(notifier, DiscordNotifier)
-
-    def test_get_notifier_returns_same_instance(self):
-        """get_notifier()가 매번 같은 인스턴스를 반환하는지."""
-        assert get_notifier() is get_notifier()
+        assert get_notifier() is notifier

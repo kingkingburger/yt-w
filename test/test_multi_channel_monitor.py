@@ -87,22 +87,18 @@ class TestChannelMonitorThread:
         expected_dir = temp_dir / "downloads" / "live" / "Test Channel"
         assert expected_dir.exists()
 
-    def test_start_sets_is_running(self, monitor_thread: ChannelMonitorThread):
-        """Test that start() sets is_running to True."""
+    def test_start_and_stop_manage_thread_lifecycle(
+        self, monitor_thread: ChannelMonitorThread
+    ):
+        """start()는 daemon thread를 시작하고 stop()은 실행 상태를 내린다."""
         monitor_thread.start()
 
         assert monitor_thread.is_running is True
-
-        monitor_thread.stop()
-
-    def test_start_creates_thread(self, monitor_thread: ChannelMonitorThread):
-        """Test that start() creates a daemon thread."""
-        monitor_thread.start()
-
         assert monitor_thread.thread is not None
         assert monitor_thread.thread.daemon is True
 
         monitor_thread.stop()
+        assert monitor_thread.is_running is False
 
     def test_start_does_nothing_if_already_running(
         self, monitor_thread: ChannelMonitorThread
@@ -116,13 +112,6 @@ class TestChannelMonitorThread:
         assert monitor_thread.thread is first_thread
 
         monitor_thread.stop()
-
-    def test_stop_sets_is_running_false(self, monitor_thread: ChannelMonitorThread):
-        """Test that stop() sets is_running to False."""
-        monitor_thread.start()
-        monitor_thread.stop()
-
-        assert monitor_thread.is_running is False
 
     def test_stop_terminates_active_downloader(
         self, monitor_thread: ChannelMonitorThread
@@ -179,49 +168,6 @@ class TestChannelMonitorThread:
                 "https://www.youtube.com/watch?v=abc123",
                 "Live Stream",
             )
-
-    def test_handle_live_stream_resets_is_downloading_after_success(
-        self, monitor_thread: ChannelMonitorThread
-    ):
-        """_handle_live_stream 정상 완료 후 is_downloading이 False로 복구된다."""
-        with patch.object(monitor_thread.downloader, "download", return_value=True):
-            monitor_thread._handle_live_stream(
-                "https://www.youtube.com/watch?v=test",
-                "Test Stream",
-            )
-
-        assert monitor_thread.is_downloading is False
-
-    def test_handle_live_stream_resets_flag_on_failure(
-        self, monitor_thread: ChannelMonitorThread
-    ):
-        """Test that _handle_live_stream resets flag even on failure."""
-        with patch.object(monitor_thread.downloader, "download", return_value=False):
-            monitor_thread._handle_live_stream(
-                "https://www.youtube.com/watch?v=test",
-                "Test Stream",
-            )
-
-        assert monitor_thread.is_downloading is False
-
-    def test_handle_live_stream_resets_flag_on_exception(
-        self, monitor_thread: ChannelMonitorThread
-    ):
-        """Test that _handle_live_stream resets flag even on exception."""
-        with patch.object(
-            monitor_thread.downloader,
-            "download",
-            side_effect=Exception("Error"),
-        ):
-            try:
-                monitor_thread._handle_live_stream(
-                    "https://www.youtube.com/watch?v=test",
-                    "Test Stream",
-                )
-            except Exception:
-                pass
-
-        assert monitor_thread.is_downloading is False
 
     def test_handle_live_stream_resets_flag_when_notifier_raises(
         self,
@@ -284,16 +230,6 @@ class TestMultiChannelMonitor:
             channel_manager=mock_channel_manager,
             youtube_client=mock_youtube_client,
         )
-
-    def test_init_with_defaults(self, initialized_logger):
-        """Test MultiChannelMonitor initialization with defaults."""
-        with patch("src.yt_monitor.monitoring.service.ChannelManager"):
-            with patch("src.yt_monitor.monitoring.service.YouTubeClient"):
-                monitor = MultiChannelMonitor()
-
-                assert monitor.channel_manager is not None
-                assert monitor.youtube_client is not None
-                assert monitor.is_running is False
 
     def test_start_with_no_channels(
         self,
@@ -537,45 +473,47 @@ class TestMultiChannelMonitor:
         old_thread.stop.assert_called_once()
         new_thread.start.assert_called_once()
 
-    def test_concurrent_add_and_remove_serialized_by_lock(
+    def test_remove_waits_for_monitor_threads_lock(
         self,
         multi_monitor: MultiChannelMonitor,
     ):
-        """add/remove를 백그라운드 스레드에서 동시 호출해도 dict 손상이 없어야 한다.
+        """FastAPI thread의 remove는 monitor_threads lock 해제 전 실행되면 안 된다."""
+        import threading
 
-        FastAPI 라우트 핸들러가 별도 스레드에서 add/remove를 호출하므로,
-        monitor_threads dict 접근이 락으로 직렬화되어야 한다.
-        """
-        import threading as real_threading
+        class ObservableLock:
+            def __init__(self):
+                self._lock = threading.RLock()
+                self.enter_attempted = threading.Event()
 
-        multi_monitor.is_running = True
-        existing_threads = {
-            f"channel-{i}": MagicMock() for i in range(20)
-        }
-        with multi_monitor._monitor_threads_lock:
-            multi_monitor.monitor_threads.update(existing_threads)
+            def __enter__(self):
+                self.enter_attempted.set()
+                self._lock.acquire()
+                return self
 
-        errors: list = []
+            def __exit__(self, *_args):
+                self._lock.release()
 
-        def remover(channel_id: str) -> None:
-            try:
-                multi_monitor.remove_channel_and_stop_monitoring(channel_id)
-            except Exception as error:
-                errors.append(error)
+        channel_thread = MagicMock()
+        multi_monitor.monitor_threads["channel"] = channel_thread
+        finished = threading.Event()
+        observable_lock = ObservableLock()
+        multi_monitor._monitor_threads_lock = observable_lock
 
-        workers = [
-            real_threading.Thread(target=remover, args=(f"channel-{i}",))
-            for i in range(20)
-        ]
-        for worker in workers:
+        def remove_channel() -> None:
+            multi_monitor.remove_channel_and_stop_monitoring("channel")
+            finished.set()
+
+        with observable_lock:
+            observable_lock.enter_attempted.clear()
+            worker = threading.Thread(target=remove_channel)
             worker.start()
-        for worker in workers:
-            worker.join(timeout=5.0)
+            assert observable_lock.enter_attempted.wait(timeout=1.0)
+            assert finished.is_set() is False
 
-        assert errors == []
-        assert len(multi_monitor.monitor_threads) == 0
-        for thread in existing_threads.values():
-            thread.stop.assert_called_once()
+        worker.join(timeout=1.0)
+        assert finished.is_set()
+        assert "channel" not in multi_monitor.monitor_threads
+        channel_thread.stop.assert_called_once()
 
 
 class TestChannelMonitorThreadNotifications:
@@ -632,6 +570,7 @@ class TestChannelMonitorThreadNotifications:
             title="방송 제목",
         )
         mock_notifier.notify_download_failed.assert_not_called()
+        assert monitor_thread.is_downloading is False
 
     def test_handle_live_stream_failure_sends_download_failed_notification(
         self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
@@ -647,6 +586,7 @@ class TestChannelMonitorThreadNotifications:
             error_message="다운로드가 실패했습니다 (success=False)",
         )
         mock_notifier.notify_download_complete.assert_not_called()
+        assert monitor_thread.is_downloading is False
 
     def test_handle_live_stream_exception_sends_download_failed_notification(
         self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
@@ -664,6 +604,7 @@ class TestChannelMonitorThreadNotifications:
             channel_name="Test Channel",
             error_message="ffmpeg crashed",
         )
+        assert monitor_thread.is_downloading is False
 
     def test_monitor_loop_exception_sends_error_notification(
         self, monitor_thread: ChannelMonitorThread, mock_notifier: MagicMock
@@ -683,39 +624,6 @@ class TestChannelMonitorThreadNotifications:
             channel_name="Test Channel",
             error_message="API timeout",
         )
-
-    def test_monitor_loop_auth_error_sends_bot_detection_notification(
-        self,
-        sample_channel: ChannelDTO,
-        global_settings: GlobalSettingsDTO,
-        mock_notifier: MagicMock,
-        initialized_logger,
-    ):
-        """YouTubeAuthError 발생 시 notify_bot_detection이 호출된다."""
-        from src.yt_monitor.monitoring.cooldown import AlertCooldown
-
-        thread = ChannelMonitorThread(
-            channel=sample_channel,
-            global_settings=global_settings,
-            youtube_client=MagicMock(),
-            notifier=mock_notifier,
-            auth_alert_cooldown=AlertCooldown(cooldown_seconds=1800.0, clock=lambda: 1000.0),
-        )
-
-        def cycle_side_effect():
-            thread.is_running = False
-            raise YouTubeAuthError("Sign in to confirm you're not a bot")
-
-        with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
-            with patch("src.yt_monitor.monitoring.worker.time.sleep"):
-                thread.is_running = True
-                thread._monitor_loop()
-
-        mock_notifier.notify_bot_detection.assert_called_once_with(
-            channel_name="Test Channel",
-            detail="Sign in to confirm you're not a bot",
-        )
-        mock_notifier.notify_error.assert_not_called()
 
     def test_monitor_loop_auth_error_respects_cooldown(
         self,
@@ -753,7 +661,11 @@ class TestChannelMonitorThreadNotifications:
                 thread.is_running = True
                 thread._monitor_loop()
 
-        assert mock_notifier.notify_bot_detection.call_count == 1
+        mock_notifier.notify_bot_detection.assert_called_once_with(
+            channel_name="Test Channel",
+            detail="Sign in to confirm you're not a bot",
+        )
+        mock_notifier.notify_error.assert_not_called()
 
     def test_monitor_loop_auth_error_after_cooldown_sends_again(
         self,

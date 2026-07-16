@@ -45,27 +45,13 @@ class TestHealthEndpoint:
 
         assert web_api.app.version == pyproject["project"]["version"]
 
-    def test_health_returns_200(self, client: TestClient):
-        """GET /health는 HTTP 200을 반환한다."""
+    def test_health_contract_for_docker_probe(self, client: TestClient):
+        """Docker probe가 인증 없이 호출할 수 있는 JSON health 계약을 보존한다."""
         response = client.get("/health")
+
         assert response.status_code == 200
-
-    def test_health_returns_ok_status(self, client: TestClient):
-        """GET /health 응답 본문에 status: ok가 포함된다."""
-        response = client.get("/health")
         assert response.json() == {"status": "ok"}
-
-    def test_health_content_type_is_json(self, client: TestClient):
-        """GET /health 응답은 JSON Content-Type이다."""
-        response = client.get("/health")
         assert "application/json" in response.headers["content-type"]
-
-    def test_health_is_reachable_without_auth(self, client: TestClient):
-        """GET /health는 인증 없이 접근 가능하다 (Docker probe용)."""
-        # /health는 별도 설정 없이 항상 응답해야 한다
-        for _ in range(3):
-            response = client.get("/health")
-            assert response.status_code == 200
 
 
 class TestWebAssets:

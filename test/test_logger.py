@@ -21,14 +21,6 @@ class TestLogger:
         """Clean up logger state after each test."""
         Logger.reset()
 
-    def test_initialize_creates_logger(self, temp_log_file: Path):
-        """Test that initialize creates a logger instance."""
-        logger = Logger.initialize(str(temp_log_file))
-
-        assert logger is not None
-        assert isinstance(logger, logging.Logger)
-        assert Logger._initialized is True
-
     def test_initialize_creates_parent_directories(self, temp_dir: Path):
         """Test that initialize creates parent directories if needed."""
         nested_log_file = temp_dir / "nested" / "dir" / "test.log"
@@ -36,20 +28,14 @@ class TestLogger:
 
         assert nested_log_file.parent.exists()
 
-    def test_initialize_returns_same_instance_on_second_call(self, temp_log_file: Path):
-        """Test that initialize returns the same instance when called twice."""
+    def test_initialize_and_get_share_single_logger(self, temp_log_file: Path):
+        """initialize()와 get()은 같은 logging.Logger를 재사용한다."""
         logger1 = Logger.initialize(str(temp_log_file))
         logger2 = Logger.initialize(str(temp_log_file))
 
+        assert isinstance(logger1, logging.Logger)
         assert logger1 is logger2
-
-    def test_get_returns_initialized_logger(self, temp_log_file: Path):
-        """Test that get returns the initialized logger."""
-        Logger.initialize(str(temp_log_file))
-        logger = Logger.get()
-
-        assert logger is not None
-        assert isinstance(logger, logging.Logger)
+        assert Logger.get() is logger1
 
     def test_get_raises_error_when_not_initialized(self):
         """Test that get raises RuntimeError when logger not initialized."""
@@ -111,10 +97,9 @@ class TestLogger:
         assert recent_log_file.exists()
 
     def test_reset_clears_state(self, temp_log_file: Path):
-        """Test that reset properly clears logger state."""
+        """reset() 후에는 다시 초기화하기 전까지 get()할 수 없다."""
         Logger.initialize(str(temp_log_file))
         Logger.reset()
 
-        assert Logger._initialized is False
-        assert Logger._instance is None
-        assert Logger._log_directory is None
+        with pytest.raises(RuntimeError, match="Logger not initialized"):
+            Logger.get()

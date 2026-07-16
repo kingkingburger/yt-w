@@ -35,18 +35,6 @@ class TestChannelDTO:
         with pytest.raises(ValueError, match="Channel name cannot be empty"):
             ChannelDTO(id="test-id", name="", url="https://www.youtube.com/@Test")
 
-    def test_channel_dto_custom_format(self):
-        """Test ChannelDTO with custom download format."""
-        channel = ChannelDTO(
-            id="test-id",
-            name="Test Channel",
-            url="https://www.youtube.com/@TestChannel",
-            download_format="bestvideo[height<=1080]+bestaudio",
-        )
-
-        assert channel.download_format == "bestvideo[height<=1080]+bestaudio"
-
-
 class TestGlobalSettingsDTO:
     """Test cases for GlobalSettingsDTO dataclass."""
 
@@ -60,18 +48,6 @@ class TestGlobalSettingsDTO:
         assert settings.split_mode == "time"
         assert settings.split_time_minutes == 30
         assert settings.split_size_mb == 500
-
-    def test_global_settings_custom_values(self):
-        """Test GlobalSettingsDTO with custom values."""
-        settings = GlobalSettingsDTO(
-            check_interval_seconds=120,
-            download_directory="/custom/downloads",
-            split_mode="size",
-        )
-
-        assert settings.check_interval_seconds == 120
-        assert settings.download_directory == "/custom/downloads"
-        assert settings.split_mode == "size"
 
     def test_global_settings_validation_invalid_check_interval(self):
         """Test that check_interval_seconds < 1 raises ValueError."""
@@ -102,13 +78,6 @@ class TestChannelManager:
         ChannelManager(channels_file=str(channels_file))
 
         assert channels_file.exists()
-
-    def test_init_uses_existing_file(self, temp_channels_file: Path):
-        """Test that ChannelManager uses existing channels file."""
-        manager = ChannelManager(channels_file=str(temp_channels_file))
-
-        channels = manager.list_channels()
-        assert channels == []  # Empty by default
 
     def test_add_channel(self, temp_channels_file: Path):
         """Test adding a new channel."""
@@ -170,16 +139,6 @@ class TestChannelManager:
         result = manager.remove_channel("nonexistent-id")
 
         assert result is False
-
-    def test_list_channels(self, temp_channels_file: Path):
-        """Test listing all channels."""
-        manager = ChannelManager(channels_file=str(temp_channels_file))
-        manager.add_channel(name="Channel 1", url="https://www.youtube.com/@Channel1")
-        manager.add_channel(name="Channel 2", url="https://www.youtube.com/@Channel2")
-
-        channels = manager.list_channels()
-
-        assert len(channels) == 2
 
     def test_list_channels_enabled_only(self, temp_channels_file: Path):
         """Test listing only enabled channels."""

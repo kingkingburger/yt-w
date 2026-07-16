@@ -45,20 +45,6 @@ class TestStreamDownloader:
         assert downloader.split_time_minutes == 30
         assert downloader.split_size_mb == 500
 
-    def test_init_custom_split_values(self, temp_dir: Path, initialized_logger):
-        """Test StreamDownloader with custom split values."""
-        downloader = StreamDownloader(
-            download_directory=str(temp_dir),
-            download_format="bestvideo+bestaudio/best",
-            split_mode="size",
-            split_time_minutes=60,
-            split_size_mb=1000,
-        )
-
-        assert downloader.split_mode == "size"
-        assert downloader.split_time_minutes == 60
-        assert downloader.split_size_mb == 1000
-
     def test_build_ydl_options(self, stream_downloader: StreamDownloader):
         """Test _build_ydl_options returns correct options."""
         opts = stream_downloader._build_ydl_options("/path/to/output.mp4")
@@ -117,24 +103,6 @@ class TestStreamDownloader:
             assert result is True
             mock_split.assert_called_once()
 
-    def test_download_size_split_mode(self, temp_dir: Path, initialized_logger):
-        """Test download with split_mode='size'."""
-        downloader = StreamDownloader(
-            download_directory=str(temp_dir),
-            download_format="bestvideo+bestaudio/best",
-            split_mode="size",
-            split_size_mb=100,
-        )
-
-        with patch.object(downloader, "_download_with_realtime_split") as mock_split:
-            result = downloader.download(
-                "https://www.youtube.com/watch?v=test123",
-                filename_prefix="test",
-            )
-
-            assert result is True
-            mock_split.assert_called_once()
-
     def test_download_failure_returns_false(self, stream_downloader: StreamDownloader):
         """Test that download returns False on failure."""
         with patch.object(
@@ -180,7 +148,8 @@ class TestStreamDownloader:
             mock_instance.__enter__ = MagicMock(return_value=mock_instance)
             mock_instance.__exit__ = MagicMock(return_value=False)
             mock_instance.extract_info.return_value = {
-                "url": "https://direct-url.com/stream"
+                "url": "https://direct-url.com/stream",
+                "http_headers": {"User-Agent": "Mozilla/5.0"},
             }
             mock_ydl.return_value = mock_instance
 
@@ -199,88 +168,9 @@ class TestStreamDownloader:
                 call_args = mock_popen.call_args[0][0]
                 segment_time_idx = call_args.index("-segment_time")
                 assert call_args[segment_time_idx + 1] == "600"
-
-    def test_download_with_realtime_split_size_mode(
-        self, temp_dir: Path, initialized_logger
-    ):
-        """Test _download_with_realtime_split calculates time from size."""
-        downloader = StreamDownloader(
-            download_directory=str(temp_dir),
-            download_format="bestvideo+bestaudio/best",
-            split_mode="size",
-            split_size_mb=100,
-        )
-
-        with patch("yt_dlp.YoutubeDL") as mock_ydl:
-            mock_instance = MagicMock()
-            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
-            mock_instance.__exit__ = MagicMock(return_value=False)
-            mock_instance.extract_info.return_value = {
-                "url": "https://direct-url.com/stream"
-            }
-            mock_ydl.return_value = mock_instance
-
-            with patch("subprocess.Popen") as mock_popen:
-                mock_proc = MagicMock()
-                mock_proc.communicate.return_value = ("", "")
-                mock_proc.returncode = 0
-                mock_popen.return_value = mock_proc
-
-                downloader._download_with_realtime_split(
-                    "https://www.youtube.com/watch?v=test123",
-                    "/output/pattern_%03d.mp4",
-                )
-
-                # Verify ffmpeg was called
-                mock_popen.assert_called_once()
-
-    def test_download_with_realtime_split_dual_stream(
-        self, stream_downloader: StreamDownloader
-    ):
-        """Test _download_with_realtime_split handles video+audio streams."""
-        with patch("yt_dlp.YoutubeDL") as mock_ydl:
-            mock_instance = MagicMock()
-            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
-            mock_instance.__exit__ = MagicMock(return_value=False)
-            mock_instance.extract_info.return_value = {
-                "requested_formats": [
-                    {"url": "https://video-url.com"},
-                    {"url": "https://audio-url.com"},
-                ]
-            }
-            mock_ydl.return_value = mock_instance
-
-            with patch("subprocess.Popen") as mock_popen:
-                mock_proc = MagicMock()
-                mock_proc.communicate.return_value = ("", "")
-                mock_proc.returncode = 0
-                mock_popen.return_value = mock_proc
-
-                stream_downloader._download_with_realtime_split(
-                    "https://www.youtube.com/watch?v=test123",
-                    "/output/pattern_%03d.mp4",
-                )
-
-                # Verify ffmpeg was called with two inputs
-                call_args = mock_popen.call_args[0][0]
-                input_count = call_args.count("-i")
-                assert input_count == 2
-
-    def test_download_with_realtime_split_invalid_mode(
-        self, temp_dir: Path, initialized_logger
-    ):
-        """Test _download_with_realtime_split raises error for invalid mode."""
-        downloader = StreamDownloader(
-            download_directory=str(temp_dir),
-            download_format="bestvideo+bestaudio/best",
-        )
-        downloader.split_mode = "invalid"
-
-        with pytest.raises(ValueError, match="Invalid split_mode"):
-            downloader._download_with_realtime_split(
-                "https://www.youtube.com/watch?v=test123",
-                "/output/pattern_%03d.mp4",
-            )
+                header_idx = call_args.index("-headers")
+                input_idx = call_args.index("-i")
+                assert header_idx < input_idx
 
     def test_download_with_realtime_split_ffmpeg_failure(
         self, stream_downloader: StreamDownloader

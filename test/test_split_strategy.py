@@ -5,7 +5,6 @@ import pytest
 from src.yt_monitor.media.split_strategy import (
     NoSplit,
     SizeSplit,
-    SplitStrategy,
     TimeSplit,
     make_split_strategy,
 )
@@ -14,9 +13,6 @@ from src.yt_monitor.media.split_strategy import (
 class TestTimeSplit:
     def test_split_seconds_converts_minutes(self):
         assert TimeSplit(minutes=30).split_seconds() == 1800
-
-    def test_split_seconds_with_10_minutes(self):
-        assert TimeSplit(minutes=10).split_seconds() == 600
 
     def test_zero_minutes_raises(self):
         with pytest.raises(ValueError):
@@ -67,20 +63,3 @@ class TestMakeSplitStrategy:
     def test_invalid_mode_raises(self):
         with pytest.raises(ValueError, match="Invalid split_mode"):
             make_split_strategy("invalid", time_minutes=30, size_mb=500)
-
-
-class TestSplitStrategyProtocol:
-    """Strategy 인터페이스 일관성."""
-
-    @pytest.mark.parametrize(
-        "strategy",
-        [
-            TimeSplit(minutes=10),
-            SizeSplit(megabytes=100),
-            NoSplit(),
-        ],
-    )
-    def test_implements_split_seconds(self, strategy: SplitStrategy):
-        """모든 구현체는 split_seconds()를 노출한다."""
-        result = strategy.split_seconds()
-        assert result is None or isinstance(result, int)
