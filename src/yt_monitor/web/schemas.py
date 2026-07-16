@@ -1,6 +1,6 @@
 """Pydantic 요청/응답 스키마 — API 라우트가 공유한다."""
 
-from typing import Optional
+from typing import List, Literal, Optional
 
 from pydantic import BaseModel
 
@@ -23,6 +23,25 @@ class VideoDownloadRequest(BaseModel):
     url: str
     quality: str = "best"
     audio_only: bool = False
+
+
+class MergeRequest(BaseModel):
+    inputs: List[str]
+    output: str
+    mode: Literal["concat", "reencode"] = "concat"
+
+
+class SplitRequest(BaseModel):
+    input: str
+    strategy: Literal["interval", "parts"]
+    interval_seconds: Optional[float] = None
+    parts: Optional[int] = None
+
+
+class SplitUploadResponse(BaseModel):
+    path: str
+    name: str
+    size_bytes: int
 
 
 class MonitorStatus(BaseModel):

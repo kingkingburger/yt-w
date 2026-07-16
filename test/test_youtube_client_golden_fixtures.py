@@ -19,7 +19,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.yt_monitor.youtube_client import YouTubeClient
+from src.yt_monitor.youtube.client import YouTubeClient
 
 
 _FIXTURES_DIR: Path = Path(__file__).parent / "fixtures" / "youtube_responses"

@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Set
 
-from .video_merger import VideoExtensions
+from .merge import VideoExtensions
 
 
 SplitStrategy = Literal["interval", "parts"]

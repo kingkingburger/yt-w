@@ -17,7 +17,7 @@ def reload_cookie_options(monkeypatch, tmp_path):
     monkeypatch.delenv("YT_POT_PROVIDER_URL", raising=False)
     monkeypatch.delenv("DOCKER_CONTAINER", raising=False)
 
-    import src.yt_monitor.cookie_options as cookie_options
+    import src.yt_monitor.youtube.cookies as cookie_options
     importlib.reload(cookie_options)
     return cookie_options, cookie_path
 

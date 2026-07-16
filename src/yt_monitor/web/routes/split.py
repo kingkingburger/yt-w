@@ -4,30 +4,17 @@ import asyncio
 import uuid
 from dataclasses import asdict
 from pathlib import Path
-from typing import Literal, Optional, Set
+from typing import Optional, Set
 
 import anyio
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
-from ...channel_manager import ChannelManager
-from ...logger import Logger
-from ...video_merger import VideoExtensions
-from ...video_splitter import SplitJobManager
-
-
-class SplitRequest(BaseModel):
-    input: str
-    strategy: Literal["interval", "parts"]
-    interval_seconds: Optional[float] = None
-    parts: Optional[int] = None
-
-
-class SplitUploadResponse(BaseModel):
-    path: str
-    name: str
-    size_bytes: int
+from ...channels.repository import ChannelManager
+from ...logging import Logger
+from ...media.merge import VideoExtensions
+from ...media.split import SplitJobManager
+from ..schemas import SplitRequest, SplitUploadResponse
 
 
 def normalize_upload_filename(filename: Optional[str]) -> str:

@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.yt_monitor.stream_downloader import StreamDownloader
+from src.yt_monitor.media.stream_download import StreamDownloader
 
 
 class TestStreamDownloader:

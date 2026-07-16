@@ -9,7 +9,7 @@ import time
 from dataclasses import asdict, dataclass
 from typing import Any, Callable, Dict, Optional
 
-from .cookie_options import _TEST_VIDEO_URL, get_cookie_options
+from .cookies import _TEST_VIDEO_URL, get_cookie_options
 
 
 _DEFAULT_CACHE_TTL_SECONDS: float = 300.0

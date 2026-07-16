@@ -13,9 +13,9 @@ from typing import Optional
 
 import yt_dlp
 
-from .cookie_options import get_cookie_options
-from .ffmpeg_command import build_segment_command
-from .logger import Logger
+from ..logging import Logger
+from ..youtube.cookies import get_cookie_options
+from .ffmpeg import build_segment_command
 from .split_strategy import NoSplit, make_split_strategy
 
 

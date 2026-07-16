@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.yt_monitor.video_splitter import (
+from src.yt_monitor.media.split import (
     SplitJobManager,
     build_split_command,
     build_split_ranges,
@@ -104,10 +104,10 @@ def test_submit_reserves_original_name_numbered_outputs(tmp_path: Path):
 
     with (
         patch(
-            "src.yt_monitor.video_splitter.probe_duration_seconds",
+            "src.yt_monitor.media.split.probe_duration_seconds",
             return_value=13 * 3600,
         ),
-        patch("src.yt_monitor.video_splitter.threading.Thread") as thread_class,
+        patch("src.yt_monitor.media.split.threading.Thread") as thread_class,
     ):
         job = SplitJobManager(root).submit(
             input_relative_path="merged/long-video.mp4",
@@ -134,10 +134,10 @@ def test_submit_supports_relative_download_root(tmp_path: Path, monkeypatch):
 
     with (
         patch(
-            "src.yt_monitor.video_splitter.probe_duration_seconds",
+            "src.yt_monitor.media.split.probe_duration_seconds",
             return_value=7200,
         ),
-        patch("src.yt_monitor.video_splitter.threading.Thread"),
+        patch("src.yt_monitor.media.split.threading.Thread"),
     ):
         job = SplitJobManager(root).submit(
             input_relative_path="long.mp4",
@@ -183,11 +183,11 @@ def test_split_job_creates_each_numbered_file(tmp_path: Path):
 
     with (
         patch(
-            "src.yt_monitor.video_splitter.probe_duration_seconds",
+            "src.yt_monitor.media.split.probe_duration_seconds",
             return_value=7200,
         ),
-        patch("src.yt_monitor.video_splitter.subprocess.Popen") as popen,
-        patch("src.yt_monitor.video_splitter.threading.Thread") as thread_class,
+        patch("src.yt_monitor.media.split.subprocess.Popen") as popen,
+        patch("src.yt_monitor.media.split.threading.Thread") as thread_class,
     ):
         popen.side_effect = lambda command, **kwargs: FinishedProcess()
         job = manager.submit(

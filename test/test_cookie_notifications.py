@@ -11,8 +11,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from src.yt_monitor.cookie_validator import CookieValidator, invalidate_cookie_cache
-from src.yt_monitor.web_api import WebAPI
+from src.yt_monitor.youtube.cookie_validation import CookieValidator, invalidate_cookie_cache
+from src.yt_monitor.web.app import WebAPI
 
 
 @pytest.fixture(autouse=True)
@@ -53,9 +53,9 @@ def client_and_notifier(channels_file: str):
         "Sign in to confirm you're not a bot"
     )
 
-    with patch("src.yt_monitor.cookie_validator._default_validator", fresh_validator):
+    with patch("src.yt_monitor.youtube.cookie_validation._default_validator", fresh_validator):
         with patch(
-            "src.yt_monitor.web_api.routes.cookies.get_notifier",
+            "src.yt_monitor.web.routes.cookies.get_notifier",
             return_value=mock_notifier,
         ):
             with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):

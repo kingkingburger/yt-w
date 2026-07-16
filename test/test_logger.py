@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from src.yt_monitor.logger import Logger
+from src.yt_monitor.logging import Logger
 
 
 class TestLogger:

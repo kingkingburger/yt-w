@@ -24,28 +24,22 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드 시
 ```
 yt-w/
 ├── src/yt_monitor/                      # 메인 패키지
-│   ├── multi_channel_monitor.py         # 멀티 채널 모니터 + 채널별 스레드
-│   ├── channel_manager.py               # channels.json CRUD (RLock 직렬화)
-│   ├── youtube_client.py                # 라이브 감지 (DetectionStrategy 2종)
-│   ├── stream_downloader.py             # 라이브 녹화 (yt-dlp + ffmpeg Popen)
-│   ├── video_downloader.py              # 일반 동영상 다운로드
-│   ├── ffmpeg_command.py                # ffmpeg 세그먼트 커맨드 빌더 (순수)
-│   ├── split_strategy.py                # 시간/크기/없음 분할 전략
-│   ├── file_cleaner.py                  # retention 기반 정리
-│   ├── discord_notifier.py              # Discord webhook (urllib + rate-limit)
-│   ├── alert_cooldown.py                # 쿨다운 값 객체 (알림 폭주 방지)
-│   ├── cookie_options.py                # yt-dlp cookie/PO-Token 옵션 빌더 (Firefox profile 직접 읽기)
-│   ├── cookie_validator.py              # 쿠키 유효성 검증 + 캐시
-│   ├── monitor_status.py                # yt-monitor heartbeat 파일 read/write
-│   ├── video_merger.py                  # ffmpeg 기반 영상 병합 (concat / re-encode 잡 매니저)
-│   ├── logger.py                        # TimedRotatingFileHandler 로거
-│   ├── web_api/                         # FastAPI 웹 서버
-│   │   ├── api.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
+│   ├── channels/                        # DTO + channels.json 저장소
+│   │   ├── models.py
+│   │   └── repository.py                # CRUD (RLock 직렬화)
+│   ├── youtube/                         # 라이브 감지, cookie/PO-Token, URL 정규화
+│   ├── monitoring/                      # 멀티 채널 service, 채널 worker, heartbeat
+│   ├── media/                           # 다운로드, ffmpeg 명령, 병합·분할
+│   ├── notifications/discord.py         # Discord webhook (urllib + rate-limit)
+│   ├── maintenance/                     # retention 정리 + 백그라운드 스케줄러
+│   ├── web/                             # FastAPI 웹 서버
+│   │   ├── app.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
+│   │   ├── cli.py                       # 웹 서버 CLI
 │   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
-│   │   ├── dto_converters.py            # ChannelDTO → API dict 변환
-│   │   ├── cleanup_scheduler.py         # 백그라운드 자동 정리 스케줄러
-│   │   └── routes/                      # 라우트 모듈 (channels/monitor/video/cookies/merge/system/meta)
-│   └── util/sanitize_url.py             # URL 정규화
+│   │   ├── converters.py                # ChannelDTO → API dict 변환
+│   │   └── routes/                      # 라우트 모듈
+│   ├── cli.py                           # 모니터·다운로드·정리 CLI
+│   └── logging.py                       # TimedRotatingFileHandler 로거
 ├── test/                                # pytest 단위/회귀 테스트
 ├── web/
 │   ├── index.html                       # Operator console markup
@@ -64,8 +58,8 @@ yt-w/
 ### 1. 라이브 모니터링 (yt-monitor)
 
 ```
-monitoring.py
-  └─ MultiChannelMonitor.start()
+monitoring.py → yt_monitor.cli
+  └─ monitoring.service.MultiChannelMonitor.start()
        ├─ ChannelManager.list_channels(enabled_only=True)
        ├─ for channel: ChannelMonitorThread(...).start()
        │    └─ _monitor_loop (per-channel daemon thread)
@@ -85,7 +79,7 @@ monitoring.py
 ### 2. 웹 API (yt-web)
 
 ```
-main.py → uvicorn → web_api.api.create_app()
+main.py → web.cli → web.app.WebAPI → uvicorn
   ├─ register_*_routes (channels / monitor / video / cookies / merge / system / meta)
   └─ CleanupScheduler.start_in_background()
 ```
@@ -109,7 +103,7 @@ main.py → uvicorn → web_api.api.create_app()
 
 ### 4. 쿠키 인증 우선순위
 
-`cookie_options.get_cookie_options()`가 환경에 따라 분기:
+`youtube.cookies.get_cookie_options()`가 환경에 따라 분기:
 
 1. **Docker + `/app/firefox_profile` 존재** → `cookiesfrombrowser=("firefox", profile, ...)` (호스트 Firefox 프로필 직접 사용)
 2. **Docker + 프로필 없음 + `cookies.txt` 존재** → 임시본 `cookiefile` (yt-dlp가 매 요청 덮어써서 원본 보호)

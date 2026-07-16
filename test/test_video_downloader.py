@@ -4,7 +4,7 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 
-from src.yt_monitor.video_downloader import VideoDownloader
+from src.yt_monitor.media.video_download import VideoDownloader
 
 
 class TestVideoDownloader:

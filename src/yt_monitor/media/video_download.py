@@ -8,7 +8,7 @@ from typing import Optional
 
 import yt_dlp
 
-from .cookie_options import get_cookie_options
+from ..youtube.cookies import get_cookie_options
 
 
 logger = logging.getLogger("yt_monitor.video_downloader")

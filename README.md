@@ -192,33 +192,21 @@ YouTube 봇 차단 우회를 위해 두 가지 방식을 지원합니다.
 ```
 yt-w/
 ├── src/yt_monitor/              # 메인 패키지
-│   ├── web_api/                 # FastAPI 웹 서버 + REST API (라우트별 분할)
-│   │   ├── api.py               # 앱 조립 + 라우트 등록 + 스케줄러 시작
-│   │   ├── routes/              # /api/* 라우트 모듈
-│   │   ├── schemas.py           # Pydantic 요청/응답 스키마
-│   │   ├── dto_converters.py    # ChannelDTO → API dict 변환
-│   │   └── cleanup_scheduler.py # 백그라운드 자동 정리 스케줄러
-│   ├── multi_channel_monitor.py # 멀티 채널 모니터링
-│   ├── channel_manager.py       # 채널 설정 관리
-│   ├── youtube_client.py        # YouTube 라이브 감지 (3중 fallback)
-│   ├── stream_downloader.py     # 라이브 스트림 다운로더
-│   ├── video_downloader.py      # 일반 동영상 다운로더
-│   ├── file_cleaner.py          # 자동 파일 정리
-│   ├── discord_notifier.py      # Discord Webhook 알림
-│   ├── alert_cooldown.py        # 알림 쿨다운 (봇 감지 폭주 방지)
-│   ├── cookie_options.py        # yt-dlp 쿠키/인증 옵션 빌더 (Firefox profile 직접 읽기)
-│   ├── cookie_validator.py      # 쿠키 유효성 검증 + 캐시
-│   ├── monitor_status.py        # yt-monitor heartbeat 상태 파일
-│   ├── video_merger.py          # ffmpeg 기반 영상 병합 잡 매니저
-│   ├── logger.py                # 로깅 (일별 로테이션)
-│   └── util/
-│       └── sanitize_url.py      # URL 정규화
+│   ├── channels/                # 채널 DTO와 JSON 저장소
+│   ├── youtube/                 # 라이브 감지, 쿠키, URL 처리
+│   ├── monitoring/              # 멀티 채널 조정, 채널 worker, heartbeat
+│   ├── media/                   # 다운로드, ffmpeg 명령, 병합·분할
+│   ├── notifications/           # Discord Webhook 알림
+│   ├── maintenance/             # 파일 정리와 자동 정리 스케줄러
+│   ├── web/                     # FastAPI 앱, 스키마, /api/* 라우트
+│   ├── cli.py                   # 모니터링·다운로드·정리 CLI
+│   └── logging.py               # 로깅 (일별 로테이션)
 ├── web/
 │   ├── index.html               # Operator console markup
 │   ├── app.css                  # Operator console styles
 │   └── app.js                   # Operator console client logic
-├── main.py                      # CLI + 웹 서버 엔트리포인트
-├── monitoring.py                # 모니터링 데몬 엔트리포인트
+├── main.py                      # 웹 서버 호환 엔트리포인트
+├── monitoring.py                # 모니터링 CLI 호환 엔트리포인트
 ├── docker-compose.yml
 ├── Dockerfile
 ├── channels.json                # 채널 설정

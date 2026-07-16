@@ -5,13 +5,11 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.yt_monitor.channel_manager import ChannelDTO, GlobalSettingsDTO, ChannelManager
-from src.yt_monitor.multi_channel_monitor import (
-    ChannelMonitorThread,
-    MultiChannelMonitor,
-    _sanitize_name,
-)
-from src.yt_monitor.youtube_client import LiveStreamInfo, YouTubeAuthError
+from src.yt_monitor.channels.models import ChannelDTO, GlobalSettingsDTO
+from src.yt_monitor.channels.repository import ChannelManager
+from src.yt_monitor.monitoring.service import MultiChannelMonitor
+from src.yt_monitor.monitoring.worker import ChannelMonitorThread, _sanitize_name
+from src.yt_monitor.youtube.client import LiveStreamInfo, YouTubeAuthError
 
 
 @pytest.fixture
@@ -289,8 +287,8 @@ class TestMultiChannelMonitor:
 
     def test_init_with_defaults(self, initialized_logger):
         """Test MultiChannelMonitor initialization with defaults."""
-        with patch("src.yt_monitor.multi_channel_monitor.ChannelManager"):
-            with patch("src.yt_monitor.multi_channel_monitor.YouTubeClient"):
+        with patch("src.yt_monitor.monitoring.service.ChannelManager"):
+            with patch("src.yt_monitor.monitoring.service.YouTubeClient"):
                 monitor = MultiChannelMonitor()
 
                 assert monitor.channel_manager is not None
@@ -335,10 +333,10 @@ class TestMultiChannelMonitor:
             # SIGTERM 핸들러 등록 지점에서 메인 while 루프를 즉시 종료시킨다
             multi_monitor.is_running = False
 
-        with patch("src.yt_monitor.multi_channel_monitor.get_notifier"):
-            with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
+        with patch("src.yt_monitor.monitoring.service.get_notifier"):
+            with patch("src.yt_monitor.monitoring.service.signal") as mock_sig:
                 mock_sig.signal.side_effect = exit_keep_alive_loop
-                with patch("src.yt_monitor.multi_channel_monitor.time") as mock_time:
+                with patch("src.yt_monitor.monitoring.service.time") as mock_time:
                     mock_time.sleep = MagicMock()
                     multi_monitor.start()
 
@@ -677,7 +675,7 @@ class TestChannelMonitorThreadNotifications:
             raise Exception("API timeout")
 
         with patch.object(monitor_thread, "_monitor_cycle", side_effect=cycle_side_effect):
-            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+            with patch("src.yt_monitor.monitoring.worker.time.sleep"):
                 monitor_thread.is_running = True
                 monitor_thread._monitor_loop()
 
@@ -694,7 +692,7 @@ class TestChannelMonitorThreadNotifications:
         initialized_logger,
     ):
         """YouTubeAuthError 발생 시 notify_bot_detection이 호출된다."""
-        from src.yt_monitor.alert_cooldown import AlertCooldown
+        from src.yt_monitor.monitoring.cooldown import AlertCooldown
 
         thread = ChannelMonitorThread(
             channel=sample_channel,
@@ -709,7 +707,7 @@ class TestChannelMonitorThreadNotifications:
             raise YouTubeAuthError("Sign in to confirm you're not a bot")
 
         with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
-            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+            with patch("src.yt_monitor.monitoring.worker.time.sleep"):
                 thread.is_running = True
                 thread._monitor_loop()
 
@@ -727,7 +725,7 @@ class TestChannelMonitorThreadNotifications:
         initialized_logger,
     ):
         """쿨다운 내 반복되는 YouTubeAuthError는 1번만 알림을 보낸다."""
-        from src.yt_monitor.alert_cooldown import AlertCooldown
+        from src.yt_monitor.monitoring.cooldown import AlertCooldown
 
         # 세 번 모두 쿨다운(1800초) 내 시각 — 첫 번째만 통과
         time_sequence = iter([1000.0, 1005.0, 1010.0])
@@ -751,7 +749,7 @@ class TestChannelMonitorThreadNotifications:
             raise YouTubeAuthError("Sign in to confirm you're not a bot")
 
         with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
-            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+            with patch("src.yt_monitor.monitoring.worker.time.sleep"):
                 thread.is_running = True
                 thread._monitor_loop()
 
@@ -765,7 +763,7 @@ class TestChannelMonitorThreadNotifications:
         initialized_logger,
     ):
         """쿨다운 경과 후 재발생하면 다시 알림을 보낸다."""
-        from src.yt_monitor.alert_cooldown import AlertCooldown
+        from src.yt_monitor.monitoring.cooldown import AlertCooldown
 
         # 첫 호출 t=1000, 두 번째 t=3000 (2000초 경과 > 1800초 쿨다운)
         time_sequence = iter([1000.0, 3000.0])
@@ -789,7 +787,7 @@ class TestChannelMonitorThreadNotifications:
             raise YouTubeAuthError("Sign in to confirm you're not a bot")
 
         with patch.object(thread, "_monitor_cycle", side_effect=cycle_side_effect):
-            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+            with patch("src.yt_monitor.monitoring.worker.time.sleep"):
                 thread.is_running = True
                 thread._monitor_loop()
 
@@ -839,8 +837,8 @@ class TestMultiChannelMonitorBackgroundThread:
 
         def run_monitor():
             try:
-                with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
-                    with patch("src.yt_monitor.multi_channel_monitor.time.sleep") as mock_sleep:
+                with patch("src.yt_monitor.monitoring.service.signal") as mock_sig:
+                    with patch("src.yt_monitor.monitoring.service.time.sleep") as mock_sleep:
                         # 첫 sleep에서 즉시 종료 — 핸들러 등록 분기를 통과한 직후 빠진다
                         def stop_loop(*args, **kwargs):
                             monitor.is_running = False
@@ -867,7 +865,7 @@ class TestMultiChannelMonitorSigterm:
 
     @pytest.fixture
     def mock_channel_manager(self, tmp_path: Path) -> MagicMock:
-        from src.yt_monitor.channel_manager import ChannelManager
+        from src.yt_monitor.channels.repository import ChannelManager
         manager = MagicMock(spec=ChannelManager)
         manager.list_channels.return_value = [
             ChannelDTO(
@@ -907,10 +905,10 @@ class TestMultiChannelMonitorSigterm:
             captured_handler[sig] = handler
             monitor.is_running = False  # while 루프 즉시 종료
 
-        with patch("src.yt_monitor.multi_channel_monitor.signal") as mock_sig:
+        with patch("src.yt_monitor.monitoring.service.signal") as mock_sig:
             mock_sig.SIGTERM = real_signal.SIGTERM
             mock_sig.signal.side_effect = capture_and_stop
-            with patch("src.yt_monitor.multi_channel_monitor.time.sleep"):
+            with patch("src.yt_monitor.monitoring.service.time.sleep"):
                 monitor.start()
 
         assert real_signal.SIGTERM in captured_handler

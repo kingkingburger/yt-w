@@ -7,9 +7,9 @@ from pathlib import Path
 
 from fastapi import FastAPI
 
-from ...channel_manager import ChannelManager
-from ...discord_notifier import NotificationLevel, get_notifier
-from ...monitor_status import read_monitor_status
+from ...channels.repository import ChannelManager
+from ...monitoring.status import read_monitor_status
+from ...notifications.discord import NotificationLevel, get_notifier
 
 DOWNLOADS_CACHE_TTL_SECONDS = 30.0
 

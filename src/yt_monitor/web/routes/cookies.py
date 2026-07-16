@@ -4,9 +4,9 @@ import asyncio
 
 from fastapi import FastAPI
 
-from ...cookie_validator import validate_cookies
-from ...discord_notifier import get_notifier
-from ...logger import Logger
+from ...logging import Logger
+from ...notifications.discord import get_notifier
+from ...youtube.cookie_validation import validate_cookies
 
 
 def register_cookie_routes(app: FastAPI) -> None:

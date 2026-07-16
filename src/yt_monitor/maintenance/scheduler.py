@@ -4,9 +4,9 @@ import threading
 import time
 from typing import Callable, Optional
 
-from ..channel_manager import ChannelManager
-from ..file_cleaner import FileCleaner
-from ..logger import Logger
+from ..channels.repository import ChannelManager
+from ..logging import Logger
+from .cleanup import FileCleaner
 
 
 class CleanupScheduler:

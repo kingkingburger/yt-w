@@ -7,10 +7,10 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 
-from ...channel_manager import ChannelManager
-from ...logger import Logger
-from ...util.sanitize_url import sanitize_youtube_url
-from ...video_downloader import VideoDownloader
+from ...channels.repository import ChannelManager
+from ...logging import Logger
+from ...media.video_download import VideoDownloader
+from ...youtube.url import sanitize_youtube_url
 from ..schemas import VideoDownloadRequest
 
 

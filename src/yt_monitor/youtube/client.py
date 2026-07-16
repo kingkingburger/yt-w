@@ -14,8 +14,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yt_dlp
 
-from .cookie_options import get_cookie_options
-from .logger import Logger
+from ..logging import Logger
+from .cookies import get_cookie_options
 
 
 _AUTH_ERROR_PATTERNS: Tuple[str, ...] = (

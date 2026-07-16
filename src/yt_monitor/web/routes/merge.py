@@ -4,23 +4,16 @@ import asyncio
 import time
 from dataclasses import asdict
 from pathlib import Path
-from typing import List, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
-from pydantic import BaseModel
 
-from ...channel_manager import ChannelManager
-from ...logger import Logger
-from ...video_merger import MergeJobManager, list_video_files
+from ...channels.repository import ChannelManager
+from ...logging import Logger
+from ...media.merge import MergeJobManager, list_video_files
+from ..schemas import MergeRequest
 
 FILE_LIST_CACHE_TTL_SECONDS = 5.0
-
-
-class MergeRequest(BaseModel):
-    inputs: List[str]
-    output: str
-    mode: Literal["concat", "reencode"] = "concat"
 
 
 def register_merge_routes(

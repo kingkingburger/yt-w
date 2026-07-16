@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.yt_monitor.split_strategy import (
+from src.yt_monitor.media.split_strategy import (
     NoSplit,
     SizeSplit,
     SplitStrategy,

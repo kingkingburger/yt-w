@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from src.yt_monitor import video_merger
-from src.yt_monitor.video_merger import MergeJobManager
+import src.yt_monitor.media.merge as video_merger
+from src.yt_monitor.media.merge import MergeJobManager
 
 
 def extract_js_function(source: str, name: str) -> str:

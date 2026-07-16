@@ -7,11 +7,11 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from ..channel_manager import ChannelManager
-from ..logger import Logger
-from ..video_merger import MergeJobManager
-from ..video_splitter import SplitJobManager
-from .cleanup_scheduler import CleanupScheduler
+from ..channels.repository import ChannelManager
+from ..logging import Logger
+from ..maintenance.scheduler import CleanupScheduler
+from ..media.merge import MergeJobManager
+from ..media.split import SplitJobManager
 from .routes import (
     register_channel_routes,
     register_cookie_routes,

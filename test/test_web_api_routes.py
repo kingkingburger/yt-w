@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from src.yt_monitor.cookie_validator import invalidate_cookie_cache
-from src.yt_monitor.web_api import WebAPI
+from src.yt_monitor.youtube.cookie_validation import invalidate_cookie_cache
+from src.yt_monitor.web.app import WebAPI
 
 
 @pytest.fixture(autouse=True)
@@ -127,8 +127,8 @@ class TestMonitorStatusRoute:
     def test_status_reads_external_monitor_heartbeat(
         self, client: TestClient, channels_file: str
     ):
-        from src.yt_monitor.channel_manager import ChannelManager
-        from src.yt_monitor.monitor_status import write_monitor_status
+        from src.yt_monitor.channels.repository import ChannelManager
+        from src.yt_monitor.monitoring.status import write_monitor_status
 
         manager = ChannelManager(channels_file)
         settings = manager.get_global_settings()
@@ -160,7 +160,7 @@ class TestVideoDownloadRoutes:
     def test_download_file_rejects_path_escape(
         self, client: TestClient, channels_file: str
     ):
-        from src.yt_monitor.channel_manager import ChannelManager
+        from src.yt_monitor.channels.repository import ChannelManager
 
         manager = ChannelManager(channels_file)
         settings = manager.get_global_settings()
@@ -180,7 +180,7 @@ class TestSplitRoutes:
     def test_submit_split_job(self, client: TestClient, channels_file: str):
         from unittest.mock import patch
 
-        from src.yt_monitor.channel_manager import ChannelManager
+        from src.yt_monitor.channels.repository import ChannelManager
 
         manager = ChannelManager(channels_file)
         root = Path(manager.get_global_settings().download_directory)
@@ -189,10 +189,10 @@ class TestSplitRoutes:
 
         with (
             patch(
-                "src.yt_monitor.video_splitter.probe_duration_seconds",
+                "src.yt_monitor.media.split.probe_duration_seconds",
                 return_value=13 * 3600,
             ),
-            patch("src.yt_monitor.video_splitter.threading.Thread"),
+            patch("src.yt_monitor.media.split.threading.Thread"),
         ):
             response = client.post(
                 "/api/split",
@@ -211,7 +211,7 @@ class TestSplitRoutes:
     def test_split_rejects_missing_strategy_value(
         self, client: TestClient, channels_file: str
     ):
-        from src.yt_monitor.channel_manager import ChannelManager
+        from src.yt_monitor.channels.repository import ChannelManager
 
         manager = ChannelManager(channels_file)
         root = Path(manager.get_global_settings().download_directory)

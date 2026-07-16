@@ -4,7 +4,7 @@ import json
 from unittest.mock import MagicMock
 
 
-from src.yt_monitor.discord_notifier import DiscordNotifier, NotificationLevel, get_notifier
+from src.yt_monitor.notifications.discord import DiscordNotifier, NotificationLevel, get_notifier
 
 
 class TestNotificationLevel:

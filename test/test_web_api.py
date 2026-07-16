@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
-from src.yt_monitor.web_api import WebAPI
+from src.yt_monitor.web.app import WebAPI
 
 
 @pytest.fixture

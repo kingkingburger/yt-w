@@ -2,7 +2,7 @@
 
 from typing import Any, Dict
 
-from ..channel_manager import ChannelDTO
+from ..channels.models import ChannelDTO
 
 
 def channel_to_dict(channel: ChannelDTO) -> Dict[str, Any]:

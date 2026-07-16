@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from typing import List, Tuple
 
-from .logger import Logger
+from ..logging import Logger
 
 
 class FileCleaner:

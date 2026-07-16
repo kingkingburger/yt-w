@@ -7,8 +7,8 @@ volume.
 
 from fastapi import FastAPI, HTTPException
 
-from ...channel_manager import ChannelManager
-from ...monitor_status import read_monitor_status
+from ...channels.repository import ChannelManager
+from ...monitoring.status import read_monitor_status
 from ..schemas import MonitorStatus
 
 

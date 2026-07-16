@@ -4,9 +4,9 @@ from typing import Any, Dict, List
 
 from fastapi import FastAPI, HTTPException
 
-from ...channel_manager import ChannelManager
-from ...util.sanitize_url import sanitize_youtube_url
-from ..dto_converters import channel_to_dict
+from ...channels.repository import ChannelManager
+from ...youtube.url import sanitize_youtube_url
+from ..converters import channel_to_dict
 from ..schemas import ChannelCreateRequest, ChannelUpdateRequest
 
 

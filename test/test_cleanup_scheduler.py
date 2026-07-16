@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.yt_monitor.channel_manager import GlobalSettingsDTO
-from src.yt_monitor.web_api.cleanup_scheduler import CleanupScheduler
+from src.yt_monitor.channels.models import GlobalSettingsDTO
+from src.yt_monitor.maintenance.scheduler import CleanupScheduler
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ class TestCleanupSchedulerRunOnce:
         scheduler = CleanupScheduler(channel_manager=mock_channel_manager)
 
         with patch(
-            "src.yt_monitor.web_api.cleanup_scheduler.FileCleaner", mock_cleaner_cls
+            "src.yt_monitor.maintenance.scheduler.FileCleaner", mock_cleaner_cls
         ):
             scheduler.run_once()
 
@@ -57,7 +57,7 @@ class TestCleanupSchedulerRunOnce:
         scheduler = CleanupScheduler(channel_manager=mock_channel_manager)
 
         with patch(
-            "src.yt_monitor.web_api.cleanup_scheduler.FileCleaner", mock_cleaner_cls
+            "src.yt_monitor.maintenance.scheduler.FileCleaner", mock_cleaner_cls
         ):
             scheduler.run_once()
 

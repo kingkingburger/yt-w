@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.yt_monitor.ffmpeg_command import (
+from src.yt_monitor.media.ffmpeg import (
     build_ffmpeg_headers,
     build_segment_command,
 )

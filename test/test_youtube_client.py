@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.yt_monitor.youtube_client import (
+from src.yt_monitor.youtube.client import (
     LiveStreamInfo,
     YouTubeAuthError,
     YouTubeClient,

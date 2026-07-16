@@ -8,9 +8,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.yt_monitor.ffmpeg_command import build_ffmpeg_headers
-from src.yt_monitor.youtube_client import YouTubeClient
-from src.yt_monitor.stream_downloader import StreamDownloader
+from src.yt_monitor.media.ffmpeg import build_ffmpeg_headers
+from src.yt_monitor.youtube.client import YouTubeClient
+from src.yt_monitor.media.stream_download import StreamDownloader
 
 
 class TestIsEntryLive:

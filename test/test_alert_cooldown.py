@@ -2,7 +2,7 @@
 
 import pytest
 
-from src.yt_monitor.alert_cooldown import AlertCooldown
+from src.yt_monitor.monitoring.cooldown import AlertCooldown
 
 
 class TestAlertCooldown:

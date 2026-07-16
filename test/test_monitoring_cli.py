@@ -3,8 +3,8 @@
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import monitoring
-from src.yt_monitor.channel_manager import GlobalSettingsDTO
+import src.yt_monitor.cli as monitoring
+from src.yt_monitor.channels.models import GlobalSettingsDTO
 
 
 def test_download_mode_uses_global_default_directory_when_output_omitted():

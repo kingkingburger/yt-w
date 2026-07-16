@@ -4,11 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from src.yt_monitor.channel_manager import (
-    ChannelDTO,
-    GlobalSettingsDTO,
-    ChannelManager,
-)
+from src.yt_monitor.channels.models import ChannelDTO, GlobalSettingsDTO
+from src.yt_monitor.channels.repository import ChannelManager
 
 
 class TestChannelDTO:

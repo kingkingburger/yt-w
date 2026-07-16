@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 
 
-from src.yt_monitor.cookie_validator import (
+from src.yt_monitor.youtube.cookie_validation import (
     CookieValidationResult,
     CookieValidator,
 )
@@ -158,7 +158,7 @@ class TestCookieValidatorNoNotifierCoupling:
 
         # notifier 모듈을 mock으로 대체해도 validator가 접근 안 해야 통과
         mock_notifier_module = MagicMock()
-        with patch("src.yt_monitor.discord_notifier.get_notifier", mock_notifier_module):
+        with patch("src.yt_monitor.notifications.discord.get_notifier", mock_notifier_module):
             with patch("yt_dlp.YoutubeDL", return_value=mock_ydl):
                 result = validator.validate()
 
@@ -189,11 +189,11 @@ class TestLegacyShim:
 
     def test_validate_cookies_returns_dict(self):
         """기존 코드가 쓰던 validate_cookies()가 딕셔너리 반환."""
-        from src.yt_monitor.cookie_validator import invalidate_cookie_cache, validate_cookies
+        from src.yt_monitor.youtube.cookie_validation import invalidate_cookie_cache, validate_cookies
 
         invalidate_cookie_cache()
 
-        with patch("src.yt_monitor.cookie_validator._default_validator") as mock_validator:
+        with patch("src.yt_monitor.youtube.cookie_validation._default_validator") as mock_validator:
             mock_validator.validate.return_value = CookieValidationResult(
                 valid=False, message="test", checked_at=0.0, cached=False,
             )
