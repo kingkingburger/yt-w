@@ -241,7 +241,7 @@ downloads/
 ```bash
 uv run pytest                         # 전체 테스트 실행
 uv run pytest -v                      # 상세 출력
-uv run pytest test/test_web_api.py    # 웹 콘솔/정적 자산 최소 검증
+uv run pytest tests/web/test_app.py   # 웹 콘솔/정적 자산 최소 검증
 ```
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)

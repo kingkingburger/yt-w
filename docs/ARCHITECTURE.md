@@ -40,7 +40,16 @@ yt-w/
 │   │   └── routes/                      # 라우트 모듈
 │   ├── cli.py                           # 모니터·다운로드·정리 CLI
 │   └── logging.py                       # TimedRotatingFileHandler 로거
-├── test/                                # pytest 단위/회귀 테스트
+├── tests/                               # src 소유 경계를 따르는 pytest 테스트
+│   ├── channels/                        # DTO, channels.json 저장소
+│   ├── maintenance/                     # retention scheduler
+│   ├── media/                           # 다운로드, ffmpeg, 병합·분할
+│   ├── monitoring/                      # service, worker, cooldown
+│   ├── notifications/                   # Discord webhook
+│   ├── web/
+│   │   ├── routes/                      # FastAPI 라우트별 계약
+│   │   └── frontend/                    # 정적 UI와 Node 실행 회귀
+│   └── youtube/                         # 라이브 감지, cookie, 실제 응답 fixture
 ├── web/
 │   ├── index.html                       # Operator console markup
 │   ├── app.css                          # Operator console styles
@@ -139,19 +148,19 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다.
 
 | 보호할 경계 | 소유 테스트 | 필요한 이유 |
 |------------|-------------|-------------|
-| yt-dlp 라이브 메타데이터와 `/live` fallback | `test_youtube_client.py`, `test_youtube_client_golden_fixtures.py` | `extract_flat` 응답은 `is_live` 대신 `live_status`를 주기도 하므로 실제 응답 형태와 탐지 순서를 함께 고정한다. |
-| ffmpeg HTTP header와 입력 순서 | `test_ffmpeg_command.py`, `test_stream_downloader.py` | YouTube HLS 요청에서 header가 빠지거나 `-i` 뒤에 놓이면 403이 발생하므로 순수 command와 downloader 전달 경계를 각각 한 번 검증한다. |
-| 알림 payload와 재전송 억제 | `test_discord_notifier.py`, `test_cookie_notifications.py`, `test_multi_channel_monitor.py` | webhook body, 호출 시점, cooldown은 서로 다른 경계이며 하나라도 빠지면 운영 알림이 누락되거나 폭주한다. |
-| 설정 저장 동시성 | `test_channel_manager.py::test_concurrent_add_no_lost_updates` | FastAPI 요청의 read-modify-write가 겹쳐도 `channels.json` 항목이 유실되지 않아야 한다. |
-| monitor thread 동시성·종료 | `test_multi_channel_monitor.py` | 웹 요청과 감시 loop가 같은 thread map을 다루며, Docker SIGTERM과 background start도 별도 런타임 경계다. |
-| 사용자 화면의 병합·분할 동작 | `test_frontend_*.py`, `test_merge_order.py` | 별도 frontend test runner가 없으므로 Node로 실제 함수를 실행하고, markup-only 계약은 필요한 DOM selector만 확인한다. |
+| yt-dlp 라이브 메타데이터와 `/live` fallback | `tests/youtube/test_client.py`, `tests/youtube/test_client_fixtures.py` | `extract_flat` 응답은 `is_live` 대신 `live_status`를 주기도 하므로 실제 응답 형태와 탐지 순서를 함께 고정한다. |
+| ffmpeg HTTP header와 입력 순서 | `tests/media/test_ffmpeg.py`, `tests/media/test_stream_download.py` | YouTube HLS 요청에서 header가 빠지거나 `-i` 뒤에 놓이면 403이 발생하므로 순수 command와 downloader 전달 경계를 각각 한 번 검증한다. |
+| 알림 payload와 재전송 억제 | `tests/notifications/test_discord.py`, `tests/web/routes/test_cookies.py`, `tests/monitoring/test_worker.py` | webhook body, 호출 시점, cooldown은 서로 다른 경계이며 하나라도 빠지면 운영 알림이 누락되거나 폭주한다. |
+| 설정 저장 동시성 | `tests/channels/test_repository.py::test_concurrent_add_no_lost_updates` | FastAPI 요청의 read-modify-write가 겹쳐도 `channels.json` 항목이 유실되지 않아야 한다. |
+| monitor thread 동시성·종료 | `tests/monitoring/test_service.py`, `tests/monitoring/test_worker.py` | 웹 요청과 감시 loop가 같은 thread map을 다루며, Docker SIGTERM과 background start도 별도 런타임 경계다. |
+| 사용자 화면의 병합·분할 동작 | `tests/web/frontend/` | 별도 frontend test runner가 없으므로 Node로 실제 함수를 실행하고, markup-only 계약은 필요한 DOM selector만 확인한다. |
 
 테스트 실행:
 
 ```bash
 uv run pytest          # 전체
 uv run pytest -v       # 상세
-uv run pytest test/test_stream_downloader.py -k stop  # 특정
+uv run pytest tests/media/test_stream_download.py -k stop  # 특정
 ```
 
 ## 운영 주의

@@ -4,7 +4,11 @@ import json
 from unittest.mock import MagicMock
 
 
-from src.yt_monitor.notifications.discord import DiscordNotifier, NotificationLevel, get_notifier
+from src.yt_monitor.notifications.discord import (
+    DiscordNotifier,
+    NotificationLevel,
+    get_notifier,
+)
 
 
 class TestDiscordNotifier:
@@ -19,26 +23,25 @@ class TestDiscordNotifier:
 
     def test_uses_env_variable_when_no_url_passed(self, monkeypatch):
         """DISCORD_WEBHOOK_URL 환경변수에서 URL 읽기."""
-        monkeypatch.setenv("DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/env/token")
+        monkeypatch.setenv(
+            "DISCORD_WEBHOOK_URL", "https://discord.com/api/webhooks/env/token"
+        )
         notifier = DiscordNotifier()
         assert notifier.is_enabled
 
-    def test_send_success(self, discord_mock_urlopen):
-        """정상 전송 — HTTP 200 응답."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
-        result = notifier.send("Test Title", "Test description", NotificationLevel.INFO)
-
-        assert result is True
-        discord_mock_urlopen.assert_called_once()
-
     def test_send_builds_correct_payload(self, discord_mock_urlopen):
         """전송 payload가 Discord embed 형식을 따르는지."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token", service_name="yt-test")
-        notifier.send("My Title", "My Description", NotificationLevel.ERROR)
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token",
+            service_name="yt-test",
+        )
+        result = notifier.send("My Title", "My Description", NotificationLevel.ERROR)
 
         request = discord_mock_urlopen.call_args[0][0]
         payload = json.loads(request.data)
 
+        assert result is True
+        discord_mock_urlopen.assert_called_once()
         assert "embeds" in payload
         embed = payload["embeds"][0]
         assert embed["title"] == "My Title"
@@ -49,11 +52,14 @@ class TestDiscordNotifier:
     def test_send_returns_false_on_http_error(self, discord_mock_urlopen):
         """HTTP 에러 시 False 반환."""
         import urllib.error
+
         discord_mock_urlopen.side_effect = urllib.error.HTTPError(
             url="", code=500, msg="Internal Server Error", hdrs=MagicMock(), fp=None
         )
 
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
         result = notifier.send("title", "desc")
 
         assert result is False
@@ -61,16 +67,23 @@ class TestDiscordNotifier:
     def test_send_returns_false_on_url_error(self, discord_mock_urlopen):
         """네트워크 에러 시 False 반환."""
         import urllib.error
-        discord_mock_urlopen.side_effect = urllib.error.URLError(reason="connection refused")
 
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
+        discord_mock_urlopen.side_effect = urllib.error.URLError(
+            reason="connection refused"
+        )
+
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
         result = notifier.send("title", "desc")
 
         assert result is False
 
     def test_notify_bot_detection_title_and_level(self, discord_mock_urlopen):
         """봇 감지 알림은 ERROR 레벨이고 제목에 채널명과 봇 감지 표시가 들어간다."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
         notifier.notify_bot_detection("침착맨", "Sign in to confirm you're not a bot")
 
         request = discord_mock_urlopen.call_args[0][0]
@@ -84,8 +97,12 @@ class TestDiscordNotifier:
 
     def test_notify_live_detected_title_format(self, discord_mock_urlopen):
         """라이브 감지 알림 제목 형식 검증."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
-        notifier.notify_live_detected("침착맨", "https://youtube.com/watch?v=xxx", "라이브 방송")
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
+        notifier.notify_live_detected(
+            "침착맨", "https://youtube.com/watch?v=xxx", "라이브 방송"
+        )
 
         request = discord_mock_urlopen.call_args[0][0]
         payload = json.loads(request.data)
@@ -96,7 +113,9 @@ class TestDiscordNotifier:
 
     def test_notify_download_complete_title_format(self, discord_mock_urlopen):
         """다운로드 완료 알림 제목 형식 검증."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
         notifier.notify_download_complete("채널명", "방송 제목")
 
         request = discord_mock_urlopen.call_args[0][0]
@@ -107,7 +126,9 @@ class TestDiscordNotifier:
 
     def test_send_with_fields(self, discord_mock_urlopen):
         """fields 파라미터가 embed에 포함되는지 검증."""
-        notifier = DiscordNotifier(webhook_url="https://discord.com/api/webhooks/test/token")
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
         fields = [{"name": "채널", "value": "테스트", "inline": "true"}]
         notifier.send("title", "desc", fields=fields)
 

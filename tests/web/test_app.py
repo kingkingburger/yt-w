@@ -1,39 +1,11 @@
 """Tests for web_api module — /health 엔드포인트 검증."""
 
-import json
 import tomllib
 from pathlib import Path
 
-import pytest
 from fastapi.testclient import TestClient
 
 from src.yt_monitor.web.app import WebAPI
-
-
-@pytest.fixture
-def channels_file(tmp_path: Path) -> str:
-    """임시 channels.json 파일 경로를 반환한다."""
-    channels_data = {
-        "channels": [],
-        "global_settings": {
-            "check_interval_seconds": 60,
-            "download_directory": str(tmp_path / "downloads"),
-            "log_file": str(tmp_path / "test.log"),
-            "split_mode": "time",
-            "split_time_minutes": 30,
-            "split_size_mb": 500,
-        },
-    }
-    channels_path = tmp_path / "channels.json"
-    channels_path.write_text(json.dumps(channels_data), encoding="utf-8")
-    return str(channels_path)
-
-
-@pytest.fixture
-def client(channels_file: str) -> TestClient:
-    """FastAPI TestClient를 반환한다."""
-    web_api = WebAPI(channels_file=channels_file)
-    return TestClient(web_api.app)
 
 
 class TestHealthEndpoint:

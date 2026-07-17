@@ -34,43 +34,17 @@ class TestStreamDownloader:
 
         assert download_dir.exists()
 
-    def test_init_default_split_values(self, temp_dir: Path, initialized_logger):
-        """Test StreamDownloader default split values."""
-        downloader = StreamDownloader(
-            download_directory=str(temp_dir),
-            download_format="bestvideo+bestaudio/best",
-        )
-
-        assert downloader.split_mode == "time"
-        assert downloader.split_time_minutes == 30
-        assert downloader.split_size_mb == 500
-
-    def test_build_ydl_options(self, stream_downloader: StreamDownloader):
-        """Test _build_ydl_options returns correct options."""
+    def test_build_ydl_options_preserves_live_download_contract(
+        self, stream_downloader: StreamDownloader
+    ):
+        """yt-dlp 옵션은 라이브 대기와 MP4 후처리 계약을 함께 보존한다."""
         opts = stream_downloader._build_ydl_options("/path/to/output.mp4")
 
         assert opts["format"] == "bestvideo+bestaudio/best"
         assert opts["outtmpl"] == "/path/to/output.mp4"
         assert opts["live_from_start"] is False
         assert opts["merge_output_format"] == "mp4"
-
-    def test_build_ydl_options_includes_wait_for_video(
-        self, stream_downloader: StreamDownloader
-    ):
-        """Test that _build_ydl_options includes wait_for_video setting."""
-        opts = stream_downloader._build_ydl_options("/path/to/output.mp4")
-
-        assert "wait_for_video" in opts
         assert opts["wait_for_video"] == (5, 20)
-
-    def test_build_ydl_options_includes_postprocessors(
-        self, stream_downloader: StreamDownloader
-    ):
-        """Test that _build_ydl_options includes postprocessors."""
-        opts = stream_downloader._build_ydl_options("/path/to/output.mp4")
-
-        assert "postprocessors" in opts
-        assert len(opts["postprocessors"]) > 0
         assert opts["postprocessors"][0]["key"] == "FFmpegVideoConvertor"
 
     def test_download_no_split_mode(self, temp_dir: Path, initialized_logger):
@@ -197,9 +171,7 @@ class TestStreamDownloader:
                         "/output/pattern_%03d.mp4",
                     )
 
-    def test_stop_terminates_running_ffmpeg(
-        self, stream_downloader: StreamDownloader
-    ):
+    def test_stop_terminates_running_ffmpeg(self, stream_downloader: StreamDownloader):
         """stop()은 진행 중인 ffmpeg에 terminate 후 wait를 호출한다."""
         mock_proc = MagicMock()
         mock_proc.poll.return_value = None  # 살아 있음
@@ -216,7 +188,10 @@ class TestStreamDownloader:
         """terminate가 timeout이면 kill로 강제 종료한다."""
         mock_proc = MagicMock()
         mock_proc.poll.return_value = None
-        mock_proc.wait.side_effect = [subprocess.TimeoutExpired(cmd="ffmpeg", timeout=5), None]
+        mock_proc.wait.side_effect = [
+            subprocess.TimeoutExpired(cmd="ffmpeg", timeout=5),
+            None,
+        ]
         stream_downloader._proc = mock_proc
 
         stream_downloader.stop()

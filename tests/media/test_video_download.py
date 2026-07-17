@@ -177,24 +177,6 @@ class TestVideoDownloader:
             assert info["uploader"] == "Test Channel"
             assert info["view_count"] == 1000
             assert len(info["formats"]) == 1
-
-    def test_get_video_info_skip_download(self, temp_dir: Path):
-        """Test that get_video_info doesn't download the video."""
-        downloader = VideoDownloader(output_dir=str(temp_dir))
-
-        with patch("yt_dlp.YoutubeDL") as mock_ydl:
-            mock_instance = MagicMock()
-            mock_instance.__enter__ = MagicMock(return_value=mock_instance)
-            mock_instance.__exit__ = MagicMock(return_value=False)
-            mock_instance.extract_info.return_value = {
-                "title": "Test",
-                "formats": [],
-            }
-            mock_ydl.return_value = mock_instance
-
-            downloader.get_video_info("https://www.youtube.com/watch?v=test123")
-
-            # Verify extract_info was called with download=False
             mock_instance.extract_info.assert_called_once_with(
                 "https://www.youtube.com/watch?v=test123", download=False
             )

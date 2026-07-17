@@ -14,13 +14,10 @@ class TestTimeSplit:
     def test_split_seconds_converts_minutes(self):
         assert TimeSplit(minutes=30).split_seconds() == 1800
 
-    def test_zero_minutes_raises(self):
-        with pytest.raises(ValueError):
-            TimeSplit(minutes=0)
-
-    def test_negative_minutes_raises(self):
-        with pytest.raises(ValueError):
-            TimeSplit(minutes=-5)
+    def test_non_positive_minutes_raise(self):
+        for minutes in (0, -5):
+            with pytest.raises(ValueError):
+                TimeSplit(minutes=minutes)
 
 
 class TestSizeSplit:
@@ -30,7 +27,9 @@ class TestSizeSplit:
 
     def test_split_seconds_with_custom_bitrate(self):
         """size 500MB × 8 / 10Mbps = 400초."""
-        assert SizeSplit(megabytes=500, estimated_bitrate_mbps=10).split_seconds() == 400
+        assert (
+            SizeSplit(megabytes=500, estimated_bitrate_mbps=10).split_seconds() == 400
+        )
 
     def test_zero_megabytes_raises(self):
         with pytest.raises(ValueError):

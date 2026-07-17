@@ -200,6 +200,8 @@ def test_split_job_creates_each_numbered_file(tmp_path: Path):
         args = thread_class.call_args.kwargs["args"]
         target(*args)
 
-    assert manager.get(job.id).status == "done"
-    assert manager.get(job.id).completed_parts == 2
+    completed_job = manager.get(job.id)
+    assert completed_job is not None
+    assert completed_job.status == "done"
+    assert completed_job.completed_parts == 2
     assert popen.call_count == 2

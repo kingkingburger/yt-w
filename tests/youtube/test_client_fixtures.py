@@ -1,12 +1,12 @@
 """yt-dlp 실제 응답(골든 픽스처)으로 라이브 감지 회귀를 막는다.
 
-골든 픽스처는 test/fixtures/youtube_responses/ 에 저장된 yt-dlp 실제 응답이다.
+골든 픽스처는 tests/youtube/fixtures/youtube_responses/ 에 저장된 yt-dlp 실제 응답이다.
 손으로 쓴 mock과 달리 yt-dlp가 *실제로* 내려준 응답 모양을 그대로 보존하므로,
 69d79c8("Docker 라이브 감지 누락 보완")처럼 "응답 모양이 우리 가정과 달라
 못 잡았다" 류의 회귀를 즉시 잡는다.
 
 픽스처 갱신:
-    python test/fixtures/capture_yt_responses.py
+    python tests/youtube/fixtures/capture_yt_responses.py
 
 yt-dlp/YouTube 변경으로 이 테스트가 깨지면, 먼저 픽스처를 재캡처하고
 diff로 어떤 필드가 바뀌었는지 확인한다.
@@ -73,6 +73,7 @@ class TestLiveDetectionGoldenFixtures:
         이 케이스를 놓쳤다.
         """
         live_endpoint_response = _load_fixture("lofigirl_live_endpoint")
+        assert live_endpoint_response is not None
         expected_video_id = live_endpoint_response["id"]
 
         with _patch_yt_dlp_with_channel("lofigirl"):

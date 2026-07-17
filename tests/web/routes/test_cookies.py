@@ -4,8 +4,6 @@ CookieValidator 자체의 단위 테스트는 test_cookie_validator.py.
 알림 책임은 validator에서 분리되어 호출자(web_api)로 이동했다.
 """
 
-import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,24 +18,6 @@ def reset_default_validator_cache():
     invalidate_cookie_cache()
     yield
     invalidate_cookie_cache()
-
-
-@pytest.fixture
-def channels_file(tmp_path: Path) -> str:
-    data = {
-        "channels": [],
-        "global_settings": {
-            "check_interval_seconds": 60,
-            "download_directory": str(tmp_path / "downloads"),
-            "log_file": str(tmp_path / "test.log"),
-            "split_mode": "time",
-            "split_time_minutes": 30,
-            "split_size_mb": 500,
-        },
-    }
-    path = tmp_path / "channels.json"
-    path.write_text(json.dumps(data), encoding="utf-8")
-    return str(path)
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 """yt-dlp 실제 응답을 캡처해서 골든 픽스처로 저장한다.
 
 사용법:
-    python test/fixtures/capture_yt_responses.py
+    python tests/youtube/fixtures/capture_yt_responses.py
 
 수동 실행 도구. yt-dlp/YouTube가 변경되어 라이브 감지가 깨졌을 때
 다시 실행해서 픽스처를 갱신한다. diff로 어떤 필드가 변했는지 확인.
