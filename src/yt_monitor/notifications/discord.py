@@ -10,6 +10,15 @@ from enum import Enum
 from typing import Optional
 
 
+def _parse_delay(value: Optional[str], default: float) -> float:
+    if value is None:
+        return default
+    try:
+        return max(0.0, float(value))
+    except (TypeError, ValueError):
+        return default
+
+
 class NotificationLevel(Enum):
     """Notification severity levels with Discord embed colors."""
 
@@ -92,15 +101,21 @@ class DiscordNotifier:
         try:
             with urllib.request.urlopen(request, timeout=10) as response:
                 remaining = response.headers.get("X-RateLimit-Remaining")
-                if remaining and int(remaining) == 0:
-                    reset_after = float(response.headers.get("X-RateLimit-Reset-After", "1"))
+                try:
+                    exhausted = remaining is not None and int(remaining) == 0
+                except (TypeError, ValueError):
+                    exhausted = False
+                if exhausted:
+                    reset_after = _parse_delay(
+                        response.headers.get("X-RateLimit-Reset-After"), 1.0
+                    )
                     with self._lock:
                         self._rate_limit_until = time.time() + reset_after
             return True
 
         except urllib.error.HTTPError as error:
             if error.code == 429:
-                retry_after = float(error.headers.get("Retry-After", "5"))
+                retry_after = _parse_delay(error.headers.get("Retry-After"), 5.0)
                 with self._lock:
                     self._rate_limit_until = time.time() + retry_after
             return False

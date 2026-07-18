@@ -1,7 +1,8 @@
 """Tests for discord_notifier module."""
 
 import json
-from unittest.mock import MagicMock
+import urllib.error
+from unittest.mock import MagicMock, patch
 
 
 from src.yt_monitor.notifications.discord import (
@@ -9,6 +10,7 @@ from src.yt_monitor.notifications.discord import (
     NotificationLevel,
     get_notifier,
 )
+import src.yt_monitor.notifications.discord as discord_module
 
 
 class TestDiscordNotifier:
@@ -51,8 +53,6 @@ class TestDiscordNotifier:
 
     def test_send_returns_false_on_http_error(self, discord_mock_urlopen):
         """HTTP 에러 시 False 반환."""
-        import urllib.error
-
         discord_mock_urlopen.side_effect = urllib.error.HTTPError(
             url="", code=500, msg="Internal Server Error", hdrs=MagicMock(), fp=None
         )
@@ -66,8 +66,6 @@ class TestDiscordNotifier:
 
     def test_send_returns_false_on_url_error(self, discord_mock_urlopen):
         """네트워크 에러 시 False 반환."""
-        import urllib.error
-
         discord_mock_urlopen.side_effect = urllib.error.URLError(
             reason="connection refused"
         )
@@ -78,6 +76,67 @@ class TestDiscordNotifier:
         result = notifier.send("title", "desc")
 
         assert result is False
+
+    def test_success_ignores_malformed_rate_limit_header(
+        self, discord_mock_urlopen
+    ):
+        response = discord_mock_urlopen.return_value
+        response.headers = {
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset-After": "not-a-number",
+        }
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
+
+        assert notifier.send("title", "desc") is True
+
+    def test_success_ignores_malformed_remaining_header(
+        self, discord_mock_urlopen
+    ):
+        response = discord_mock_urlopen.return_value
+        response.headers = {"X-RateLimit-Remaining": "not-a-number"}
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
+
+        assert notifier.send("title", "desc") is True
+
+    def test_success_rate_limit_delays_next_send(self, discord_mock_urlopen):
+        response = discord_mock_urlopen.return_value
+        response.headers = {
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset-After": "2.5",
+        }
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
+
+        with (
+            patch.object(discord_module.time, "time", return_value=100.0),
+            patch.object(discord_module.time, "sleep") as sleep,
+        ):
+            assert notifier.send("first", "desc") is True
+            response.headers = {}
+            assert notifier.send("second", "desc") is True
+
+        sleep.assert_called_once_with(2.5)
+
+    def test_429_ignores_malformed_retry_after_header(self, discord_mock_urlopen):
+        headers = MagicMock()
+        headers.get.return_value = "not-a-number"
+        discord_mock_urlopen.side_effect = urllib.error.HTTPError(
+            url="",
+            code=429,
+            msg="Too Many Requests",
+            hdrs=headers,
+            fp=None,
+        )
+        notifier = DiscordNotifier(
+            webhook_url="https://discord.com/api/webhooks/test/token"
+        )
+
+        assert notifier.send("title", "desc") is False
 
     def test_notify_bot_detection_title_and_level(self, discord_mock_urlopen):
         """봇 감지 알림은 ERROR 레벨이고 제목에 채널명과 봇 감지 표시가 들어간다."""
@@ -108,7 +167,10 @@ class TestDiscordNotifier:
         payload = json.loads(request.data)
         embed = payload["embeds"][0]
 
-        assert "침착맨" in embed["title"]
+        assert embed["title"] == "🔴 라이브 감지: 침착맨"
+        assert embed["description"] == (
+            "**라이브 방송**\nhttps://youtube.com/watch?v=xxx"
+        )
         assert embed["color"] == NotificationLevel.INFO.value
 
     def test_notify_download_complete_title_format(self, discord_mock_urlopen):
@@ -122,7 +184,13 @@ class TestDiscordNotifier:
         payload = json.loads(request.data)
         embed = payload["embeds"][0]
 
-        assert embed["color"] == NotificationLevel.SUCCESS.value
+        assert embed == {
+            "title": "✅ 다운로드 완료: 채널명",
+            "description": "방송 제목",
+            "color": NotificationLevel.SUCCESS.value,
+            "timestamp": embed["timestamp"],
+            "footer": {"text": "yt-monitor"},
+        }
 
     def test_send_with_fields(self, discord_mock_urlopen):
         """fields 파라미터가 embed에 포함되는지 검증."""
