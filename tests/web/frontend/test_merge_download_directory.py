@@ -9,7 +9,7 @@ import pytest
 def require_node() -> str:
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for frontend directory tests")
+        pytest.fail("node is required for frontend directory tests")
     return node
 
 

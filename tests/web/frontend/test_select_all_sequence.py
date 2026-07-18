@@ -24,7 +24,7 @@ def extract_js_function(source: str, name: str) -> str:
 def test_frontend_select_all_keeps_part_files_compact_by_default() -> None:
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend select-all regression test")
+        pytest.fail("node is required for the frontend select-all regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     helpers = "\n".join(

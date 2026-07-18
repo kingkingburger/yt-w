@@ -32,8 +32,9 @@ class TestVideoDownloader:
 
         format_string = downloader._get_format_string()
 
-        assert "bestvideo" in format_string
-        assert "bestaudio" in format_string
+        assert format_string == (
+            "bestvideo+bestaudio[ext=m4a]/bestvideo+bestaudio/best"
+        )
 
     def test_get_format_string_specific_quality(self, temp_dir: Path):
         """Test _get_format_string for specific quality."""
@@ -41,7 +42,10 @@ class TestVideoDownloader:
 
         format_string = downloader._get_format_string()
 
-        assert "height<=720" in format_string
+        assert format_string == (
+            "bestvideo[height<=720]+bestaudio[ext=m4a]/"
+            "bestvideo[height<=720]+bestaudio/best[height<=720]"
+        )
 
     def test_build_ydl_options_video(self, temp_dir: Path):
         """Test _build_ydl_options for video download."""
@@ -51,7 +55,20 @@ class TestVideoDownloader:
 
         assert opts["outtmpl"] == "/path/to/output.mp4"
         assert opts["merge_output_format"] == "mp4"
-        assert "postprocessors" in opts
+        assert opts["postprocessors"] == [
+            {"key": "FFmpegVideoConvertor", "preferedformat": "mp4"},
+            {"key": "FFmpegMetadata", "add_metadata": True},
+        ]
+        assert opts["postprocessor_args"]["FFmpegVideoConvertor"] == [
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "48000",
+        ]
 
     def test_build_ydl_options_audio(self, temp_dir: Path):
         """Test _build_ydl_options for audio download."""

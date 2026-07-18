@@ -26,7 +26,7 @@ def test_frontend_name_sort_uses_natural_filename_order():
     """The merge sequence name-sort must order 1, 2, 10 naturally."""
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend sort regression test")
+        pytest.fail("node is required for the frontend sort regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     sort_function = extract_js_function(app_js, "sortSequenceByName")
@@ -64,7 +64,7 @@ def test_frontend_detects_contiguous_part_runs_for_file_drag():
     """Dragging a part clip should carry the contiguous part run with it."""
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend drag regression test")
+        pytest.fail("node is required for the frontend drag regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     helpers = "\n".join(
@@ -108,7 +108,7 @@ def test_frontend_groups_part_runs_by_hash_like_token():
     """Hash-like tokens before part numbers should be the compact grouping key."""
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend drag regression test")
+        pytest.fail("node is required for the frontend drag regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     helpers = "\n".join(
@@ -177,7 +177,7 @@ def test_frontend_source_tree_groups_by_hash_token():
     """The source file tree should group part files by the hash/timestamp key."""
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend source tree regression test")
+        pytest.fail("node is required for the frontend source tree regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     helpers = "\n".join(
@@ -240,7 +240,7 @@ def test_frontend_source_tree_hides_files_already_in_sequence():
     """The source tree should only show files not already staged for merge."""
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend source tree regression test")
+        pytest.fail("node is required for the frontend source tree regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     helpers = "\n".join(
@@ -296,7 +296,7 @@ def test_frontend_moves_contiguous_sequence_part_block_together():
     """Dragging a sequence item in a consecutive part run should move the run."""
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend drag regression test")
+        pytest.fail("node is required for the frontend drag regression test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     helpers = "\n".join(

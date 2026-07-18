@@ -20,8 +20,8 @@ python_functions = "test_*"
 addopts = [
     "-v",
     "--strict-markers",
+    "--strict-config",
     "--tb=short",
-    "--disable-warnings",
 ]
 
 [dependency-groups]

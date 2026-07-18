@@ -148,12 +148,19 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다.
 
 | 보호할 경계 | 소유 테스트 | 필요한 이유 |
 |------------|-------------|-------------|
+| 채널/전역 설정의 원자적 갱신 | `tests/channels/test_repository.py`, `tests/web/routes/test_channels.py` | 유효하지 않은 update나 중복 URL이 예외만 내고 `channels.json`을 이미 오염시키지 않도록, 검증 후 저장 순서와 API 400 계약을 함께 고정한다. |
 | yt-dlp 라이브 메타데이터와 `/live` fallback | `tests/youtube/test_client.py`, `tests/youtube/test_client_fixtures.py` | `extract_flat` 응답은 `is_live` 대신 `live_status`를 주기도 하므로 실제 응답 형태와 탐지 순서를 함께 고정한다. |
+| cookie source 선택과 임시본 수명 | `tests/youtube/test_cookies.py` | Docker Firefox profile, `cookies.txt`, browser fallback의 우선순위와 갱신된 임시 cookie 파일의 교체/정리를 보장한다. |
 | ffmpeg HTTP header와 입력 순서 | `tests/media/test_ffmpeg.py`, `tests/media/test_stream_download.py` | YouTube HLS 요청에서 header가 빠지거나 `-i` 뒤에 놓이면 403이 발생하므로 순수 command와 downloader 전달 경계를 각각 한 번 검증한다. |
+| 병합·분할 job 상태와 실패 정리 | `tests/media/test_merge.py`, `tests/media/test_split.py`, `tests/web/routes/test_merge.py`, `tests/web/routes/test_split.py` | queued/running/done/failed/cancelled 전이, concat 임시 파일, partial output, output reservation과 다운로드 준비 상태는 서로 다른 실패 경계다. |
 | 알림 payload와 재전송 억제 | `tests/notifications/test_discord.py`, `tests/web/routes/test_cookies.py`, `tests/monitoring/test_worker.py` | webhook body, 호출 시점, cooldown은 서로 다른 경계이며 하나라도 빠지면 운영 알림이 누락되거나 폭주한다. |
 | 설정 저장 동시성 | `tests/channels/test_repository.py::test_concurrent_add_no_lost_updates` | FastAPI 요청의 read-modify-write가 겹쳐도 `channels.json` 항목이 유실되지 않아야 한다. |
+| retention 삭제와 live 보존 | `tests/maintenance/test_cleanup.py`, `tests/maintenance/test_scheduler.py` | 오래된 일반 파일만 지우고 `live/`, 최근 파일, dry-run 대상을 보존하며 개별 삭제 실패가 나머지 정리를 막지 않아야 한다. |
+| heartbeat 신뢰성과 operator 상태 | `tests/monitoring/test_status.py`, `tests/web/routes/test_monitor.py`, `tests/web/routes/test_system.py` | stale 경계, 손상된 JSON, 잘못된 field type, 설정 기반 fallback과 disk/download 집계를 분리해 검증한다. |
 | monitor thread 동시성·종료 | `tests/monitoring/test_service.py`, `tests/monitoring/test_worker.py` | 웹 요청과 감시 loop가 같은 thread map을 다루며, Docker SIGTERM과 background start도 별도 런타임 경계다. |
 | 사용자 화면의 병합·분할 동작 | `tests/web/frontend/` | 별도 frontend test runner가 없으므로 Node로 실제 함수를 실행하고, markup-only 계약은 필요한 DOM selector만 확인한다. |
+
+Node는 production image의 필수 runtime이므로 frontend 테스트에서 찾을 수 없으면 skip하지 않고 실패한다. FastAPI route 테스트는 실제 cleanup daemon을 시작하지 않아 HTTP test harness와 background thread의 생명주기를 분리한다.
 
 테스트 실행:
 

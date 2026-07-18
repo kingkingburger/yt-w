@@ -32,7 +32,7 @@ def test_split_tab_contains_search_and_upload_controls():
 def test_split_file_search_matches_name_and_path():
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend search test")
+        pytest.fail("node is required for the frontend search test")
 
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     match = re.search(
@@ -91,11 +91,14 @@ def test_file_selection_controls_use_custom_visual_marks():
 def test_split_frontend_javascript_is_valid():
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for the frontend syntax test")
+        pytest.fail("node is required for the frontend syntax test")
 
-    subprocess.run(
+    result = subprocess.run(
         [node, "--check", "web/app.js"],
         check=True,
         capture_output=True,
         text=True,
     )
+
+    assert result.returncode == 0
+    assert result.stderr == ""

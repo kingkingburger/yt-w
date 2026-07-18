@@ -213,7 +213,9 @@ class TestStreamDownloader:
 
     def test_stop_no_op_when_no_proc(self, stream_downloader: StreamDownloader):
         """진행 중인 다운로드가 없으면 stop()은 조용히 통과한다."""
-        stream_downloader.stop()  # raise 없이 끝나야 한다
+        stream_downloader.stop()
+
+        assert stream_downloader._proc is None
 
     def test_perform_download(self, stream_downloader: StreamDownloader):
         """Test _perform_download calls yt-dlp correctly."""

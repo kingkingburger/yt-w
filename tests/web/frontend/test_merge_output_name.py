@@ -23,7 +23,7 @@ def extract_js_function(source: str, name: str) -> str:
 def require_node() -> str:
     node = shutil.which("node")
     if node is None:
-        pytest.skip("node is required for frontend filename tests")
+        pytest.fail("node is required for frontend filename tests")
     return node
 
 

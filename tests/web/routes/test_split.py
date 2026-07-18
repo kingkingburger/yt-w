@@ -1,17 +1,17 @@
 """Video split route contracts."""
 
 from pathlib import Path
+from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+
+from src.yt_monitor.channels.repository import ChannelManager
+from src.yt_monitor.media.split import SplitJobDTO, SplitJobManager
 
 class TestSplitRoutes:
     """영상 분할 작업 API."""
 
     def test_submit_split_job(self, client: TestClient, channels_file: str):
-        from unittest.mock import patch
-
-        from src.yt_monitor.channels.repository import ChannelManager
-
         manager = ChannelManager(channels_file)
         root = Path(manager.get_global_settings().download_directory)
         root.mkdir(parents=True)
@@ -22,7 +22,7 @@ class TestSplitRoutes:
                 "src.yt_monitor.media.split.probe_duration_seconds",
                 return_value=13 * 3600,
             ),
-            patch("src.yt_monitor.media.split.threading.Thread"),
+            patch.object(SplitJobManager, "_run"),
         ):
             response = client.post(
                 "/api/split",
@@ -106,3 +106,82 @@ class TestSplitRoutes:
 
         assert response.status_code == 400
         assert "형식" in response.json()["detail"]
+
+    def test_upload_rejects_empty_body_and_removes_temporary_file(
+        self, client: TestClient, channels_file: str
+    ):
+        response = client.post(
+            "/api/split/upload",
+            params={"filename": "empty.mp4"},
+            content=b"",
+            headers={"Content-Type": "video/mp4"},
+        )
+
+        root = Path(ChannelManager(channels_file).get_global_settings().download_directory)
+        assert response.status_code == 400
+        assert "빈 파일" in response.json()["detail"]
+        assert list((root / "uploads").glob(".upload-*.part")) == []
+        assert not (root / "uploads" / "empty.mp4").exists()
+
+    def test_submit_get_cancel_and_not_ready_download(
+        self, client: TestClient, channels_file: str
+    ):
+        manager = ChannelManager(channels_file)
+        root = Path(manager.get_global_settings().download_directory)
+        root.mkdir(parents=True)
+        (root / "video.mp4").write_bytes(b"video")
+        with (
+            patch(
+                "src.yt_monitor.media.split.probe_duration_seconds",
+                return_value=120,
+            ),
+            patch.object(SplitJobManager, "_run"),
+        ):
+            submitted = client.post(
+                "/api/split",
+                json={"input": "video.mp4", "strategy": "parts", "parts": 2},
+            )
+
+        job = submitted.json()
+        assert submitted.status_code == 200
+        assert client.get(f"/api/split/jobs/{job['id']}").json() == job
+        assert [item["id"] for item in client.get("/api/split/jobs").json()] == [
+            job["id"]
+        ]
+        assert client.post(f"/api/split/jobs/{job['id']}/cancel").json() == {
+            "cancelled": True
+        }
+        assert client.post(f"/api/split/jobs/{job['id']}/cancel").status_code == 400
+        assert (
+            client.get(f"/api/split/jobs/{job['id']}/download/1").status_code == 404
+        )
+
+    def test_download_returns_completed_split_part(
+        self, client: TestClient, tmp_path: Path
+    ):
+        output = tmp_path / "video-1.mp4"
+        output.write_bytes(b"split-part")
+        job = SplitJobDTO(
+            id="split-1",
+            input="video.mp4",
+            outputs=["split/video-1.mp4"],
+            strategy="parts",
+            interval_seconds=None,
+            parts=1,
+            duration_seconds=60.0,
+            total_parts=1,
+            completed_parts=1,
+            status="done",
+            started_at=1.0,
+            finished_at=2.0,
+            message="완료",
+            elapsed_seconds=1.0,
+        )
+        with (
+            patch.object(SplitJobManager, "get", return_value=job),
+            patch.object(SplitJobManager, "output_path", return_value=output),
+        ):
+            response = client.get("/api/split/jobs/split-1/download/1")
+
+        assert response.status_code == 200
+        assert response.content == b"split-part"

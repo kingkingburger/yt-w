@@ -1,5 +1,6 @@
 """ffmpeg 기반 영상 분할 범위, 이름, 작업 등록 검증."""
 
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -9,8 +10,61 @@ from src.yt_monitor.media.split import (
     SplitJobManager,
     build_split_command,
     build_split_ranges,
+    probe_duration_seconds,
     split_output_paths,
 )
+
+
+def test_probe_duration_uses_ffprobe_contract_and_parses_seconds(tmp_path: Path):
+    source = tmp_path / "video.mp4"
+    result = subprocess.CompletedProcess([], 0, stdout="123.5\n", stderr="")
+
+    with patch("src.yt_monitor.media.split.subprocess.run", return_value=result) as run:
+        duration = probe_duration_seconds(source)
+
+    assert duration == 123.5
+    assert run.call_args.args[0] == [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        str(source),
+    ]
+    assert run.call_args.kwargs["timeout"] == 30
+
+
+@pytest.mark.parametrize(
+    ("result", "message"),
+    [
+        (
+            subprocess.CompletedProcess(
+                [], 1, stdout="", stderr="first line\ninvalid media\n"
+            ),
+            "invalid media",
+        ),
+        (subprocess.CompletedProcess([], 0, stdout="not-a-number", stderr=""), "잘못된"),
+        (subprocess.CompletedProcess([], 0, stdout="0", stderr=""), "0초"),
+        (subprocess.CompletedProcess([], 0, stdout="nan", stderr=""), "0초"),
+    ],
+)
+def test_probe_duration_rejects_process_and_value_failures(
+    tmp_path: Path, result: subprocess.CompletedProcess[str], message: str
+):
+    with patch("src.yt_monitor.media.split.subprocess.run", return_value=result):
+        with pytest.raises(ValueError, match=message):
+            probe_duration_seconds(tmp_path / "video.mp4")
+
+
+@pytest.mark.parametrize("error", [FileNotFoundError(), subprocess.TimeoutExpired("ffprobe", 30)])
+def test_probe_duration_reports_ffprobe_execution_failure(
+    tmp_path: Path, error: Exception
+):
+    with patch("src.yt_monitor.media.split.subprocess.run", side_effect=error):
+        with pytest.raises(ValueError, match="ffprobe 실행 실패"):
+            probe_duration_seconds(tmp_path / "video.mp4")
 
 
 def test_build_interval_ranges_keeps_short_final_part():
@@ -164,6 +218,25 @@ def test_submit_rejects_path_escape(tmp_path: Path):
         )
 
 
+def test_submit_rejects_unsupported_input_and_existing_output(tmp_path: Path):
+    root = tmp_path / "downloads"
+    root.mkdir()
+    (root / "notes.txt").write_text("not video", encoding="utf-8")
+    with pytest.raises(ValueError, match="지원하지 않는"):
+        SplitJobManager(root).submit("notes.txt", "parts", None, 2)
+
+    source = root / "video.mp4"
+    source.write_bytes(b"video")
+    output = root / "split" / "video-1.mp4"
+    output.parent.mkdir()
+    output.write_bytes(b"existing")
+    with patch(
+        "src.yt_monitor.media.split.probe_duration_seconds", return_value=120
+    ):
+        with pytest.raises(ValueError, match="이미 존재"):
+            SplitJobManager(root).submit("video.mp4", "parts", None, 2)
+
+
 def test_split_job_creates_each_numbered_file(tmp_path: Path):
     root = tmp_path / "downloads"
     source = root / "long.mp4"
@@ -205,3 +278,72 @@ def test_split_job_creates_each_numbered_file(tmp_path: Path):
     assert completed_job.status == "done"
     assert completed_job.completed_parts == 2
     assert popen.call_count == 2
+
+
+def test_cancelled_queued_split_never_starts_ffmpeg(tmp_path: Path):
+    root = tmp_path / "downloads"
+    root.mkdir()
+    (root / "video.mp4").write_bytes(b"video")
+    manager = SplitJobManager(root)
+    with (
+        patch(
+            "src.yt_monitor.media.split.probe_duration_seconds",
+            return_value=120,
+        ),
+        patch("src.yt_monitor.media.split.threading.Thread") as thread_class,
+        patch("src.yt_monitor.media.split.subprocess.Popen") as popen,
+    ):
+        job = manager.submit("video.mp4", "parts", None, 2)
+        assert manager.cancel(job.id) is True
+        thread_class.call_args.kwargs["target"](*thread_class.call_args.kwargs["args"])
+
+    cancelled = manager.get(job.id)
+    assert cancelled is not None
+    assert cancelled.status == "cancelled"
+    assert cancelled.completed_parts == 0
+    popen.assert_not_called()
+
+
+def test_failed_split_removes_partial_outputs_and_releases_reservation(
+    tmp_path: Path,
+):
+    root = tmp_path / "downloads"
+    root.mkdir()
+    (root / "video.mp4").write_bytes(b"video")
+    manager = SplitJobManager(root)
+
+    class FailedProcess:
+        returncode = 1
+        stdout = iter(["ffmpeg detail\n"])
+
+        def wait(self) -> int:
+            return 1
+
+        def poll(self) -> int:
+            return 1
+
+    def create_partial_output(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"partial")
+        return FailedProcess()
+
+    with (
+        patch(
+            "src.yt_monitor.media.split.probe_duration_seconds",
+            return_value=120,
+        ),
+        patch("src.yt_monitor.media.split.threading.Thread") as thread_class,
+        patch(
+            "src.yt_monitor.media.split.subprocess.Popen",
+            side_effect=create_partial_output,
+        ),
+    ):
+        job = manager.submit("video.mp4", "parts", None, 2)
+        thread_class.call_args.kwargs["target"](*thread_class.call_args.kwargs["args"])
+        retry = manager.submit("video.mp4", "parts", None, 2)
+
+    failed = manager.get(job.id)
+    assert failed is not None
+    assert failed.status == "failed"
+    assert "ffmpeg detail" in failed.message
+    assert all(not path.exists() for path in (root / "split").glob("video-*.mp4"))
+    assert retry.id != job.id
