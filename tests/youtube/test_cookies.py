@@ -5,6 +5,8 @@
 """
 
 import importlib
+import os
+from pathlib import Path
 
 import pytest
 
@@ -19,7 +21,10 @@ def reload_cookie_options(monkeypatch, tmp_path):
 
     import src.yt_monitor.youtube.cookies as cookie_options
     importlib.reload(cookie_options)
-    return cookie_options, cookie_path
+    yield cookie_options, cookie_path
+    temp_path = cookie_options._cookie_temp_path
+    if temp_path and os.path.exists(temp_path):
+        os.unlink(temp_path)
 
 
 class TestLocalCookieFileBranch:
@@ -55,3 +60,102 @@ class TestLocalCookieFileBranch:
         assert "cookiesfrombrowser" in options
         assert options["cookiesfrombrowser"][0] == "firefox"
         assert "cookiefile" not in options
+
+    def test_refresh_replaces_and_removes_stale_temp_copy(
+        self, reload_cookie_options, monkeypatch
+    ):
+        cookie_options, cookie_path = reload_cookie_options
+        cookie_path.write_text("old-cookie", encoding="utf-8")
+        monkeypatch.setattr(cookie_options, "_is_docker", lambda: False)
+
+        first_path = cookie_options.get_cookie_options()["cookiefile"]
+        source_mtime = os.path.getmtime(cookie_path)
+        cookie_path.write_text("new-cookie", encoding="utf-8")
+        os.utime(cookie_path, (source_mtime + 10, source_mtime + 10))
+
+        second_path = cookie_options.get_cookie_options()["cookiefile"]
+
+        assert second_path != first_path
+        assert not os.path.exists(first_path)
+        assert Path(second_path).read_text(encoding="utf-8") == "new-cookie"
+
+    def test_copy_failure_falls_back_without_leaking_temp_file(
+        self, reload_cookie_options, monkeypatch
+    ):
+        cookie_options, cookie_path = reload_cookie_options
+        cookie_path.write_text("cookie", encoding="utf-8")
+        monkeypatch.setattr(cookie_options, "_is_docker", lambda: False)
+        monkeypatch.setattr(
+            cookie_options.shutil,
+            "copy2",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("denied")),
+        )
+
+        options = cookie_options.get_cookie_options()
+
+        assert "cookiefile" not in options
+        assert cookie_options._cookie_temp_path == ""
+
+
+class TestDockerCookieBranches:
+    def test_firefox_profile_is_preferred_with_runtime_options(
+        self, reload_cookie_options, monkeypatch
+    ):
+        cookie_options, _cookie_path = reload_cookie_options
+        monkeypatch.setattr(cookie_options, "_is_docker", lambda: True)
+        monkeypatch.setattr(
+            cookie_options,
+            "_get_firefox_profile_path",
+            lambda: "/app/firefox_profile",
+        )
+        monkeypatch.setattr(
+            cookie_options,
+            "_POT_PROVIDER_URL",
+            "http://pot-provider:4416",
+        )
+
+        options = cookie_options.get_cookie_options()
+
+        assert options == {
+            "remote_components": ["ejs:github"],
+            "js_runtimes": {"node": {}},
+            "extractor_args": {
+                "youtubepot-bgutilhttp": {
+                    "base_url": ["http://pot-provider:4416"]
+                }
+            },
+            "cookiesfrombrowser": (
+                "firefox",
+                "/app/firefox_profile",
+                None,
+                None,
+            ),
+        }
+
+    def test_cookie_file_is_docker_fallback_when_profile_is_missing(
+        self, reload_cookie_options, monkeypatch
+    ):
+        cookie_options, cookie_path = reload_cookie_options
+        cookie_path.write_text("cookie", encoding="utf-8")
+        monkeypatch.setattr(cookie_options, "_is_docker", lambda: True)
+        monkeypatch.setattr(cookie_options, "_get_firefox_profile_path", lambda: "")
+
+        options = cookie_options.get_cookie_options()
+
+        assert options["js_runtimes"] == {"node": {}}
+        assert Path(options["cookiefile"]).read_text(encoding="utf-8") == "cookie"
+        assert "cookiesfrombrowser" not in options
+
+    def test_docker_without_profile_or_file_uses_no_cookie_source(
+        self, reload_cookie_options, monkeypatch
+    ):
+        cookie_options, _cookie_path = reload_cookie_options
+        monkeypatch.setattr(cookie_options, "_is_docker", lambda: True)
+        monkeypatch.setattr(cookie_options, "_get_firefox_profile_path", lambda: "")
+
+        options = cookie_options.get_cookie_options()
+
+        assert options == {
+            "remote_components": ["ejs:github"],
+            "js_runtimes": {"node": {}},
+        }

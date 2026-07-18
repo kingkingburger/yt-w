@@ -26,6 +26,15 @@ _cookie_temp_path: str = ""
 _lock: threading.Lock = threading.Lock()
 
 
+def _remove_temp_file(path: str) -> None:
+    if not path:
+        return
+    try:
+        os.unlink(path)
+    except OSError:
+        pass
+
+
 def _is_docker() -> bool:
     """Check if running inside a Docker container."""
     return (
@@ -52,10 +61,21 @@ def _get_writable_cookie_path() -> str:
             if source_mtime <= temp_mtime:
                 return _cookie_temp_path
 
-        temp_fd, temp_path = tempfile.mkstemp(suffix="_cookies.txt")
-        os.close(temp_fd)
-        shutil.copy2(_COOKIE_SOURCE_PATH, temp_path)
+        previous_temp_path = _cookie_temp_path
+        temp_path = ""
+        try:
+            temp_fd, temp_path = tempfile.mkstemp(suffix="_cookies.txt")
+            os.close(temp_fd)
+            shutil.copy2(_COOKIE_SOURCE_PATH, temp_path)
+        except OSError:
+            _remove_temp_file(temp_path)
+            _remove_temp_file(previous_temp_path)
+            _cookie_temp_path = ""
+            return ""
+
         _cookie_temp_path = temp_path
+        if previous_temp_path and previous_temp_path != temp_path:
+            _remove_temp_file(previous_temp_path)
         return temp_path
 
 
