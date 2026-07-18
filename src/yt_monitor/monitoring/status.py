@@ -7,6 +7,7 @@ alive without mounting the Docker socket into the web container.
 """
 
 import json
+import math
 import os
 import tempfile
 import time
@@ -16,6 +17,18 @@ from typing import Any, Dict, Optional
 
 STATUS_FILENAME = "monitor_status.json"
 DEFAULT_STALE_AFTER_SECONDS = 30.0
+
+
+def _is_finite_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _is_channel_count(value: object) -> bool:
+    return type(value) is int and value >= 0
 
 
 def get_status_path(log_file: str) -> Path:
@@ -98,7 +111,7 @@ def read_monitor_status(
     updated_at = data.get("updated_at")
     age_seconds = None
     stale = True
-    if isinstance(updated_at, (int, float)):
+    if _is_finite_number(updated_at):
         age_seconds = max(0.0, now - float(updated_at))
         stale = age_seconds > stale_after_seconds
 
@@ -109,15 +122,15 @@ def read_monitor_status(
         "is_running": state == "running" and not stale,
         "active_channels": (
             data.get("active_channels")
-            if isinstance(data.get("active_channels"), int)
+            if _is_channel_count(data.get("active_channels"))
             else None
         ),
         "total_channels": (
             data.get("total_channels")
-            if isinstance(data.get("total_channels"), int)
+            if _is_channel_count(data.get("total_channels"))
             else None
         ),
-        "last_seen": updated_at if isinstance(updated_at, (int, float)) else None,
+        "last_seen": updated_at if _is_finite_number(updated_at) else None,
         "age_seconds": age_seconds,
         "stale": stale,
         "message": str(data.get("message", "")),
