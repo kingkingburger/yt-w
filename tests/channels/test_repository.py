@@ -143,6 +143,48 @@ class TestChannelManager:
         assert updated is not None
         assert updated.enabled is False
 
+    def test_update_channel_rejects_duplicate_url_without_mutating_file(
+        self, temp_channels_file: Path
+    ):
+        """URL uniqueness is a repository invariant for both add and update."""
+        manager = ChannelManager(channels_file=str(temp_channels_file))
+        first = manager.add_channel(
+            name="First",
+            url="https://www.youtube.com/@First",
+        )
+        second = manager.add_channel(
+            name="Second",
+            url="https://www.youtube.com/@Second",
+        )
+
+        with pytest.raises(ValueError, match="already exists"):
+            manager.update_channel(
+                second.id,
+                url="https://www.youtube.com/@First",
+            )
+
+        persisted = manager.get_channel(second.id)
+        assert persisted is not None
+        assert persisted.url == "https://www.youtube.com/@Second"
+        assert manager.get_channel(first.id) is not None
+
+    def test_update_channel_validates_before_persisting(
+        self, temp_channels_file: Path
+    ):
+        """A rejected update must not leave channels.json in an invalid state."""
+        manager = ChannelManager(channels_file=str(temp_channels_file))
+        channel = manager.add_channel(
+            name="Original",
+            url="https://www.youtube.com/@Original",
+        )
+
+        with pytest.raises(ValueError, match="name cannot be empty"):
+            manager.update_channel(channel.id, name="")
+
+        persisted = manager.get_channel(channel.id)
+        assert persisted is not None
+        assert persisted.name == "Original"
+
     def test_update_channel_not_found(self, temp_channels_file: Path):
         """Test updating a non-existent channel."""
         manager = ChannelManager(channels_file=str(temp_channels_file))
@@ -171,6 +213,18 @@ class TestChannelManager:
 
         assert settings.check_interval_seconds == 120
         assert settings.split_mode == "size"
+
+    def test_update_global_settings_validates_before_persisting(
+        self, temp_channels_file: Path
+    ):
+        """Invalid settings must fail atomically instead of corrupting the file."""
+        manager = ChannelManager(channels_file=str(temp_channels_file))
+
+        with pytest.raises(ValueError, match="at least 1"):
+            manager.update_global_settings(check_interval_seconds=0)
+
+        persisted = manager.get_global_settings()
+        assert persisted.check_interval_seconds == 60
 
     def test_concurrent_add_no_lost_updates(self, temp_channels_file: Path):
         """동시에 add_channel을 호출해도 read-modify-write 레이스로 항목이 유실되면 안 된다."""

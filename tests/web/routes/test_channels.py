@@ -53,3 +53,43 @@ class TestChannelRoutes:
         client.post("/api/channels", json=payload)
         response = client.post("/api/channels", json=payload)
         assert response.status_code == 400
+
+    def test_update_duplicate_url_returns_400_and_preserves_channel(
+        self, client: TestClient
+    ):
+        first = client.post(
+            "/api/channels",
+            json={"name": "First", "url": "https://www.youtube.com/@First"},
+        ).json()
+        second = client.post(
+            "/api/channels",
+            json={"name": "Second", "url": "https://www.youtube.com/@Second"},
+        ).json()
+
+        response = client.patch(
+            f"/api/channels/{second['id']}",
+            json={"url": first["url"]},
+        )
+
+        assert response.status_code == 400
+        persisted = {
+            channel["id"]: channel for channel in client.get("/api/channels").json()
+        }
+        assert persisted[second["id"]]["url"] == "https://www.youtube.com/@Second"
+
+    def test_update_invalid_name_returns_400_and_preserves_channel(
+        self, client: TestClient
+    ):
+        created = client.post(
+            "/api/channels",
+            json={"name": "Original", "url": "https://www.youtube.com/@Original"},
+        ).json()
+
+        response = client.patch(
+            f"/api/channels/{created['id']}",
+            json={"name": ""},
+        )
+
+        assert response.status_code == 400
+        persisted = client.get("/api/channels").json()
+        assert persisted[0]["name"] == "Original"

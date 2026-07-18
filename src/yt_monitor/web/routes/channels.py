@@ -37,15 +37,17 @@ def register_channel_routes(
 
     @app.patch("/api/channels/{channel_id}", response_model=Dict[str, Any])
     async def update_channel(channel_id: str, channel: ChannelUpdateRequest):
-        clean_url = sanitize_youtube_url(channel.url) if channel.url else None
-
-        updated_channel = channel_manager.update_channel(
-            channel_id=channel_id,
-            name=channel.name,
-            url=clean_url,
-            enabled=channel.enabled,
-            download_format=channel.download_format,
-        )
+        try:
+            clean_url = sanitize_youtube_url(channel.url) if channel.url else None
+            updated_channel = channel_manager.update_channel(
+                channel_id=channel_id,
+                name=channel.name,
+                url=clean_url,
+                enabled=channel.enabled,
+                download_format=channel.download_format,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
 
         if not updated_channel:
             raise HTTPException(status_code=404, detail="Channel not found")

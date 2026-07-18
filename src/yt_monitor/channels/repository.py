@@ -192,19 +192,26 @@ class ChannelManager:
 
             for i, channel_data in enumerate(data["channels"]):
                 if channel_data["id"] == channel_id:
+                    candidate = dict(channel_data)
                     if name is not None:
-                        channel_data["name"] = name
+                        candidate["name"] = name
                     if url is not None:
-                        channel_data["url"] = url
+                        if any(
+                            other["id"] != channel_id and other["url"] == url
+                            for other in data["channels"]
+                        ):
+                            raise ValueError(f"Channel with URL {url} already exists")
+                        candidate["url"] = url
                     if enabled is not None:
-                        channel_data["enabled"] = enabled
+                        candidate["enabled"] = enabled
                     if download_format is not None:
-                        channel_data["download_format"] = download_format
+                        candidate["download_format"] = download_format
 
-                    data["channels"][i] = channel_data
+                    updated_channel = ChannelDTO(**candidate)
+                    data["channels"][i] = asdict(updated_channel)
                     self._write_data(data)
 
-                    return ChannelDTO(**channel_data)
+                    return updated_channel
 
             return None
 
@@ -230,13 +237,14 @@ class ChannelManager:
         """
         with self._lock:
             data = self._read_data()
-            settings = data["global_settings"]
+            settings = dict(data["global_settings"])
 
             for key, value in kwargs.items():
                 if key in settings:
                     settings[key] = value
 
-            data["global_settings"] = settings
+            updated_settings = GlobalSettingsDTO(**settings)
+            data["global_settings"] = asdict(updated_settings)
             self._write_data(data)
 
-            return GlobalSettingsDTO(**settings)
+            return updated_settings
