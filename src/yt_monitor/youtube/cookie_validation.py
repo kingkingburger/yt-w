@@ -1,7 +1,7 @@
 """쿠키 유효성 검증 — yt-dlp 실제 추출 시도로 인증 가능 여부를 결정한다.
 
-Firefox profile 마운트 도입 후 cookies.txt 파일 존재 여부는 더 이상 신호가 아니다.
-오직 yt-dlp가 테스트 영상에서 title을 받아오는지만 본다.
+Firefox profile의 존재 여부가 아니라 yt-dlp가 테스트 영상에서 title을
+받아오는지를 확인한다.
 """
 
 import threading

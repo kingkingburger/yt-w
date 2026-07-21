@@ -40,7 +40,7 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 | `DISCORD_WEBHOOK_URL` | Discord 알림 Webhook URL | (미설정 시 알림 비활성화) |
 | `YT_WEB_PORT` | 웹 서버 내부 포트 | `8011` |
 | `YT_POT_PROVIDER_URL` | PO Token provider 주소 | `http://pot-provider:4416` |
-| `YT_COOKIES_FILE` | 쿠키 파일 경로 | `./cookies.txt` |
+| `FIREFOX_PROFILE_PATH` | Docker에서 읽을 호스트 Firefox 프로필 경로 | (필수 입력) |
 
 ```bash
 cp .env.example .env
@@ -56,6 +56,7 @@ cp .env.example .env
 # 환경 설정
 cp .env.example .env
 cp channels.example.json channels.json
+# .env의 FIREFOX_PROFILE_PATH에 로그인된 Firefox 프로필 경로 입력
 
 # 실행
 docker compose up -d --build
@@ -173,19 +174,23 @@ python monitoring.py --cleanup --days 14    # 보관 기간 변경
 | `split_time_minutes` | 시간 분할 단위 (분) | 30 |
 | `split_size_mb` | 크기 분할 단위 (MB) | 500 |
 
-### 쿠키 인증 및 봇 감지 우회
+### YouTube 로그인 인증 및 봇 감지 대응
 
-YouTube 봇 차단 우회를 위해 두 가지 방식을 지원합니다.
+PO Token과 브라우저 쿠키는 역할이 다르며 함께 사용할 수 있습니다.
 
-**1. PO Token Provider (권장)**
+**1. PO Token Provider**
 - `pot-provider` 컨테이너가 PO Token을 자동으로 제공
 - Docker Compose로 자동 실행됨 (별도 설정 불필요)
 - 환경변수: `YT_POT_PROVIDER_URL=http://pot-provider:4416`
+- YouTube의 봇 감지 대응 수단이며 로그인 권한을 대신하지 않음
 
-**2. 쿠키 파일 (선택사항)**
-- `cookies.txt` 파일을 프로젝트 루트에 배치
-- Docker: 자동으로 마운트됨
-- 로컬: 환경변수 `YT_COOKIES_FILE` 설정 가능
+**2. Firefox 로그인 프로필**
+- Docker는 `.env`의 `FIREFOX_PROFILE_PATH`를 `/app/firefox_profile`에 read-only로 마운트
+- `yt-dlp`가 Firefox의 최신 YouTube 로그인 쿠키를 직접 읽으므로 수동 추출 불필요
+- 멤버십·비공개 등 인증된 계정 권한이 필요한 영상은 해당 권한이 있는 Firefox 프로필 필요
+- 로컬 실행은 기본적으로 Firefox 쿠키를 사용하며, 다른 브라우저는 `YT_COOKIE_BROWSER` 환경변수로 선택 가능
+
+Firefox 프로필에는 로그인 정보가 있으므로 공유하지 마세요. 격리가 필요하면 YouTube 전용 Firefox 프로필을 사용하는 것이 안전합니다.
 
 ## 프로젝트 구조
 
@@ -233,7 +238,7 @@ downloads/
 | ffmpeg not found | `apt install ffmpeg` 또는 [다운로드](https://ffmpeg.org/download.html) |
 | 라이브 감지 안됨 | 채널 URL 확인, `check_interval_seconds` 조정 |
 | 다운로드 실패 | `docker compose logs -f` 확인, `uv add yt-dlp --upgrade` |
-| 봇 차단 | PO Token provider 실행 확인 (`docker compose logs pot-provider`), 또는 `cookies.txt` 갱신 |
+| 봇 차단 또는 로그인 실패 | `pot-provider` 상태, `FIREFOX_PROFILE_PATH`, Firefox의 YouTube 로그인 상태 확인 |
 | Discord 알림 안 옴 | `.env`의 `DISCORD_WEBHOOK_URL` 확인, Webhook URL 유효성 확인 |
 
 ## 개발
