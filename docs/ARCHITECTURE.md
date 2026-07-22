@@ -34,11 +34,11 @@ yt-w/
 │   ├── maintenance/                     # retention 정리 + 백그라운드 스케줄러
 │   ├── web/                             # FastAPI 웹 서버
 │   │   ├── app.py                       # 앱 조립 + 라우트 등록 + 스케줄러 시작
-│   │   ├── cli.py                       # 웹 서버 CLI
+│   │   ├── entrypoint.py                # 웹 서버 실행 진입점
 │   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
 │   │   ├── converters.py                # ChannelDTO → API dict 변환
 │   │   └── routes/                      # 라우트 모듈
-│   ├── cli.py                           # 모니터·다운로드·정리 CLI
+│   ├── entrypoint.py                    # 모니터 데몬 실행 진입점
 │   └── logging.py                       # TimedRotatingFileHandler 로거
 ├── tests/                               # src 소유 경계를 따르는 pytest 테스트
 │   ├── channels/                        # DTO, channels.json 저장소
@@ -56,7 +56,7 @@ yt-w/
 │   └── app.js                           # Operator console client logic
 ├── reviews/                             # 8인 리뷰 리포트 (히스토리)
 ├── main.py                              # 웹 서버 엔트리
-├── monitoring.py                        # 모니터 데몬 + CLI 엔트리
+├── monitoring.py                        # 모니터 데몬 엔트리
 ├── docker-compose.yml
 ├── Dockerfile
 └── channels.json                        # 채널 설정 (Compose volume)
@@ -67,7 +67,7 @@ yt-w/
 ### 1. 라이브 모니터링 (yt-monitor)
 
 ```
-monitoring.py → yt_monitor.cli
+monitoring.py → yt_monitor.entrypoint
   └─ monitoring.service.MultiChannelMonitor.start()
        ├─ ChannelManager.list_channels(enabled_only=True)
        ├─ for channel: ChannelMonitorThread(...).start()
@@ -88,7 +88,7 @@ monitoring.py → yt_monitor.cli
 ### 2. 웹 API (yt-web)
 
 ```
-main.py → web.cli → web.app.WebAPI → uvicorn
+main.py → web.entrypoint → web.app.WebAPI → uvicorn
   ├─ register_*_routes (channels / monitor / video / cookies / merge / system / meta)
   └─ CleanupScheduler.start_in_background()
 ```

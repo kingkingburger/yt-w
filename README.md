@@ -71,7 +71,7 @@ docker compose up -d --build
 uv sync
 
 # 웹 서버 시작
-python main.py --host 0.0.0.0 --port 8011
+python main.py
 
 # 모니터링 데몬
 python monitoring.py
@@ -105,37 +105,6 @@ docker inspect --format='{{.State.Health.Status}}' yt-monitor
 # 직접 확인
 curl http://localhost:8088/health
 # → {"status": "ok"}
-```
-
-## CLI 사용법
-
-> `main.py`는 웹 서버 전용. 채널 관리/다운로드/정리 CLI는 `monitoring.py`에 있습니다.
-
-### 채널 관리
-
-```bash
-python monitoring.py --add-channel "채널이름" "https://www.youtube.com/@channel"
-python monitoring.py --list-channels
-python monitoring.py --enable-channel CHANNEL_ID
-python monitoring.py --disable-channel CHANNEL_ID
-python monitoring.py --remove-channel CHANNEL_ID
-```
-
-### 동영상 다운로드
-
-```bash
-python monitoring.py --url "https://youtube.com/watch?v=VIDEO_ID"
-python monitoring.py --url "URL" --quality 720
-python monitoring.py --url "URL" --audio-only
-python monitoring.py -u "URL" -o "./output" -f "filename"
-```
-
-### 파일 정리
-
-```bash
-python monitoring.py --cleanup              # 실행
-python monitoring.py --cleanup --dry-run    # 미리보기
-python monitoring.py --cleanup --days 14    # 보관 기간 변경
 ```
 
 ## 설정
@@ -204,14 +173,14 @@ yt-w/
 │   ├── notifications/           # Discord Webhook 알림
 │   ├── maintenance/             # 파일 정리와 자동 정리 스케줄러
 │   ├── web/                     # FastAPI 앱, 스키마, /api/* 라우트
-│   ├── cli.py                   # 모니터링·다운로드·정리 CLI
+│   ├── entrypoint.py            # 모니터 데몬 실행 진입점
 │   └── logging.py               # 로깅 (일별 로테이션)
 ├── web/
 │   ├── index.html               # Operator console markup
 │   ├── app.css                  # Operator console styles
 │   └── app.js                   # Operator console client logic
 ├── main.py                      # 웹 서버 호환 엔트리포인트
-├── monitoring.py                # 모니터링 CLI 호환 엔트리포인트
+├── monitoring.py                # 모니터 데몬 호환 엔트리포인트
 ├── docker-compose.yml
 ├── Dockerfile
 ├── channels.json                # 채널 설정

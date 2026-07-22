@@ -75,7 +75,7 @@ services:
       - ./downloads:/app/downloads
       - ./logs:/app/logs
       - ${FIREFOX_PROFILE_PATH}:/app/firefox_profile:ro
-    command: ["sh", "-c", "uv run python main.py --host 0.0.0.0 --port $YT_WEB_PORT"]
+    command: ["uv", "run", "python", "main.py"]
     # BusyBox wget에서 'localhost'가 IPv6(::1)로 먼저 풀려 앱의 IPv4 bind에 connection refused 발생
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:${YT_WEB_PORT:-8011}/health || exit 1"]
