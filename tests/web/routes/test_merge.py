@@ -27,6 +27,68 @@ class TestMergeRoutes:
         assert cached == first
         assert {item["path"] for item in refreshed} == {"one.mp4", "two.mkv"}
 
+    def test_delete_files_removes_batch_and_invalidates_cache(
+        self, client: TestClient, channels_file: str
+    ):
+        manager = ChannelManager(channels_file)
+        root = Path(manager.get_global_settings().download_directory)
+        (root / "parts").mkdir(parents=True)
+        (root / "parts" / "one.mp4").write_bytes(b"one")
+        (root / "parts" / "two.mkv").write_bytes(b"two")
+        (root / "keep.mp4").write_bytes(b"keep")
+        assert len(client.get("/api/files").json()) == 3
+
+        response = client.request(
+            "DELETE",
+            "/api/files",
+            json={"paths": ["parts/one.mp4", "parts/two.mkv"]},
+        )
+
+        assert response.status_code == 200
+        assert response.json() == {
+            "deleted": ["parts/one.mp4", "parts/two.mkv"],
+            "count": 2,
+        }
+        assert not (root / "parts" / "one.mp4").exists()
+        assert not (root / "parts" / "two.mkv").exists()
+        assert [item["path"] for item in client.get("/api/files").json()] == [
+            "keep.mp4"
+        ]
+
+    def test_delete_files_rejects_outside_download_root(
+        self, client: TestClient, channels_file: str
+    ):
+        manager = ChannelManager(channels_file)
+        root = Path(manager.get_global_settings().download_directory)
+        root.mkdir(parents=True)
+        outside = root.parent / "outside.mp4"
+        outside.write_bytes(b"outside")
+
+        response = client.request(
+            "DELETE", "/api/files", json={"paths": ["../outside.mp4"]}
+        )
+
+        assert response.status_code == 400
+        assert outside.read_bytes() == b"outside"
+
+    def test_delete_files_validates_entire_batch_before_unlinking(
+        self, client: TestClient, channels_file: str
+    ):
+        manager = ChannelManager(channels_file)
+        root = Path(manager.get_global_settings().download_directory)
+        root.mkdir(parents=True)
+        existing = root / "existing.mp4"
+        existing.write_bytes(b"existing")
+
+        response = client.request(
+            "DELETE",
+            "/api/files",
+            json={"paths": ["existing.mp4", "missing.mp4"]},
+        )
+
+        assert response.status_code == 404
+        assert existing.read_bytes() == b"existing"
+
     def test_submit_list_get_cancel_and_not_ready_download(
         self, client: TestClient, channels_file: str
     ):

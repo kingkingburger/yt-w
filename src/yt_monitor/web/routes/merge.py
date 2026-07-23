@@ -10,8 +10,8 @@ from fastapi.responses import FileResponse
 
 from ...channels.repository import ChannelManager
 from ...logging import Logger
-from ...media.merge import MergeJobManager, list_video_files
-from ..schemas import MergeRequest
+from ...media.merge import MergeJobManager, VideoExtensions, list_video_files
+from ..schemas import FileDeleteRequest, MergeRequest
 
 FILE_LIST_CACHE_TTL_SECONDS = 5.0
 
@@ -56,6 +56,52 @@ def register_merge_routes(
                     }
                 )
         return [asdict(f) for f in files]
+
+    @app.delete("/api/files")
+    async def delete_files(request: FileDeleteRequest):
+        if not request.paths:
+            raise HTTPException(status_code=400, detail="삭제할 파일이 없습니다")
+
+        root_resolved = _root().resolve()
+        relative_paths = list(dict.fromkeys(request.paths))
+        targets = []
+        for relative_path in relative_paths:
+            if (
+                not relative_path
+                or Path(relative_path).suffix.lower() not in VideoExtensions
+            ):
+                raise HTTPException(status_code=400, detail="잘못된 영상 파일 경로입니다")
+
+            target = (root_resolved / relative_path).resolve()
+            try:
+                target.relative_to(root_resolved)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"다운로드 폴더 밖의 파일은 삭제할 수 없습니다: {relative_path}",
+                )
+            if not target.is_file():
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"파일이 존재하지 않습니다: {relative_path}",
+                )
+            targets.append(target)
+
+        try:
+            for target in targets:
+                await asyncio.to_thread(target.unlink)
+        except OSError as error:
+            logger.error(f"Source file delete error: {error}")
+            raise HTTPException(
+                status_code=409,
+                detail="사용 중인 파일을 삭제하지 못했습니다. 목록을 새로고침해 주세요",
+            ) from error
+        finally:
+            async with file_cache_lock:
+                file_cache.update({"root": "", "expires_at": 0.0, "files": []})
+
+        logger.info(f"Source files deleted: count={len(relative_paths)}")
+        return {"deleted": relative_paths, "count": len(relative_paths)}
 
     @app.post("/api/merge")
     async def submit_merge(request: MergeRequest):

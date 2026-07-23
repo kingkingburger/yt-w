@@ -355,8 +355,13 @@ function renderFileList() {
             <span class="selection-mark" aria-hidden="true"></span>
           </span>
           <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
-          ${partBadge}
-          <div class="file-meta nowrap">${group.paths.length} ${fileWord}</div>
+          <div class="file-group-tools">
+            ${partBadge}
+            <div class="file-meta nowrap">${group.paths.length} ${fileWord}</div>
+            <button type="button" class="btn danger sm file-delete-btn" draggable="false"
+                    aria-label="${escapeHtml(group.name)} 그룹 삭제"
+                    onclick="deleteSourceGroup(${groupIdx}, event)">그룹 삭제</button>
+          </div>
         </div>
         <div class="file-group-children">
           ${group.files.map(file => renderSourceFileRow(file)).join('')}
@@ -386,7 +391,44 @@ function renderSourceFileRow(f) {
       <div class="file-name" title="${escapeHtml(fname)}">${escapeHtml(fname)}</div>
       <div class="file-meta nowrap">${fmtBytes(f.size_bytes)}</div>
       <div class="file-meta nowrap">${fmtAge(f.mtime)}</div>
+      <button type="button" class="btn danger sm file-delete-btn" draggable="false"
+              aria-label="${escapeHtml(fname)} 삭제"
+              onclick="deleteSourceFile('${safePath}', event)">삭제</button>
     </label>`;
+}
+async function deleteSourceFiles(paths, label) {
+  const uniquePaths = [...new Set((paths || []).filter(Boolean))];
+  if (!uniquePaths.length) return;
+  const target = uniquePaths.length === 1
+    ? `"${label || uniquePaths[0]}" 파일`
+    : `"${label || '선택한 그룹'}"의 소스 파일 ${uniquePaths.length}개`;
+  if (!confirm(`${target}를 삭제할까요?\n삭제한 파일은 복구할 수 없습니다.`)) return;
+
+  try {
+    const response = await fetch(`${API}/api/files`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paths: uniquePaths }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.detail || '파일 삭제에 실패했습니다');
+    await loadFiles(true);
+    systemRefresh();
+    notify('삭제 완료', `소스 파일 ${result.count}개를 삭제했습니다`, 'ok');
+  } catch (error) {
+    notify('오류', error.message || '파일 삭제에 실패했습니다', 'err');
+  }
+}
+function deleteSourceFile(path, event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  deleteSourceFiles([path], mergeFileName(path));
+}
+function deleteSourceGroup(groupIdx, event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  const group = state.sourceGroups[groupIdx];
+  if (group) deleteSourceFiles(group.paths, group.name);
 }
 function toggleSourceGroup(groupIdx) {
   const group = state.sourceGroups[groupIdx];

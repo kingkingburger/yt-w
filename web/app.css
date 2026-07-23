@@ -743,7 +743,7 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
 }
 .file-group-head {
   display: grid;
-  grid-template-columns: 18px 22px minmax(0, 1fr) auto auto;
+  grid-template-columns: 18px 22px minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -860,6 +860,13 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
   overflow-wrap: anywhere;
   word-break: break-word;
 }
+.file-group-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.file-group-tools .part-chip { margin-left: 0; }
 .file-group-children {
   display: none;
   border-top: 1px solid color-mix(in srgb, var(--group-color, var(--accent)) 28%, var(--line));
@@ -868,7 +875,7 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
 .file-group.open .file-group-children { display: block; }
 .file-row {
   display: grid;
-  grid-template-columns: 22px 20px 1fr auto auto;
+  grid-template-columns: 22px 20px 1fr auto auto auto;
   align-items: center;
   gap: 14px;
   padding: 9px 12px 9px 24px;
@@ -887,6 +894,10 @@ a:hover { color: var(--accent-3); text-decoration: underline; text-underline-off
 .file-row.dragging {
   opacity: 0.55;
   transform: scale(0.995);
+}
+.file-delete-btn {
+  cursor: pointer;
+  white-space: nowrap;
 }
 .file-grip {
   color: var(--fg-mute);

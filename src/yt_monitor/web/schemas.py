@@ -31,6 +31,10 @@ class MergeRequest(BaseModel):
     mode: Literal["concat", "reencode"] = "concat"
 
 
+class FileDeleteRequest(BaseModel):
+    paths: List[str]
+
+
 class SplitRequest(BaseModel):
     input: str
     strategy: Literal["interval", "parts"]
