@@ -21,7 +21,24 @@ def extract_js_function(source: str, name: str) -> str:
     raise AssertionError(f"Function {name} not found")
 
 
-def test_frontend_select_all_keeps_part_files_compact_by_default() -> None:
+def test_merge_page_exposes_select_all_and_deselect_all_controls() -> None:
+    index_html = Path("web/index.html").read_text(encoding="utf-8")
+
+    source_title = index_html.index('<div class="card-title">소스 파일</div>')
+    select_all = index_html.index(
+        'id="btn-select-all" onclick="selectAllFiles()"'
+    )
+    sequence_title = index_html.index('<div class="card-title">합치기 순서</div>')
+    deselect_all = index_html.index(
+        'id="btn-deselect-all" onclick="deselectAllFiles()"'
+    )
+    sequence_body = index_html.index('<div class="card-body stack">', sequence_title)
+
+    assert source_title < select_all < sequence_title
+    assert sequence_title < deselect_all < sequence_body
+
+
+def test_frontend_select_all_keeps_part_files_compact_and_deselect_all_clears() -> None:
     node = shutil.which("node")
     if node is None:
         pytest.fail("node is required for the frontend select-all regression test")
@@ -38,7 +55,8 @@ def test_frontend_select_all_keeps_part_files_compact_by_default() -> None:
             "getPartInfo",
             "getPartRangeLabel",
             "buildFileGroups",
-            "toggleSelectAll",
+            "selectAllFiles",
+            "deselectAllFiles",
             "getSequencePartBlock",
             "buildSequenceRows",
             "formatPartRangeName",
@@ -63,11 +81,19 @@ function refreshDefaultMergeOutputName() {{}}
 function renderFileList() {{}}
 function renderSequence() {{}}
 {helpers}
-toggleSelectAll();
+selectAllFiles();
 const rows = buildSequenceRows();
-console.log(JSON.stringify({{
-  sequence: state.sequence,
+const selected = {{
+  sequence: [...state.sequence],
   rows: rows.map(row => [row.start, row.end, sequenceRowName(row)])
+}};
+deselectAllFiles();
+console.log(JSON.stringify({{
+  selected,
+  cleared: {{
+    sequence: state.sequence,
+    selectedPaths: [...state.selectedPaths]
+  }}
 }}));
 """
     result = subprocess.run(
@@ -78,14 +104,17 @@ console.log(JSON.stringify({{
     )
 
     assert json.loads(result.stdout) == {
-        "sequence": [
-            "live/channel/channel_20260514_025824_part000.mp4",
-            "live/channel/channel_20260514_025824_part001.mp4",
-            "live/channel/channel_20260514_025824_part002.mp4",
-            "live/channel/loose_video.mp4",
-        ],
-        "rows": [
-            [0, 2, "20260514_025824 - part 000-002.mp4"],
-            [3, 3, "loose_video.mp4"],
-        ],
+        "selected": {
+            "sequence": [
+                "live/channel/channel_20260514_025824_part000.mp4",
+                "live/channel/channel_20260514_025824_part001.mp4",
+                "live/channel/channel_20260514_025824_part002.mp4",
+                "live/channel/loose_video.mp4",
+            ],
+            "rows": [
+                [0, 2, "20260514_025824 - part 000-002.mp4"],
+                [3, 3, "loose_video.mp4"],
+            ],
+        },
+        "cleared": {"sequence": [], "selectedPaths": []},
     }

@@ -303,12 +303,9 @@ function renderFileList() {
   const sourceFiles = availableSourceFiles();
   $('merge-file-count').textContent = `${sourceFiles.length}개 파일`;
   const selectAllBtn = $('btn-select-all');
-  if (selectAllBtn) {
-    const allSelected = sourceFiles.length > 0
-      && sourceFiles.every(f => state.selectedPaths.has(f.path));
-    selectAllBtn.textContent = allSelected ? '전체 해제' : '전체 선택';
-    selectAllBtn.disabled = sourceFiles.length === 0;
-  }
+  const deselectAllBtn = $('btn-deselect-all');
+  if (selectAllBtn) selectAllBtn.disabled = sourceFiles.length === 0;
+  if (deselectAllBtn) deselectAllBtn.disabled = state.sequence.length === 0;
   if (!state.files.length) {
     host.innerHTML = `
       <div class="empty">
@@ -461,22 +458,21 @@ function toggleFileSelect(path, on) {
   refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
-function toggleSelectAll() {
+function selectAllFiles() {
   const sourceFiles = availableSourceFiles();
   if (!sourceFiles.length) return;
-  const allSelected = sourceFiles.every(f => state.selectedPaths.has(f.path));
-  if (allSelected) {
-    const filePaths = new Set(sourceFiles.map(f => f.path));
-    filePaths.forEach(p => state.selectedPaths.delete(p));
-    state.sequence = state.sequence.filter(p => !filePaths.has(p));
-  } else {
-    buildFileGroups(sourceFiles).flatMap(group => group.paths).forEach(path => {
-      if (!state.selectedPaths.has(path)) {
-        state.selectedPaths.add(path);
-        if (!state.sequence.includes(path)) state.sequence.push(path);
-      }
-    });
-  }
+  buildFileGroups(sourceFiles).flatMap(group => group.paths).forEach(path => {
+    if (!state.selectedPaths.has(path)) {
+      state.selectedPaths.add(path);
+      if (!state.sequence.includes(path)) state.sequence.push(path);
+    }
+  });
+  refreshDefaultMergeOutputName();
+  renderFileList(); renderSequence();
+}
+function deselectAllFiles() {
+  state.sequence = [];
+  state.selectedPaths.clear();
   refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
@@ -768,9 +764,7 @@ function renderSequence() {
   }).join('');
 }
 function clearSequence() {
-  state.sequence = []; state.selectedPaths.clear();
-  refreshDefaultMergeOutputName();
-  renderFileList(); renderSequence();
+  deselectAllFiles();
 }
 function removeSeqItem(idx) {
   removeSeqBlock(idx, idx);

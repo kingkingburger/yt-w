@@ -321,7 +321,7 @@
                 <div class="card-sub"><span id="merge-file-count">0 FILES</span> · 체크하면 오른쪽 순서에 추가되고, 삭제는 되돌릴 수 없습니다</div>
               </div>
               <div class="card-head-actions">
-                <button class="btn ghost sm" id="btn-select-all" onclick="toggleSelectAll()">전체 선택</button>
+                <button class="btn ghost sm" id="btn-select-all" onclick="selectAllFiles()">전체 선택</button>
                 <button class="btn ghost sm" onclick="loadFiles()">↻ 다시 읽기</button>
               </div>
             </div>
@@ -340,6 +340,7 @@
                   <button type="button" id="seq-view-full" onclick="setSequenceViewMode('full')">전체</button>
                 </div>
                 <button class="btn ghost sm" id="btn-sort-sequence-name" onclick="sortSequenceByName()">이름순 정렬</button>
+                <button class="btn ghost sm" id="btn-deselect-all" onclick="deselectAllFiles()">전체 해제</button>
               </div>
             </div>
             <div class="card-body stack">
