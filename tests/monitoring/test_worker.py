@@ -146,6 +146,108 @@ class TestChannelMonitorThread:
                 "Live Stream",
             )
 
+    def test_monitor_cycle_merges_same_broadcast_after_it_ends(
+        self,
+        monitor_thread: ChannelMonitorThread,
+        mock_youtube_client: MagicMock,
+        global_settings: GlobalSettingsDTO,
+    ):
+        """같은 방송의 완료 파일을 누적하고 종료 감지 후 이름순 병합한다."""
+        stream_info = LiveStreamInfo(
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
+            title="Live Stream",
+        )
+        mock_youtube_client.check_if_live.side_effect = [
+            (True, stream_info),
+            (True, stream_info),
+            (False, None),
+        ]
+        channel_dir = (
+            Path(global_settings.download_directory) / "live" / "Test Channel"
+        )
+        created_batches: list[list[str]] = [
+            [
+                "Test Channel_라이브_20260728_063741_part010.mp4",
+                "Test Channel_라이브_20260728_063741_part002.mp4",
+            ],
+            ["Test Channel_라이브_20260728_123925_part001.mp4"],
+        ]
+
+        def download_completed_files(*_args: object, **_kwargs: object) -> bool:
+            for name in created_batches.pop(0):
+                (channel_dir / name).write_bytes(b"video")
+            return True
+
+        expected_output = (
+            Path(global_settings.download_directory)
+            / "merged"
+            / "Test Channel_라이브_20260728_063741.mp4"
+        )
+        with (
+            patch.object(
+                monitor_thread.downloader,
+                "download",
+                side_effect=download_completed_files,
+            ),
+            patch(
+                "src.yt_monitor.monitoring.worker.merge_completed_stream_files",
+                return_value=expected_output,
+            ) as merge_files,
+        ):
+            monitor_thread._monitor_cycle()
+            monitor_thread._monitor_cycle()
+            merge_files.assert_not_called()
+
+            monitor_thread._monitor_cycle()
+
+        download_root, completed_files = merge_files.call_args.args
+        assert download_root == Path(global_settings.download_directory)
+        assert [path.name for path in completed_files] == [
+            "Test Channel_라이브_20260728_063741_part002.mp4",
+            "Test Channel_라이브_20260728_063741_part010.mp4",
+            "Test Channel_라이브_20260728_123925_part001.mp4",
+        ]
+
+    def test_failed_download_files_are_not_automatically_merged(
+        self,
+        monitor_thread: ChannelMonitorThread,
+        mock_youtube_client: MagicMock,
+        global_settings: GlobalSettingsDTO,
+    ):
+        """실패한 다운로드가 남긴 파일은 완료 파일로 간주하지 않는다."""
+        stream_info = LiveStreamInfo(
+            video_id="abc123",
+            url="https://www.youtube.com/watch?v=abc123",
+            title="Live Stream",
+        )
+        mock_youtube_client.check_if_live.side_effect = [
+            (True, stream_info),
+            (False, None),
+        ]
+        channel_dir = (
+            Path(global_settings.download_directory) / "live" / "Test Channel"
+        )
+
+        def fail_after_partial_file(*_args: object, **_kwargs: object) -> bool:
+            (channel_dir / "partial_part000.mp4").write_bytes(b"partial")
+            return False
+
+        with (
+            patch.object(
+                monitor_thread.downloader,
+                "download",
+                side_effect=fail_after_partial_file,
+            ),
+            patch(
+                "src.yt_monitor.monitoring.worker.merge_completed_stream_files",
+            ) as merge_files,
+        ):
+            monitor_thread._monitor_cycle()
+            monitor_thread._monitor_cycle()
+
+        merge_files.assert_not_called()
+
     def test_handle_live_stream_resets_flag_when_notifier_raises(
         self,
         sample_channel: ChannelDTO,

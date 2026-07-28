@@ -1,6 +1,7 @@
 """Backend merge ordering and path-safety contracts."""
 
 import os
+import subprocess
 from pathlib import Path
 from unittest.mock import patch
 
@@ -12,6 +13,7 @@ from src.yt_monitor.media.merge import (
     build_concat_demuxer_command,
     build_reencode_command,
     list_video_files,
+    merge_completed_stream_files,
     write_concat_list,
 )
 
@@ -106,6 +108,41 @@ def test_reencode_command_maps_every_input_pair_in_requested_order(tmp_path: Pat
         "192k",
         str(output),
     ]
+
+
+def test_completed_stream_files_merge_by_name_into_merged_directory(
+    tmp_path: Path,
+):
+    root = tmp_path / "downloads"
+    channel_dir = root / "live" / "channel"
+    channel_dir.mkdir(parents=True)
+    paths = [
+        channel_dir / "channel_라이브_20260728_063741_part010.mp4",
+        channel_dir / "channel_라이브_20260728_063741_part002.mp4",
+        channel_dir / "channel_라이브_20260728_063741_part001.mp4",
+    ]
+    for path in paths:
+        path.write_bytes(b"video")
+
+    completed_process = subprocess.CompletedProcess([], 0, stdout="")
+    with (
+        patch.object(video_merger, "write_concat_list") as write_list,
+        patch.object(
+            video_merger.subprocess,
+            "run",
+            return_value=completed_process,
+        ) as run,
+    ):
+        output = merge_completed_stream_files(root, paths)
+
+    ordered_inputs = write_list.call_args.args[0]
+    assert [path.name for path in ordered_inputs] == [
+        "channel_라이브_20260728_063741_part001.mp4",
+        "channel_라이브_20260728_063741_part002.mp4",
+        "channel_라이브_20260728_063741_part010.mp4",
+    ]
+    assert output == root / "merged" / "channel_라이브_20260728_063741.mp4"
+    assert run.call_args.args[0][-1] == str(output)
 
 
 def test_merge_submit_preserves_requested_input_order(

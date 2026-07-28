@@ -7,6 +7,7 @@ from typing import Optional
 
 from ..channels.models import ChannelDTO, GlobalSettingsDTO
 from ..logging import Logger
+from ..media.merge import VideoExtensions, merge_completed_stream_files
 from ..media.stream_download import StreamDownloader
 from ..notifications.discord import DiscordNotifier, get_notifier
 from ..youtube.client import YouTubeAuthError, YouTubeClient
@@ -51,21 +52,23 @@ class ChannelMonitorThread:
         self.is_running = False
         self.is_downloading = False
         self.thread: Optional[threading.Thread] = None
+        self._active_stream_url: Optional[str] = None
+        self._completed_stream_files: set[Path] = set()
         self._notifier: DiscordNotifier = notifier or get_notifier()
         self._auth_alert_cooldown: AlertCooldown = (
             auth_alert_cooldown
             or AlertCooldown(cooldown_seconds=_AUTH_ALERT_COOLDOWN_SECONDS)
         )
 
-        channel_download_dir = (
+        self._channel_download_dir = (
             Path(global_settings.download_directory)
             / "live"
             / _sanitize_name(channel.name)
         )
-        channel_download_dir.mkdir(parents=True, exist_ok=True)
+        self._channel_download_dir.mkdir(parents=True, exist_ok=True)
 
         self.downloader = StreamDownloader(
-            download_directory=str(channel_download_dir),
+            download_directory=str(self._channel_download_dir),
             download_format=channel.download_format,
             split_mode=global_settings.split_mode,
             split_time_minutes=global_settings.split_time_minutes,
@@ -132,14 +135,60 @@ class ChannelMonitorThread:
         is_live, stream_info = self.youtube_client.check_if_live(self.channel.url)
 
         if is_live and stream_info:
+            self._activate_stream(stream_info.url)
             self._handle_live_stream(stream_info.url, stream_info.title or "라이브")
         else:
+            self._finish_active_stream()
             self.logger.info(f"[{self.channel.name}] No live stream found")
+
+    def _activate_stream(self, stream_url: str) -> None:
+        """새 방송이면 직전 방송을 먼저 병합하고 추적 대상을 바꾼다."""
+        if (
+            self._active_stream_url is not None
+            and self._active_stream_url != stream_url
+        ):
+            self._finish_active_stream()
+        self._active_stream_url = stream_url
+
+    def _list_channel_video_files(self) -> set[Path]:
+        """현재 채널 다운로드 폴더의 완성된 영상 파일 경로를 반환한다."""
+        return {
+            path.resolve()
+            for path in self._channel_download_dir.iterdir()
+            if path.is_file() and path.suffix.lower() in VideoExtensions
+        }
+
+    def _finish_active_stream(self) -> None:
+        """방송 종료까지 누적한 완료 파일을 이름순으로 자동 병합한다."""
+        if self._active_stream_url is None:
+            return
+
+        completed_files = sorted(
+            self._completed_stream_files,
+            key=lambda path: (path.name.casefold(), str(path).casefold()),
+        )
+        self._active_stream_url = None
+        self._completed_stream_files = set()
+        if not completed_files:
+            return
+
+        self.logger.info(
+            f"[{self.channel.name}] Broadcast ended; auto-merging "
+            f"{len(completed_files)} completed file(s)"
+        )
+        output_path = merge_completed_stream_files(
+            Path(self.global_settings.download_directory),
+            completed_files,
+        )
+        self.logger.info(
+            f"[{self.channel.name}] Automatic merge finished: {output_path}"
+        )
 
     def _handle_live_stream(self, stream_url: str, title: str) -> None:
         """감지된 라이브 스트림을 다운로드하고 결과를 알린다."""
         self.logger.info(f"[{self.channel.name}] Live stream detected: {stream_url}")
         self.is_downloading = True
+        files_before_download = self._list_channel_video_files()
         try:
             self._notifier.notify_live_detected(
                 channel_name=self.channel.name,
@@ -160,6 +209,9 @@ class ChannelMonitorThread:
                 raise
 
             if success:
+                self._completed_stream_files.update(
+                    self._list_channel_video_files() - files_before_download
+                )
                 self.logger.info(f"[{self.channel.name}] Download finished")
                 self._notifier.notify_download_complete(
                     channel_name=self.channel.name,

@@ -107,6 +107,63 @@ def build_reencode_command(input_files: List[Path], output: Path) -> List[str]:
     return cmd
 
 
+def merge_completed_stream_files(
+    download_root: Path,
+    input_files: List[Path],
+) -> Path:
+    """완료된 한 방송의 파일을 이름순으로 stream-copy 병합한다."""
+    if not input_files:
+        raise ValueError("자동 병합할 입력 파일이 없습니다")
+
+    root_resolved = download_root.resolve()
+    ordered_inputs: List[Path] = []
+    for input_file in input_files:
+        resolved = input_file.resolve()
+        try:
+            resolved.relative_to(root_resolved)
+        except ValueError:
+            raise ValueError(
+                f"잘못된 자동 병합 입력 경로: {input_file}"
+            ) from None
+        if not resolved.is_file():
+            raise ValueError(f"자동 병합 입력 파일이 존재하지 않습니다: {input_file}")
+        ordered_inputs.append(resolved)
+    ordered_inputs.sort(key=lambda path: (path.name.casefold(), str(path).casefold()))
+
+    first_stem = ordered_inputs[0].stem
+    part_marker = first_stem.rfind("_part")
+    if part_marker >= 0 and first_stem[part_marker + len("_part") :].isdigit():
+        first_stem = first_stem[:part_marker]
+
+    output_dir = root_resolved / "merged"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_path = output_dir / f"{first_stem}.mp4"
+    list_path = output_dir / f".concat-auto-{uuid.uuid4().hex[:12]}.txt"
+
+    try:
+        write_concat_list(ordered_inputs, list_path)
+        completed = subprocess.run(
+            build_concat_demuxer_command(list_path, output_path),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
+        if completed.returncode != 0:
+            output_tail = "\n".join((completed.stdout or "").splitlines()[-5:])
+            raise RuntimeError(output_tail or "ffmpeg 자동 병합 실패")
+    finally:
+        if list_path.exists():
+            try:
+                list_path.unlink()
+            except OSError:
+                pass
+
+    return output_path
+
+
 class MergeJobManager:
     """병합 잡을 백그라운드 스레드로 실행하고 상태를 보관한다."""
 

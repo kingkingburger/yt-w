@@ -80,10 +80,17 @@ monitoring.py → yt_monitor.entrypoint
        │              └─ StreamDownloader.download
        │                   ├─ NoSplit: yt-dlp 직접 다운로드
        │                   └─ Time/Size: yt-dlp로 stream URL 추출 → ffmpeg Popen + segment
+       │         └─ 방송 종료 감지
+       │              └─ 같은 방송에서 완료된 파일을 이름순으로 downloads/merged에 병합
        └─ SIGTERM handler (메인 스레드일 때만 등록)
 ```
 
 `/live` 엔드포인트 탐지는 매 분 `extract_flat=False`로 전체 메타데이터를 끌어오는 호출이라 봇 감지 트리거가 됐다 — 제거됨. 두 탐지 방식 모두 `extract_flat="in_playlist"`로 가벼운 playlist 스캔만 한다.
+
+분할 다운로드의 ffmpeg가 종료돼도 YouTube가 같은 URL을 계속 라이브로 표시할 수 있다.
+따라서 `ChannelMonitorThread`는 같은 방송 URL에서 성공적으로 완료된 파일을 누적하고,
+`check_if_live()`가 비라이브를 반환하거나 새 방송 URL이 감지될 때 한 번만 자동 병합한다.
+실패한 다운로드가 남긴 partial 파일은 자동 병합 대상에 포함하지 않는다.
 
 ### 2. 웹 API (yt-web)
 
