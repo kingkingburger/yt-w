@@ -25,22 +25,22 @@ class FileCleaner:
         self.download_directory = Path(download_directory)
         self.retention_days = retention_days
         self.logger = Logger.get()
-        self.live_directory_name = "live"
+        self.preserved_directory_names: frozenset[str] = frozenset({"live", ".trash"})
 
-    def _is_in_live_directory(self, file_path: Path) -> bool:
+    def _is_in_preserved_directory(self, file_path: Path) -> bool:
         """
-        Check if file is inside the live directory.
+        Check if file is inside a directory excluded from retention cleanup.
 
         Args:
             file_path: Path to check
 
         Returns:
-            True if file is in live directory, False otherwise
+            True if file is in a preserved directory, False otherwise
         """
         try:
             relative_path = file_path.relative_to(self.download_directory)
             parts = relative_path.parts
-            return len(parts) > 0 and parts[0] == self.live_directory_name
+            return len(parts) > 0 and parts[0] in self.preserved_directory_names
         except ValueError:
             return False
 
@@ -75,7 +75,7 @@ class FileCleaner:
             if not file_path.is_file():
                 continue
 
-            if self._is_in_live_directory(file_path):
+            if self._is_in_preserved_directory(file_path):
                 continue
 
             age_days = self._get_file_age_days(file_path)
@@ -141,7 +141,7 @@ class FileCleaner:
             if not dir_path.is_dir():
                 continue
 
-            if self._is_in_live_directory(dir_path):
+            if self._is_in_preserved_directory(dir_path):
                 continue
 
             try:
@@ -161,7 +161,7 @@ class FileCleaner:
         old_files = self.find_old_files()
         total_size = sum(f[0].stat().st_size for f in old_files)
 
-        live_dir = self.download_directory / self.live_directory_name
+        live_dir = self.download_directory / "live"
         live_file_count = 0
         live_total_size = 0
 

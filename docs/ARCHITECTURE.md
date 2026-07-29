@@ -81,7 +81,7 @@ monitoring.py → yt_monitor.entrypoint
        │                   ├─ NoSplit: yt-dlp 직접 다운로드
        │                   └─ Time/Size: yt-dlp로 stream URL 추출 → ffmpeg Popen + segment
        │         └─ 방송 종료 감지
-       │              └─ 같은 방송에서 완료된 파일을 이름순으로 downloads/merged에 병합
+       │              └─ 완료 파일을 이름순 병합한 뒤 live 원본을 downloads/.trash로 이동
        └─ SIGTERM handler (메인 스레드일 때만 등록)
 ```
 
@@ -91,6 +91,8 @@ monitoring.py → yt_monitor.entrypoint
 따라서 `ChannelMonitorThread`는 같은 방송 URL에서 성공적으로 완료된 파일을 누적하고,
 `check_if_live()`가 비라이브를 반환하거나 새 방송 URL이 감지될 때 한 번만 자동 병합한다.
 실패한 다운로드가 남긴 partial 파일은 자동 병합 대상에 포함하지 않는다.
+병합이 성공한 경우에만 입력 파일을 `downloads/.trash/<merge별 고유 폴더>/live/...`로
+이동하며, 이 앱 휴지통은 파일 목록과 retention 정리 대상에서 제외한다.
 
 ### 2. 웹 API (yt-web)
 

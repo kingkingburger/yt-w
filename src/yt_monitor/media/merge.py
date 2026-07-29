@@ -18,6 +18,7 @@ from typing import Dict, List, Literal, Optional
 VideoExtensions = frozenset(
     {".mp4", ".mkv", ".webm", ".m4a", ".mp3", ".aac", ".ts", ".mov"}
 )
+_TRASH_DIRECTORY_NAME: str = ".trash"
 
 
 @dataclass(frozen=True)
@@ -48,6 +49,8 @@ def list_video_files(root: Path) -> List[FileInfoDTO]:
     found: List[FileInfoDTO] = []
     for path in root.rglob("*"):
         if not path.is_file():
+            continue
+        if _TRASH_DIRECTORY_NAME in path.relative_to(root).parts:
             continue
         if path.suffix.lower() not in VideoExtensions:
             continue
@@ -111,7 +114,7 @@ def merge_completed_stream_files(
     download_root: Path,
     input_files: List[Path],
 ) -> Path:
-    """완료된 한 방송의 파일을 이름순으로 stream-copy 병합한다."""
+    """완료된 한 방송을 병합하고 성공한 입력 파일을 앱 휴지통으로 옮긴다."""
     if not input_files:
         raise ValueError("자동 병합할 입력 파일이 없습니다")
 
@@ -154,6 +157,16 @@ def merge_completed_stream_files(
         if completed.returncode != 0:
             output_tail = "\n".join((completed.stdout or "").splitlines()[-5:])
             raise RuntimeError(output_tail or "ffmpeg 자동 병합 실패")
+
+        trash_root: Path = (
+            root_resolved
+            / _TRASH_DIRECTORY_NAME
+            / f"{output_path.stem}-{uuid.uuid4().hex[:12]}"
+        )
+        for input_file in ordered_inputs:
+            trash_path: Path = trash_root / input_file.relative_to(root_resolved)
+            trash_path.parent.mkdir(parents=True, exist_ok=True)
+            input_file.replace(trash_path)
     finally:
         if list_path.exists():
             try:

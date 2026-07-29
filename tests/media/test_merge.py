@@ -28,6 +28,9 @@ def test_list_video_files_filters_supported_extensions_and_sorts_newest_first(
     older.write_bytes(b"old")
     newer = root / "newer.mkv"
     newer.write_bytes(b"newer")
+    trashed = root / ".trash" / "old.mp4"
+    trashed.parent.mkdir()
+    trashed.write_bytes(b"trashed")
     (root / "notes.txt").write_text("ignore", encoding="utf-8")
     os.utime(older, (100, 100))
     os.utime(newer, (200, 200))
@@ -143,6 +146,40 @@ def test_completed_stream_files_merge_by_name_into_merged_directory(
     ]
     assert output == root / "merged" / "channel_라이브_20260728_063741.mp4"
     assert run.call_args.args[0][-1] == str(output)
+    assert all(not path.exists() for path in paths)
+    trashed_paths = list((root / ".trash").rglob("*.mp4"))
+    assert [path.name for path in trashed_paths] == [
+        "channel_라이브_20260728_063741_part001.mp4",
+        "channel_라이브_20260728_063741_part002.mp4",
+        "channel_라이브_20260728_063741_part010.mp4",
+    ]
+
+
+def test_completed_stream_merge_failure_keeps_live_source_files(tmp_path: Path):
+    root = tmp_path / "downloads"
+    channel_dir = root / "live" / "channel"
+    channel_dir.mkdir(parents=True)
+    paths = [
+        channel_dir / "channel_라이브_part001.mp4",
+        channel_dir / "channel_라이브_part002.mp4",
+    ]
+    for path in paths:
+        path.write_bytes(b"video")
+
+    failed_process = subprocess.CompletedProcess([], 1, stdout="ffmpeg failed")
+    with (
+        patch.object(video_merger, "write_concat_list"),
+        patch.object(
+            video_merger.subprocess,
+            "run",
+            return_value=failed_process,
+        ),
+        pytest.raises(RuntimeError, match="ffmpeg failed"),
+    ):
+        merge_completed_stream_files(root, paths)
+
+    assert all(path.exists() for path in paths)
+    assert not (root / ".trash").exists()
 
 
 def test_merge_submit_preserves_requested_input_order(
