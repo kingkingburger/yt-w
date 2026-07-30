@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import json
 import subprocess
 import threading
 import time
@@ -14,11 +15,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
-
 VideoExtensions = frozenset(
     {".mp4", ".mkv", ".webm", ".m4a", ".mp3", ".aac", ".ts", ".mov"}
 )
-_TRASH_DIRECTORY_NAME: str = ".trash"
+_EXCLUDED_DIRECTORY_NAMES: frozenset[str] = frozenset(
+    {".trash", ".recycle-requests"}
+)
+_RECYCLE_REQUEST_DIRECTORY_NAME: str = ".recycle-requests"
 
 
 @dataclass(frozen=True)
@@ -50,7 +53,7 @@ def list_video_files(root: Path) -> List[FileInfoDTO]:
     for path in root.rglob("*"):
         if not path.is_file():
             continue
-        if _TRASH_DIRECTORY_NAME in path.relative_to(root).parts:
+        if _EXCLUDED_DIRECTORY_NAMES.intersection(path.relative_to(root).parts):
             continue
         if path.suffix.lower() not in VideoExtensions:
             continue
@@ -110,11 +113,47 @@ def build_reencode_command(input_files: List[Path], output: Path) -> List[str]:
     return cmd
 
 
+def queue_recycle_request(
+    download_root: Path,
+    output_path: Path,
+    input_files: List[Path],
+) -> Path:
+    """Windows host helper가 처리할 휴지통 이동 요청을 원자적으로 기록한다."""
+    root_resolved = download_root.resolve()
+    output_relative = output_path.resolve().relative_to(root_resolved).as_posix()
+    input_relatives = [
+        input_file.resolve().relative_to(root_resolved).as_posix()
+        for input_file in input_files
+    ]
+    request_id = uuid.uuid4().hex
+    request_directory = root_resolved / _RECYCLE_REQUEST_DIRECTORY_NAME
+    request_directory.mkdir(parents=True, exist_ok=True)
+    request_path = request_directory / f"{output_path.stem}-{request_id}.json"
+    temporary_path = request_directory / f".{request_id}.tmp"
+    payload = {
+        "schema_version": 1,
+        "output": output_relative,
+        "files": input_relatives,
+    }
+
+    try:
+        temporary_path.write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        temporary_path.replace(request_path)
+    finally:
+        if temporary_path.exists():
+            temporary_path.unlink()
+
+    return request_path
+
+
 def merge_completed_stream_files(
     download_root: Path,
     input_files: List[Path],
 ) -> Path:
-    """완료된 한 방송을 병합하고 성공한 입력 파일을 앱 휴지통으로 옮긴다."""
+    """완료된 한 방송을 병합하고 Windows 휴지통 이동을 host에 요청한다."""
     if not input_files:
         raise ValueError("자동 병합할 입력 파일이 없습니다")
 
@@ -123,11 +162,13 @@ def merge_completed_stream_files(
     for input_file in input_files:
         resolved = input_file.resolve()
         try:
-            resolved.relative_to(root_resolved)
+            relative_input = resolved.relative_to(root_resolved)
         except ValueError:
             raise ValueError(
                 f"잘못된 자동 병합 입력 경로: {input_file}"
             ) from None
+        if not relative_input.parts or relative_input.parts[0].casefold() != "live":
+            raise ValueError(f"자동 병합 입력은 live 폴더 안에 있어야 합니다: {input_file}")
         if not resolved.is_file():
             raise ValueError(f"자동 병합 입력 파일이 존재하지 않습니다: {input_file}")
         ordered_inputs.append(resolved)
@@ -158,15 +199,7 @@ def merge_completed_stream_files(
             output_tail = "\n".join((completed.stdout or "").splitlines()[-5:])
             raise RuntimeError(output_tail or "ffmpeg 자동 병합 실패")
 
-        trash_root: Path = (
-            root_resolved
-            / _TRASH_DIRECTORY_NAME
-            / f"{output_path.stem}-{uuid.uuid4().hex[:12]}"
-        )
-        for input_file in ordered_inputs:
-            trash_path: Path = trash_root / input_file.relative_to(root_resolved)
-            trash_path.parent.mkdir(parents=True, exist_ok=True)
-            input_file.replace(trash_path)
+        queue_recycle_request(root_resolved, output_path, ordered_inputs)
     finally:
         if list_path.exists():
             try:

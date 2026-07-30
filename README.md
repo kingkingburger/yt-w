@@ -14,7 +14,7 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 - 라이브 방송 감지 시 자동 다운로드
 - 채널별 다운로드 포맷 설정
 - 실시간 영상 분할 (시간/크기 기준)
-- 방송 종료 감지 후 완료된 분할 파일을 이름순으로 자동 병합하고 원본은 앱 휴지통으로 이동
+- 방송 종료 감지 후 완료된 분할 파일을 이름순으로 자동 병합하고 Windows 휴지통으로 이동
 
 ### Discord 알림
 - 라이브 감지 / 다운로드 완료·실패 / 쿠키 만료 / 모니터 시작·종료 알림
@@ -52,6 +52,21 @@ cp .env.example .env
 ## 빠른 시작
 
 ### Docker (권장)
+
+Windows PowerShell에서는 Docker와 Windows 휴지통 helper를 함께 시작합니다.
+
+```powershell
+Copy-Item .env.example .env
+Copy-Item channels.example.json channels.json
+# .env의 FIREFOX_PROFILE_PATH에 로그인된 Firefox 프로필 경로 입력
+
+.\scripts\start-windows.ps1
+```
+
+`docker compose up`만 실행하면 Windows host helper가 시작되지 않습니다. 이 경우 병합은
+완료되지만 원본은 안전을 위해 `live/`에 남고, `.recycle-requests/`의 요청이 대기합니다.
+
+Windows 휴지통 연동이 필요 없는 환경에서는 Docker Compose를 직접 실행할 수 있습니다.
 
 ```bash
 # 환경 설정
@@ -182,6 +197,9 @@ yt-w/
 │   └── app.js                   # Operator console client logic
 ├── main.py                      # 웹 서버 호환 엔트리포인트
 ├── monitoring.py                # 모니터 데몬 호환 엔트리포인트
+├── scripts/
+│   ├── start-windows.ps1        # Docker + Windows 휴지통 helper 시작
+│   └── windows-recycle-helper.ps1
 ├── docker-compose.yml
 ├── Dockerfile
 ├── channels.json                # 채널 설정
@@ -192,7 +210,8 @@ yt-w/
 
 ```
 downloads/
-├── .trash/                       # 자동 병합이 끝난 live 원본(복구용)
+├── .recycle-requests/            # Windows host helper가 처리할 원자적 요청
+├── .trash/                       # 이전 버전의 앱 휴지통 자료(자동 이관하지 않음)
 ├── live/
 │   └── 채널이름/
 │       ├── 채널이름_라이브_20250126_143000_part000.mp4
@@ -211,6 +230,7 @@ downloads/
 | ffmpeg not found | `apt install ffmpeg` 또는 [다운로드](https://ffmpeg.org/download.html) |
 | 라이브 감지 안됨 | 채널 URL 확인, `check_interval_seconds` 조정 |
 | 다운로드 실패 | `docker compose logs -f` 확인, `uv add yt-dlp --upgrade` |
+| 병합 후 원본이 `live/`에 남음 | `logs/windows-recycle-helper.log` 확인 후 `.\scripts\start-windows.ps1 -NoBuild` 실행 |
 | 봇 차단 또는 로그인 실패 | `pot-provider` 상태, `FIREFOX_PROFILE_PATH`, Firefox의 YouTube 로그인 상태 확인 |
 | Discord 알림 안 옴 | `.env`의 `DISCORD_WEBHOOK_URL` 확인, Webhook URL 유효성 확인 |
 

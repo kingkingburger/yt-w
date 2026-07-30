@@ -28,11 +28,13 @@ def test_find_old_files_excludes_live_and_recent_and_orders_oldest(
     recent = root / "recent.mp4"
     live = root / "live" / "protected.mp4"
     trashed = root / ".trash" / "recoverable.mp4"
+    pending_request = root / ".recycle-requests" / "pending.json"
     _write_file_with_age(oldest, age_days=12)
     _write_file_with_age(old, age_days=8)
     _write_file_with_age(recent, age_days=6.9)
     _write_file_with_age(live, age_days=100)
     _write_file_with_age(trashed, age_days=100)
+    _write_file_with_age(pending_request, age_days=100)
 
     with patch("src.yt_monitor.maintenance.cleanup.time.time", return_value=NOW):
         found = FileCleaner(str(root), retention_days=7).find_old_files()

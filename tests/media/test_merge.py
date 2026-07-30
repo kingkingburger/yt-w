@@ -1,5 +1,6 @@
 """Backend merge ordering and path-safety contracts."""
 
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -31,6 +32,9 @@ def test_list_video_files_filters_supported_extensions_and_sorts_newest_first(
     trashed = root / ".trash" / "old.mp4"
     trashed.parent.mkdir()
     trashed.write_bytes(b"trashed")
+    pending = root / ".recycle-requests" / "pending.mp4"
+    pending.parent.mkdir()
+    pending.write_bytes(b"pending")
     (root / "notes.txt").write_text("ignore", encoding="utf-8")
     os.utime(older, (100, 100))
     os.utime(newer, (200, 200))
@@ -113,7 +117,7 @@ def test_reencode_command_maps_every_input_pair_in_requested_order(tmp_path: Pat
     ]
 
 
-def test_completed_stream_files_merge_by_name_into_merged_directory(
+def test_completed_stream_files_merge_and_queue_windows_recycle_request(
     tmp_path: Path,
 ):
     root = tmp_path / "downloads"
@@ -146,13 +150,19 @@ def test_completed_stream_files_merge_by_name_into_merged_directory(
     ]
     assert output == root / "merged" / "channel_라이브_20260728_063741.mp4"
     assert run.call_args.args[0][-1] == str(output)
-    assert all(not path.exists() for path in paths)
-    trashed_paths = list((root / ".trash").rglob("*.mp4"))
-    assert [path.name for path in trashed_paths] == [
-        "channel_라이브_20260728_063741_part001.mp4",
-        "channel_라이브_20260728_063741_part002.mp4",
-        "channel_라이브_20260728_063741_part010.mp4",
-    ]
+    assert all(path.exists() for path in paths)
+    request_paths = list((root / ".recycle-requests").glob("*.json"))
+    assert len(request_paths) == 1
+    assert json.loads(request_paths[0].read_text(encoding="utf-8")) == {
+        "schema_version": 1,
+        "output": "merged/channel_라이브_20260728_063741.mp4",
+        "files": [
+            "live/channel/channel_라이브_20260728_063741_part001.mp4",
+            "live/channel/channel_라이브_20260728_063741_part002.mp4",
+            "live/channel/channel_라이브_20260728_063741_part010.mp4",
+        ],
+    }
+    assert not (root / ".trash").exists()
 
 
 def test_completed_stream_merge_failure_keeps_live_source_files(tmp_path: Path):
@@ -180,6 +190,21 @@ def test_completed_stream_merge_failure_keeps_live_source_files(tmp_path: Path):
 
     assert all(path.exists() for path in paths)
     assert not (root / ".trash").exists()
+    assert not (root / ".recycle-requests").exists()
+
+
+def test_completed_stream_merge_rejects_source_outside_live(tmp_path: Path):
+    root = tmp_path / "downloads"
+    source = root / "web_downloads" / "source.mp4"
+    source.parent.mkdir(parents=True)
+    source.write_bytes(b"video")
+
+    with pytest.raises(ValueError, match="live 폴더"):
+        merge_completed_stream_files(root, [source])
+
+    assert source.exists()
+    assert not (root / "merged").exists()
+    assert not (root / ".recycle-requests").exists()
 
 
 def test_merge_submit_preserves_requested_input_order(

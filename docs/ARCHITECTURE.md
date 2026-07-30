@@ -81,7 +81,7 @@ monitoring.py → yt_monitor.entrypoint
        │                   ├─ NoSplit: yt-dlp 직접 다운로드
        │                   └─ Time/Size: yt-dlp로 stream URL 추출 → ffmpeg Popen + segment
        │         └─ 방송 종료 감지
-       │              └─ 완료 파일을 이름순 병합한 뒤 live 원본을 downloads/.trash로 이동
+       │              └─ 완료 파일을 이름순 병합한 뒤 host recycle 요청을 원자적으로 기록
        └─ SIGTERM handler (메인 스레드일 때만 등록)
 ```
 
@@ -91,8 +91,15 @@ monitoring.py → yt_monitor.entrypoint
 따라서 `ChannelMonitorThread`는 같은 방송 URL에서 성공적으로 완료된 파일을 누적하고,
 `check_if_live()`가 비라이브를 반환하거나 새 방송 URL이 감지될 때 한 번만 자동 병합한다.
 실패한 다운로드가 남긴 partial 파일은 자동 병합 대상에 포함하지 않는다.
-병합이 성공한 경우에만 입력 파일을 `downloads/.trash/<merge별 고유 폴더>/live/...`로
-이동하며, 이 앱 휴지통은 파일 목록과 retention 정리 대상에서 제외한다.
+병합이 성공한 경우에만 입력 상대 경로와 결과 경로를
+`downloads/.recycle-requests/*.json`에 원자적으로 기록한다. Windows host의
+`scripts/windows-recycle-helper.ps1`은 `merged/` 결과 파일이 존재하고 source가
+`live/` 아래에 있는지 검증한 뒤 Windows 휴지통 API로 원본을 이동한다. helper가
+중지됐거나 요청 처리에 실패하면 manifest와 원본을 그대로 유지한다.
+
+`downloads/.trash/`는 이전 버전에서 만든 복구 자료다. 새 병합은 이 경로를 사용하지
+않으며 기존 자료도 자동으로 Windows 휴지통에 이관하지 않는다. `.trash/`와
+`.recycle-requests/`는 파일 목록과 retention 정리 대상에서 제외한다.
 
 ### 2. 웹 API (yt-web)
 

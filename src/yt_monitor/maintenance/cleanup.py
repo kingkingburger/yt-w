@@ -25,7 +25,9 @@ class FileCleaner:
         self.download_directory = Path(download_directory)
         self.retention_days = retention_days
         self.logger = Logger.get()
-        self.preserved_directory_names: frozenset[str] = frozenset({"live", ".trash"})
+        self.preserved_directory_names: frozenset[str] = frozenset(
+            {"live", ".trash", ".recycle-requests"}
+        )
 
     def _is_in_preserved_directory(self, file_path: Path) -> bool:
         """
