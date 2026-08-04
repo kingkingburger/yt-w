@@ -7,18 +7,14 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$helperPath = Join-Path $PSScriptRoot 'windows-recycle-helper.ps1'
-$downloadRoot = Join-Path $repositoryRoot 'downloads'
+$launcherPath = Join-Path $PSScriptRoot 'run-windows-recycle-helper-hidden.vbs'
+$wscriptPath = Join-Path $env:SystemRoot 'System32\wscript.exe'
 $helperTaskName = 'yt-w-windows-recycle-helper'
 $helperTaskPath = '\'
-$helperArguments = @(
-    '-NoProfile',
-    '-ExecutionPolicy',
-    'Bypass',
-    '-File',
-    "`"$helperPath`"",
-    '-DownloadRoot',
-    "`"$downloadRoot`""
+$launcherArguments = @(
+    '//B',
+    '//NoLogo',
+    "`"$launcherPath`""
 )
 
 $helperTask = Get-ScheduledTask `
@@ -37,8 +33,8 @@ else {
         'Windows recycle Scheduled Task is not installed or is disabled. ' +
         'Run .\scripts\install-windows-recycle-task.ps1 once.'
     )
-    Start-Process -FilePath 'powershell.exe' `
-        -ArgumentList $helperArguments `
+    Start-Process -FilePath $wscriptPath `
+        -ArgumentList $launcherArguments `
         -WindowStyle Hidden
 }
 

@@ -11,29 +11,34 @@ if ([Environment]::OSVersion.Platform -ne [PlatformID]::Win32NT) {
 }
 
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$launcherPath = Join-Path $PSScriptRoot 'run-windows-recycle-helper-hidden.vbs'
 $helperPath = Join-Path $PSScriptRoot 'windows-recycle-helper.ps1'
 $downloadRoot = Join-Path $repositoryRoot 'downloads'
-$powerShellPath = (Get-Command 'powershell.exe' -ErrorAction Stop).Source
+$wscriptPath = Join-Path $env:SystemRoot 'System32\wscript.exe'
 $userName = [Security.Principal.WindowsIdentity]::GetCurrent().Name
 $taskPath = '\'
 
+if (-not (Test-Path -LiteralPath $launcherPath -PathType Leaf)) {
+    throw "Hidden recycle launcher does not exist: $launcherPath"
+}
 if (-not (Test-Path -LiteralPath $helperPath -PathType Leaf)) {
     throw "Recycle helper does not exist: $helperPath"
 }
 if (-not (Test-Path -LiteralPath $downloadRoot -PathType Container)) {
     throw "Download root does not exist: $downloadRoot"
 }
+if (-not (Test-Path -LiteralPath $wscriptPath -PathType Leaf)) {
+    throw "wscript.exe does not exist: $wscriptPath"
+}
 
 $actionArguments = @(
-    '-NoProfile'
-    '-ExecutionPolicy Bypass'
-    '-WindowStyle Hidden'
-    "-File `"$helperPath`""
-    "-DownloadRoot `"$downloadRoot`""
-    '-Once'
+    '//B'
+    '//NoLogo'
+    "`"$launcherPath`""
+    '/Once'
 ) -join ' '
 $action = New-ScheduledTaskAction `
-    -Execute $powerShellPath `
+    -Execute $wscriptPath `
     -Argument $actionArguments `
     -WorkingDirectory $repositoryRoot
 $logonTrigger = New-ScheduledTaskTrigger -AtLogOn -User $userName

@@ -68,7 +68,8 @@ Copy-Item channels.example.json channels.json
 설치된 Task는 등록 즉시 시작되고 이후 현재 사용자가 Windows에 로그인할 때마다
 helper를 실행합니다. 이후에도 매분 독립적인 helper 실행이 새 요청을 확인하므로 한 번의
 실행이 비정상 종료돼도 다음 주기에 복구되고, Docker를 직접 재시작해도 휴지통 처리가
-계속됩니다. Task를 설치하지 않은 상태에서
+계속됩니다. Task는 `wscript.exe` hidden launcher를 사용해 PowerShell console을
+표시하지 않습니다. Task를 설치하지 않은 상태에서
 `docker compose up`만 실행하면 병합은 완료되지만 원본은 안전을 위해 `live/`에 남고,
 `.recycle-requests/`의 요청이 대기합니다.
 
@@ -205,6 +206,7 @@ yt-w/
 ├── monitoring.py                # 모니터 데몬 호환 엔트리포인트
 ├── scripts/
 │   ├── install-windows-recycle-task.ps1   # 로그인 자동 시작 Task 등록
+│   ├── run-windows-recycle-helper-hidden.vbs # console 없는 helper launcher
 │   ├── start-windows.ps1                  # Docker + 등록된 helper Task 시작
 │   ├── uninstall-windows-recycle-task.ps1 # helper Task 등록 해제
 │   └── windows-recycle-helper.ps1         # 실제 Windows 휴지통 처리

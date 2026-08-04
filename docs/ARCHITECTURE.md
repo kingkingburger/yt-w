@@ -101,7 +101,9 @@ monitoring.py → yt_monitor.entrypoint
 Scheduled Task로 등록하고 즉시 시작한다. Task는 helper를 `-Once`로 매분 독립 실행해
 직전 실행이 비정상 종료돼도 다음 주기에 복구하며, 한 실행은 최대 10분으로 제한하고
 중복 인스턴스는 무시한다. Windows 휴지통의 사용자 소유권을 유지하기 위해 `SYSTEM`
-계정이나 Docker 컨테이너에서는 실행하지 않는다.
+계정이나 Docker 컨테이너에서는 실행하지 않는다. Task action은 GUI형 `wscript.exe`로
+`scripts/run-windows-recycle-helper-hidden.vbs`를 실행하고, 이 launcher가 PowerShell을
+window style `0`으로 시작해 매분 console이 깜빡이지 않게 한다.
 `scripts/start-windows.ps1`은 등록된 Task를 우선 시작하고, Task가 없을 때만 기존의
 일회성 host process로 fallback한다.
 
