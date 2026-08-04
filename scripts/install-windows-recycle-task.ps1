@@ -41,11 +41,12 @@ $action = New-ScheduledTaskAction `
     -Execute $wscriptPath `
     -Argument $actionArguments `
     -WorkingDirectory $repositoryRoot
-$logonTrigger = New-ScheduledTaskTrigger -AtLogOn -User $userName
-$pollTrigger = New-ScheduledTaskTrigger `
-    -Once `
-    -At (Get-Date).AddMinutes(1) `
-    -RepetitionInterval (New-TimeSpan -Minutes 1)
+$currentTime = Get-Date
+$firstRunAt = $currentTime.Date.AddHours(3)
+if ($firstRunAt -le $currentTime) {
+    $firstRunAt = $firstRunAt.AddDays(1)
+}
+$dailyTrigger = New-ScheduledTaskTrigger -Daily -At $firstRunAt
 $principal = New-ScheduledTaskPrincipal `
     -UserId $userName `
     -LogonType Interactive `
@@ -59,7 +60,7 @@ $settings = New-ScheduledTaskSettingsSet `
 
 if ($PSCmdlet.ShouldProcess(
     "$taskPath$TaskName",
-    "register for $userName and start"
+    "register daily for $userName"
 )) {
     $existingTask = Get-ScheduledTask `
         -TaskName $TaskName `
@@ -82,11 +83,10 @@ if ($PSCmdlet.ShouldProcess(
         -TaskName $TaskName `
         -TaskPath $taskPath `
         -Action $action `
-        -Trigger @($logonTrigger, $pollTrigger) `
+        -Trigger $dailyTrigger `
         -Principal $principal `
         -Settings $settings `
-        -Description 'Checks yt-w recycle requests every minute in the current user session.' `
+        -Description 'Checks yt-w recycle requests daily at 03:00 in the current user session.' `
         -Force | Out-Null
-    Start-ScheduledTask -TaskName $TaskName -TaskPath $taskPath
-    Write-Host "Registered and started Scheduled Task: $taskPath$TaskName"
+    Write-Host "Registered daily Scheduled Task: $taskPath$TaskName"
 }

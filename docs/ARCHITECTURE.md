@@ -97,15 +97,16 @@ monitoring.py → yt_monitor.entrypoint
 `live/` 아래에 있는지 검증한 뒤 Windows 휴지통 API로 원본을 이동한다. helper가
 중지됐거나 요청 처리에 실패하면 manifest와 원본을 그대로 유지한다.
 
-`scripts/install-windows-recycle-task.ps1`은 helper를 현재 Windows 사용자의 로그인
-Scheduled Task로 등록하고 즉시 시작한다. Task는 helper를 `-Once`로 매분 독립 실행해
-직전 실행이 비정상 종료돼도 다음 주기에 복구하며, 한 실행은 최대 10분으로 제한하고
-중복 인스턴스는 무시한다. Windows 휴지통의 사용자 소유권을 유지하기 위해 `SYSTEM`
+`scripts/install-windows-recycle-task.ps1`은 helper를 현재 Windows 사용자의 Scheduled
+Task로 등록한다. Task는 매일 현지 시각 오전 3시에 helper를 `-Once`로 실행하고,
+설치 직후나 Docker 시작 시에는 실행하지 않는다. 예약 시각을 놓친 경우에는 다음 사용
+가능 시점에 한 번 실행하며, 한 실행은 최대 10분으로 제한하고 중복 인스턴스는 무시한다.
+Windows 휴지통의 사용자 소유권을 유지하기 위해 `SYSTEM`
 계정이나 Docker 컨테이너에서는 실행하지 않는다. Task action은 GUI형 `wscript.exe`로
 `scripts/run-windows-recycle-helper-hidden.vbs`를 실행하고, 이 launcher가 PowerShell을
-window style `0`으로 시작해 매분 console이 깜빡이지 않게 한다.
-`scripts/start-windows.ps1`은 등록된 Task를 우선 시작하고, Task가 없을 때만 기존의
-일회성 host process로 fallback한다.
+window style `0`으로 시작해 console을 표시하지 않는다.
+`scripts/start-windows.ps1`은 Task가 없거나 비활성 상태면 경고만 출력하고 helper를
+직접 시작하지 않는다.
 
 `downloads/.trash/`는 이전 버전에서 만든 복구 자료다. 새 병합은 이 경로를 사용하지
 않으며 기존 자료도 자동으로 Windows 휴지통에 이관하지 않는다. `.trash/`와
