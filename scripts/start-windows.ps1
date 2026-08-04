@@ -9,6 +9,8 @@ $ErrorActionPreference = 'Stop'
 $repositoryRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $helperPath = Join-Path $PSScriptRoot 'windows-recycle-helper.ps1'
 $downloadRoot = Join-Path $repositoryRoot 'downloads'
+$helperTaskName = 'yt-w-windows-recycle-helper'
+$helperTaskPath = '\'
 $helperArguments = @(
     '-NoProfile',
     '-ExecutionPolicy',
@@ -19,9 +21,26 @@ $helperArguments = @(
     "`"$downloadRoot`""
 )
 
-Start-Process -FilePath 'powershell.exe' `
-    -ArgumentList $helperArguments `
-    -WindowStyle Hidden
+$helperTask = Get-ScheduledTask `
+    -TaskName $helperTaskName `
+    -TaskPath $helperTaskPath `
+    -ErrorAction SilentlyContinue
+if ($null -ne $helperTask -and $helperTask.State -ne 'Disabled') {
+    if ($helperTask.State -ne 'Running') {
+        Start-ScheduledTask `
+            -TaskName $helperTaskName `
+            -TaskPath $helperTaskPath
+    }
+}
+else {
+    Write-Warning (
+        'Windows recycle Scheduled Task is not installed or is disabled. ' +
+        'Run .\scripts\install-windows-recycle-task.ps1 once.'
+    )
+    Start-Process -FilePath 'powershell.exe' `
+        -ArgumentList $helperArguments `
+        -WindowStyle Hidden
+}
 
 Push-Location $repositoryRoot
 try {

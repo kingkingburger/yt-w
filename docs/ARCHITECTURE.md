@@ -97,6 +97,14 @@ monitoring.py → yt_monitor.entrypoint
 `live/` 아래에 있는지 검증한 뒤 Windows 휴지통 API로 원본을 이동한다. helper가
 중지됐거나 요청 처리에 실패하면 manifest와 원본을 그대로 유지한다.
 
+`scripts/install-windows-recycle-task.ps1`은 helper를 현재 Windows 사용자의 로그인
+Scheduled Task로 등록하고 즉시 시작한다. Task는 helper를 `-Once`로 매분 독립 실행해
+직전 실행이 비정상 종료돼도 다음 주기에 복구하며, 한 실행은 최대 10분으로 제한하고
+중복 인스턴스는 무시한다. Windows 휴지통의 사용자 소유권을 유지하기 위해 `SYSTEM`
+계정이나 Docker 컨테이너에서는 실행하지 않는다.
+`scripts/start-windows.ps1`은 등록된 Task를 우선 시작하고, Task가 없을 때만 기존의
+일회성 host process로 fallback한다.
+
 `downloads/.trash/`는 이전 버전에서 만든 복구 자료다. 새 병합은 이 경로를 사용하지
 않으며 기존 자료도 자동으로 Windows 휴지통에 이관하지 않는다. `.trash/`와
 `.recycle-requests/`는 파일 목록과 retention 정리 대상에서 제외한다.

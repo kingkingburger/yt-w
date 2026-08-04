@@ -53,18 +53,24 @@ cp .env.example .env
 
 ### Docker (권장)
 
-Windows PowerShell에서는 Docker와 Windows 휴지통 helper를 함께 시작합니다.
+Windows PowerShell에서는 최초 한 번 Windows 휴지통 helper를 현재 사용자 로그인
+Scheduled Task로 등록한 뒤 Docker를 시작합니다.
 
 ```powershell
 Copy-Item .env.example .env
 Copy-Item channels.example.json channels.json
 # .env의 FIREFOX_PROFILE_PATH에 로그인된 Firefox 프로필 경로 입력
 
+.\scripts\install-windows-recycle-task.ps1
 .\scripts\start-windows.ps1
 ```
 
-`docker compose up`만 실행하면 Windows host helper가 시작되지 않습니다. 이 경우 병합은
-완료되지만 원본은 안전을 위해 `live/`에 남고, `.recycle-requests/`의 요청이 대기합니다.
+설치된 Task는 등록 즉시 시작되고 이후 현재 사용자가 Windows에 로그인할 때마다
+helper를 실행합니다. 이후에도 매분 독립적인 helper 실행이 새 요청을 확인하므로 한 번의
+실행이 비정상 종료돼도 다음 주기에 복구되고, Docker를 직접 재시작해도 휴지통 처리가
+계속됩니다. Task를 설치하지 않은 상태에서
+`docker compose up`만 실행하면 병합은 완료되지만 원본은 안전을 위해 `live/`에 남고,
+`.recycle-requests/`의 요청이 대기합니다.
 
 Windows 휴지통 연동이 필요 없는 환경에서는 Docker Compose를 직접 실행할 수 있습니다.
 
@@ -198,8 +204,10 @@ yt-w/
 ├── main.py                      # 웹 서버 호환 엔트리포인트
 ├── monitoring.py                # 모니터 데몬 호환 엔트리포인트
 ├── scripts/
-│   ├── start-windows.ps1        # Docker + Windows 휴지통 helper 시작
-│   └── windows-recycle-helper.ps1
+│   ├── install-windows-recycle-task.ps1   # 로그인 자동 시작 Task 등록
+│   ├── start-windows.ps1                  # Docker + 등록된 helper Task 시작
+│   ├── uninstall-windows-recycle-task.ps1 # helper Task 등록 해제
+│   └── windows-recycle-helper.ps1         # 실제 Windows 휴지통 처리
 ├── docker-compose.yml
 ├── Dockerfile
 ├── channels.json                # 채널 설정
@@ -230,7 +238,7 @@ downloads/
 | ffmpeg not found | `apt install ffmpeg` 또는 [다운로드](https://ffmpeg.org/download.html) |
 | 라이브 감지 안됨 | 채널 URL 확인, `check_interval_seconds` 조정 |
 | 다운로드 실패 | `docker compose logs -f` 확인, `uv add yt-dlp --upgrade` |
-| 병합 후 원본이 `live/`에 남음 | `logs/windows-recycle-helper.log` 확인 후 `.\scripts\start-windows.ps1 -NoBuild` 실행 |
+| 병합 후 원본이 `live/`에 남음 | `Get-ScheduledTask -TaskName yt-w-windows-recycle-helper`와 `logs/windows-recycle-helper.log` 확인 후 `.\scripts\install-windows-recycle-task.ps1` 실행 |
 | 봇 차단 또는 로그인 실패 | `pot-provider` 상태, `FIREFOX_PROFILE_PATH`, Firefox의 YouTube 로그인 상태 확인 |
 | Discord 알림 안 옴 | `.env`의 `DISCORD_WEBHOOK_URL` 확인, Webhook URL 유효성 확인 |
 

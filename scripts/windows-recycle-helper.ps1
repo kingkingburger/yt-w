@@ -102,12 +102,21 @@ catch {
 }
 
 try {
-    Write-HelperLog "Watching recycle requests in $requestDirectory"
+    if (-not $Once) {
+        Write-HelperLog "Watching recycle requests in $requestDirectory"
+    }
 
     do {
         $hadFailure = $false
-        $requestFiles = Get-ChildItem -LiteralPath $requestDirectory `
-            -File -Filter '*.json' | Sort-Object Name
+        $requestFiles = @(
+            Get-ChildItem -LiteralPath $requestDirectory `
+                -File -Filter '*.json' | Sort-Object Name
+        )
+        if ($Once -and $requestFiles.Count -gt 0) {
+            Write-HelperLog (
+                "Processing $($requestFiles.Count) recycle request(s)"
+            )
+        }
 
         foreach ($requestFile in $requestFiles) {
             try {
