@@ -6,10 +6,10 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "bgutil-ytdlp-pot-provider>=1.3.1",
-    "fastapi>=0.122.0",
-    "python-multipart>=0.0.18",
-    "uvicorn[standard]>=0.38.0",
-    "yt-dlp>=2025.10.22",
+    "fastapi>=0.141.1",
+    "python-multipart>=0.0.32",
+    "uvicorn[standard]>=0.52.1",
+    "yt-dlp>=2026.7.4",
 ]
 
 [tool.pytest.ini_options]
@@ -26,8 +26,8 @@ addopts = [
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.0",
-    "pre-commit>=4.0.0",
-    "pytest>=9.0.0",
+    "httpx>=0.28.1",
+    "pre-commit>=4.6.1",
+    "pytest>=9.1.1",
     "pytest-mock>=3.15.1",
 ]

@@ -1,4 +1,4 @@
-FROM python:3.13-alpine
+FROM python:3.15-rc-alpine
 
 WORKDIR /app
 
@@ -12,8 +12,14 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY pyproject.toml uv.lock ./
 COPY src/ ./src/
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
+# Python 3.15 wheels are not yet available for every native dependency.
+# Install build tools temporarily, then remove them from the runtime image.
+RUN apk add --no-cache --virtual .build-deps build-base cargo \
+    && uv sync --frozen --no-dev --no-cache \
+    && apk del .build-deps
+
+# The environment was frozen at build time; do not install dev dependencies at startup.
+ENV UV_NO_SYNC=1
 
 # Copy remaining files
 COPY main.py monitoring.py ./
