@@ -16,7 +16,7 @@
 - `GET /api/monitor/status`는 `state=running`, `source=yt-monitor`, `is_running=true`를 반환했다.
 - 루트 화면 제목은 `yt-w · 유튜브 다운로드와 라이브 자동 녹화`였다.
 - 직접 런타임 의존성은 `bgutil-ytdlp-pot-provider 1.3.1`, `fastapi 0.122.0`, `python-multipart 0.0.22`, `uvicorn 0.38.0`, `yt-dlp 2026.3.17`이었다.
-- 검증 영상은 yt-dlp 프로젝트가 문서와 테스트에서 사용하는 `https://www.youtube.com/watch?v=BaW_jenozKc`를 사용한다.
+- 최초 검증 영상 `BaW_jenozKc`는 2회 모두 YouTube `Video unavailable`이 확인되어, 사용자 승인 후 현재 조회 가능한 19초 공개 영상 `https://www.youtube.com/watch?v=jNQXAC9IVRw`로 교체했다.
 - 검증 시작 전 `GET /api/files?refresh=true`의 경로 집합을 저장하고, 종료 후 기존 경로 집합이 그대로 남았는지 비교한다.
 
 ---
@@ -110,8 +110,8 @@
   1. 두 output 경로를 순서대로 `POST /api/merge`에 보내고 `mode=concat`으로 실행한다.
   2. `GET /api/merge/jobs/{job_id}`를 폴링해 terminal 상태를 확인한다.
   3. 병합 결과 파일의 존재, 크기, duration, video stream을 `ffprobe`로 확인한다.
-  4. 병합 결과 duration을 S06 원본과 비교한다.
-- **기대결과**: 작업이 `done`으로 끝나고 결과가 유효한 영상이며, 결과 duration은 원본과 1초 이내로 일치한다.
+  4. 같은 원본을 배포 전 커밋 `aff8982` 이미지의 `SplitJobManager`와 `MergeJobManager`로 처리한 결과와 duration을 비교한다.
+- **기대결과**: 작업이 `done`으로 끝나고 결과가 유효한 영상이며, 현재와 이전 이미지의 분할·병합 duration이 일치한다. stream-copy keyframe 경계로 원본보다 길어지는 기존 동작은 별도 개선 대상으로 남긴다.
 - **카테고리**: 정상
 
 ### S09: 영상 중심 웹 화면 상호작용
