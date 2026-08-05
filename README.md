@@ -5,7 +5,7 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 ## 주요 기능
 
 ### 웹 인터페이스
-- 브라우저에서 모든 기능 사용 (채널 관리, 다운로드, 모니터링)
+- 브라우저에서 채널 관리, 모니터 상태 확인, 일반 다운로드, 영상 병합·분할 사용
 - `yt-monitor` 컨테이너의 실제 모니터링 상태 확인
 - 반응형 디자인 (모바일/태블릿/PC)
 
@@ -14,7 +14,9 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 - 라이브 방송 감지 시 자동 다운로드
 - 채널별 다운로드 포맷 설정
 - 실시간 영상 분할 (시간/크기 기준)
-- 방송 종료 감지 후 완료된 분할 파일을 이름순으로 자동 병합하고 Windows 휴지통으로 이동
+- 실행 중 `channels.json` 변경을 감지해 채널 worker 추가·중지·재시작
+- 방송 종료 감지 후 완료된 녹화 파일을 이름순으로 자동 병합
+- 병합 성공 후 Windows host helper가 원본을 실제 Windows 휴지통으로 이동
 
 ### Discord 알림
 - 라이브 감지 / 다운로드 완료·실패 / 쿠키 만료 / 모니터 시작·종료 알림
@@ -24,6 +26,12 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 - 화질 선택 (2160p ~ 360p)
 - 오디오 전용 다운로드 (MP3)
 - 자동 파일 정리 (retention 정책)
+
+### 영상 병합·분할
+- 다운로드 폴더의 영상을 원하는 순서로 빠른 concat 또는 재인코딩 병합
+- 로컬 PC 영상을 업로드하거나 기존 파일을 선택해 시간 간격/N등분 분할
+- 병합·분할 작업 상태 조회, 취소, 결과 다운로드
+- File System Access API 지원 브라우저에서는 병합 결과를 선택한 PC 폴더에 저장
 
 ## 기술 스택
 
@@ -40,8 +48,9 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 |------|------|--------|
 | `DISCORD_WEBHOOK_URL` | Discord 알림 Webhook URL | (미설정 시 알림 비활성화) |
 | `YT_WEB_PORT` | 웹 서버 내부 포트 | `8011` |
-| `YT_POT_PROVIDER_URL` | PO Token provider 주소 | `http://pot-provider:4416` |
-| `FIREFOX_PROFILE_PATH` | Docker에서 읽을 호스트 Firefox 프로필 경로 | (필수 입력) |
+| `YT_POT_PROVIDER_URL` | PO Token provider 주소 | Compose가 `http://pot-provider:4416` 설정 |
+| `FIREFOX_PROFILE_PATH` | Docker에서 read-only로 마운트할 호스트 Firefox 프로필 | Docker Compose 실행 시 입력 |
+| `YT_COOKIE_BROWSER` | 로컬 실행에서 사용할 브라우저 | `firefox` |
 
 ```bash
 cp .env.example .env
@@ -92,11 +101,11 @@ docker compose up -d --build
 # 의존성 설치
 uv sync
 
-# 웹 서버 시작
-python main.py
+# 웹 서버 시작 (터미널 1)
+uv run python main.py
 
-# 모니터링 데몬
-python monitoring.py
+# 모니터링 데몬 (터미널 2)
+uv run python monitoring.py
 ```
 
 ## Docker 서비스 구성
@@ -106,6 +115,7 @@ python monitoring.py
 | `yt-web` | 웹 API + UI, `yt-monitor` 상태 표시 | 8088 (외부) → 8011 (내부) |
 | `yt-monitor` | 채널 모니터링 데몬 | - |
 | `pot-provider` | PO Token provider (YouTube 봇 감지 우회) | - |
+| `autoheal` | `autoheal=true` 컨테이너의 unhealthy 상태 감시 | - |
 
 ```bash
 docker compose ps          # 상태 확인
@@ -118,6 +128,8 @@ docker compose up -d --build  # 재빌드 + 실행
 
 `yt-web`은 `/health` 엔드포인트, `yt-monitor`는 프로세스 생존 여부로 상태를 확인합니다.
 웹 UI의 모니터링 화면은 `yt-monitor`가 공유 `logs/monitor_status.json`에 쓰는 heartbeat를 읽어 실제 데몬 상태를 표시합니다. 웹에서 모니터를 직접 시작/중지하지 않습니다.
+현재 `autoheal=true` label은 `pot-provider`에만 설정되어 있습니다. `yt-web`과
+`yt-monitor`는 `restart: unless-stopped` 정책을 사용합니다.
 
 ```bash
 # 헬스 상태 확인
@@ -161,6 +173,7 @@ curl http://localhost:8088/health
 |------|------|--------|
 | `check_interval_seconds` | 라이브 체크 주기 (초) | 60 |
 | `download_directory` | 다운로드 경로 | `./downloads` |
+| `log_file` | 모니터 로그 파일과 heartbeat 디렉터리 기준 경로 | `./logs/live_monitor.log` |
 | `split_mode` | 분할 모드 (`time` / `size` / `none`) | `time` |
 | `split_time_minutes` | 시간 분할 단위 (분) | 30 |
 | `split_size_mb` | 크기 분할 단위 (MB) | 500 |
@@ -187,31 +200,41 @@ Firefox 프로필에는 로그인 정보가 있으므로 공유하지 마세요.
 
 ```
 yt-w/
-├── src/yt_monitor/              # 메인 패키지
-│   ├── channels/                # 채널 DTO와 JSON 저장소
-│   ├── youtube/                 # 라이브 감지, 쿠키, URL 처리
-│   ├── monitoring/              # 멀티 채널 조정, 채널 worker, heartbeat
-│   ├── media/                   # 다운로드, ffmpeg 명령, 병합·분할
+├── src/yt_monitor/              # Python 애플리케이션 본체
+│   ├── channels/                # 채널 DTO와 원자적 JSON 저장소
+│   ├── youtube/                 # 라이브 감지, 쿠키 검증, URL 처리
+│   ├── monitoring/              # 멀티 채널 조정, worker, heartbeat
+│   ├── media/                   # yt-dlp/ffmpeg 다운로드, 병합, 분할
 │   ├── notifications/           # Discord Webhook 알림
-│   ├── maintenance/             # 파일 정리와 자동 정리 스케줄러
-│   ├── web/                     # FastAPI 앱, 스키마, /api/* 라우트
+│   ├── maintenance/             # retention 정리와 스케줄러
+│   ├── web/
+│   │   ├── app.py               # FastAPI 앱 조립
+│   │   ├── schemas.py           # Pydantic 요청/응답 모델
+│   │   └── routes/              # 기능별 /api/* 라우트
 │   ├── entrypoint.py            # 모니터 데몬 실행 진입점
-│   └── logging.py               # 로깅 (일별 로테이션)
+│   └── logging.py               # 일별 회전 로그
 ├── web/
-│   ├── index.html               # Operator console markup
-│   ├── app.css                  # Operator console styles
-│   └── app.js                   # Operator console client logic
+│   ├── index.html               # Operator console 화면
+│   ├── app.css                  # 화면 스타일
+│   ├── app.js                   # API 호출과 화면 상태
+│   ├── merge_output_name.js     # 기본 병합 파일명 계산
+│   └── merge_download_directory.js # PC 저장 폴더 기억/쓰기
+├── tests/                       # pytest + Node 기반 frontend 회귀 테스트
 ├── main.py                      # 웹 서버 호환 엔트리포인트
 ├── monitoring.py                # 모니터 데몬 호환 엔트리포인트
 ├── scripts/
+│   ├── check_orphan_pyc.py                # 고아 .pyc pre-commit 검사
 │   ├── install-windows-recycle-task.ps1   # 매일 오전 3시 Task 등록
 │   ├── run-windows-recycle-helper-hidden.vbs # console 없는 helper launcher
 │   ├── start-windows.ps1                  # Task 상태 확인 + Docker 시작
 │   ├── uninstall-windows-recycle-task.ps1 # helper Task 등록 해제
 │   └── windows-recycle-helper.ps1         # 실제 Windows 휴지통 처리
+├── docs/                         # 현재 아키텍처와 v0 개발 이력
 ├── docker-compose.yml
 ├── Dockerfile
-├── channels.json                # 채널 설정
+├── pyproject.toml               # Python 의존성과 pytest 설정
+├── uv.lock                      # 고정 의존성
+├── channels.json                # 실제 채널 설정
 └── channels.example.json        # 예제 설정
 ```
 
@@ -227,10 +250,32 @@ downloads/
 │       └── 채널이름_라이브_20250126_143000_part001.mp4
 ├── merged/
 │   └── 채널이름_라이브_20250126_143000.mp4
-└── web_downloads/
+├── split/                        # 영상 분할 결과
+├── uploads/                      # 분할 화면에서 업로드한 원본
+└── web_downloads/                # 일반 영상/오디오 다운로드
     ├── video_20250126_150000.mp4
     └── audio_20250126_160000.mp3
 ```
+
+`FileCleaner`는 기본 7일 retention을 적용하지만 `live/`, `.trash/`,
+`.recycle-requests/`는 삭제하지 않습니다. `merged/`, `split/`, `uploads/`,
+`web_downloads/`는 retention 대상입니다.
+
+## API 영역
+
+| 모듈 | 주요 엔드포인트 | 책임 |
+|------|-----------------|------|
+| `routes/channels.py` | `/api/channels` | 채널 조회·추가·수정·삭제 |
+| `routes/monitor.py` | `/api/monitor/status` | heartbeat 기반 모니터 상태 조회 |
+| `routes/video.py` | `/api/video/info`, `/api/download` | 일반 영상 정보 조회와 다운로드 |
+| `routes/cookies.py` | `/api/cookie/status` | 실제 yt-dlp 추출 기반 쿠키 검증 |
+| `routes/merge.py` | `/api/files`, `/api/merge/*` | 파일 목록·삭제와 병합 작업 |
+| `routes/split.py` | `/api/split/*` | 파일 업로드와 분할 작업 |
+| `routes/system.py` | `/api/system/*` | 디스크·다운로드·Discord·모니터 통합 상태 |
+| `routes/meta.py` | `/`, `/health`, `/static` | UI와 정적 자산, healthcheck |
+
+`POST /api/monitor/start`와 `POST /api/monitor/stop`은 `405`를 반환합니다.
+모니터 데몬은 `docker compose start/stop yt-monitor`로 제어합니다.
 
 ## 문제 해결
 
@@ -249,6 +294,7 @@ downloads/
 uv run pytest                         # 전체 테스트 실행
 uv run pytest -v                      # 상세 출력
 uv run pytest tests/web/test_app.py   # 웹 콘솔/정적 자산 최소 검증
+uv run pre-commit run --all-files     # Ruff + 고아 .pyc 검사
 ```
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)

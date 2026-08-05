@@ -2,10 +2,12 @@
 
 ## 개요
 
-YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드 시스템. 두 개의 장기 실행 프로세스(yt-monitor, yt-web)와 한 개의 사이드카(pot-provider)가 Docker Compose로 함께 동작한다.
+YouTube 라이브 방송 자동 모니터링, 일반 동영상 다운로드, 영상 병합·분할 시스템.
+두 개의 애플리케이션 프로세스(`yt-monitor`, `yt-web`), PO Token 사이드카
+(`pot-provider`), health 보조 서비스(`autoheal`)가 Docker Compose로 함께 동작한다.
 
 - **yt-monitor**: `monitoring.py` 진입점. 채널마다 스레드를 띄워 라이브를 감지하고 ffmpeg로 녹화한다.
-- **yt-web**: `main.py` 진입점. FastAPI로 채널 관리 / 모니터 상태 확인 / 일반 동영상 다운로드 / 병합 / 쿠키 검증 API를 제공하고 정적 웹 UI를 호스팅한다.
+- **yt-web**: `main.py` 진입점. FastAPI로 채널 관리 / 모니터 상태 확인 / 일반 동영상 다운로드 / 파일 병합·분할 / 쿠키 검증 API를 제공하고 정적 웹 UI를 호스팅한다.
 - **pot-provider**: bgutil PO Token 사이드카. yt-dlp가 YouTube 봇 감지를 우회할 PO Token을 받아 온다.
 
 ## 컨테이너 구성 (`docker-compose.yml`)
@@ -18,6 +20,8 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드 시
 | `autoheal` | unhealthy 컨테이너 자동 재시작 | — | — |
 
 `yt-monitor`와 `yt-web`은 모두 호스트의 Firefox 프로필을 `/app/firefox_profile`로 read-only 마운트해, yt-dlp가 `cookiesfrombrowser`로 최신 YouTube 쿠키를 직접 읽는다.
+`autoheal=true` label은 현재 `pot-provider`에만 있으며, `yt-monitor`와 `yt-web`은
+`restart: unless-stopped` 정책만 사용한다.
 
 ## 프로젝트 구조
 
@@ -37,7 +41,7 @@ yt-w/
 │   │   ├── entrypoint.py                # 웹 서버 실행 진입점
 │   │   ├── schemas.py                   # Pydantic 요청/응답 스키마
 │   │   ├── converters.py                # ChannelDTO → API dict 변환
-│   │   └── routes/                      # 라우트 모듈
+│   │   └── routes/                      # 채널/상태/다운로드/병합/분할 라우트
 │   ├── entrypoint.py                    # 모니터 데몬 실행 진입점
 │   └── logging.py                       # TimedRotatingFileHandler 로거
 ├── tests/                               # src 소유 경계를 따르는 pytest 테스트
@@ -53,12 +57,17 @@ yt-w/
 ├── web/
 │   ├── index.html                       # Operator console markup
 │   ├── app.css                          # Operator console styles
-│   └── app.js                           # Operator console client logic
-├── reviews/                             # 8인 리뷰 리포트 (히스토리)
+│   ├── app.js                           # Operator console client logic
+│   ├── merge_output_name.js             # 기본 병합 파일명 계산
+│   └── merge_download_directory.js      # PC 저장 폴더 기억/쓰기
+├── scripts/                             # Windows 시작/휴지통 helper와 pre-commit 도구
+├── docs/                                # 현재 아키텍처와 v0 개발 이력
 ├── main.py                              # 웹 서버 엔트리
 ├── monitoring.py                        # 모니터 데몬 엔트리
 ├── docker-compose.yml
 ├── Dockerfile
+├── pyproject.toml                       # 의존성과 pytest 설정
+├── uv.lock                              # 고정 의존성
 └── channels.json                        # 채널 설정 (Compose volume)
 ```
 
@@ -73,7 +82,8 @@ monitoring.py → yt_monitor.entrypoint
        ├─ for channel: ChannelMonitorThread(...).start()
        │    └─ _monitor_loop (per-channel daemon thread)
        │         ├─ YouTubeClient.check_if_live(url)
-       │         │    └─ DetectionStrategy: /streams 탭 → 채널 페이지 (둘 다 extract_flat)
+       │         │    └─ DetectionStrategy: /streams 탭 → 채널 페이지 → /live
+       │         │         (세 방식 모두 extract_flat="in_playlist")
        │         │         └─ yt-dlp + cookie_options + PO Token
        │         └─ _handle_live_stream
        │              ├─ DiscordNotifier.notify_live_detected
@@ -82,10 +92,20 @@ monitoring.py → yt_monitor.entrypoint
        │                   └─ Time/Size: yt-dlp로 stream URL 추출 → ffmpeg Popen + segment
        │         └─ 방송 종료 감지
        │              └─ 완료 파일을 이름순 병합한 뒤 host recycle 요청을 원자적으로 기록
+       ├─ _sync_channel_monitors()로 channels.json 변경 반영
        └─ SIGTERM handler (메인 스레드일 때만 등록)
 ```
 
-`/live` 엔드포인트 탐지는 매 분 `extract_flat=False`로 전체 메타데이터를 끌어오는 호출이라 봇 감지 트리거가 됐다 — 제거됨. 두 탐지 방식 모두 `extract_flat="in_playlist"`로 가벼운 playlist 스캔만 한다.
+세 탐지 방식은 모두 `extract_flat="in_playlist"`와 `ignoreerrors=True`를 사용한다.
+`/streams`와 채널 페이지에서 라이브를 찾지 못하면 `/live`를 마지막 fallback으로
+조회한다. 각 응답은 `is_live=True` 또는 `live_status="is_live"`인 현재 항목만
+`LiveStreamInfo`로 변환한다. 세 방식 중 인증/봇 감지 오류가 하나라도 발생했고
+라이브를 찾지 못한 경우 `YouTubeAuthError`를 올려 알림 경로로 보낸다.
+
+`MultiChannelMonitor`의 메인 루프는 매초 `channels.json`을 다시 읽는다. 활성화된 채널은
+worker를 추가하고, 비활성화·삭제된 채널은 중지하며, 채널 이름·URL·다운로드 포맷 또는
+전역 설정이 바뀐 worker는 재시작한다. 따라서 채널 관리 API 변경은 `yt-monitor`
+컨테이너 재시작 없이 반영된다.
 
 분할 다운로드의 ffmpeg가 종료돼도 YouTube가 같은 URL을 계속 라이브로 표시할 수 있다.
 따라서 `ChannelMonitorThread`는 같은 방송 URL에서 성공적으로 완료된 파일을 누적하고,
@@ -116,8 +136,9 @@ window style `0`으로 시작해 console을 표시하지 않는다.
 
 ```
 main.py → web.entrypoint → web.app.WebAPI → uvicorn
-  ├─ register_*_routes (channels / monitor / video / cookies / merge / system / meta)
-  └─ CleanupScheduler.start_in_background()
+  ├─ register_*_routes
+  │    (channels / monitor / video / cookies / merge / split / system / meta)
+  └─ CleanupScheduler.start()
 ```
 
 `yt-web`은 모니터를 직접 시작하거나 중지하지 않는다. 실제 자동 녹화는 `yt-monitor` 컨테이너의 `monitoring.py`가 담당한다.
@@ -127,6 +148,19 @@ main.py → web.entrypoint → web.app.WebAPI → uvicorn
 `/api/monitor/start`와 `/api/monitor/stop`은 405를 반환한다. 운영자가 모니터 데몬을 제어해야 할 때는 Docker Compose에서 `yt-monitor` 컨테이너를 시작/중지한다.
 
 `meta` 라우트는 `/`에서 `web/index.html`을 반환하고, `/static`으로 `web/` 디렉터리의 CSS/JS 정적 자산을 서빙한다.
+
+#### API 소유권
+
+| 라우트 모듈 | 주요 경로 | 책임 |
+|-------------|-----------|------|
+| `channels.py` | `/api/channels` | 채널 조회·추가·수정·삭제와 URL 정규화 |
+| `monitor.py` | `/api/monitor/status` | heartbeat 기반 모니터 상태 조회 |
+| `video.py` | `/api/video/info`, `/api/download` | 일반 영상 정보 조회와 다운로드 |
+| `cookies.py` | `/api/cookie/status` | 실제 yt-dlp 호출 기반 쿠키 검증 |
+| `merge.py` | `/api/files`, `/api/merge/*` | 미디어 목록·삭제와 병합 job |
+| `split.py` | `/api/split/*` | 업로드, 분할 job, 결과 다운로드 |
+| `system.py` | `/api/system/*` | 디스크·다운로드·Discord·모니터 통합 상태 |
+| `meta.py` | `/`, `/health`, `/static` | 웹 UI, 정적 파일, healthcheck |
 
 ### 3. 다운로드 라이프사이클 종료
 
@@ -164,8 +198,14 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다. P
 | `CookieValidator` 캐시 | `Lock` |
 | `DiscordNotifier` rate-limit | `Lock` |
 | `ChannelMonitorThread.is_downloading` | `bool` (단일 라이터 가정) |
+| `MergeJobManager`, `SplitJobManager` | `Lock` (job/process/output 상태 보호) |
+| 병합 파일 목록 캐시 | `asyncio.Lock` (동시 cache miss 스캔 1회) |
+| 분할 업로드 경로 예약 | `asyncio.Lock` + 예약 경로 set |
 
-`ChannelManager`의 file lock은 단일 프로세스 내 한정. `yt-web`은 `channels.json`을 수정하고, `yt-monitor`는 시작 시 설정을 읽어 실제 감시 스레드를 만든다. 실행 중인 데몬이 이미 띄운 스레드 수는 `monitor_status.json`의 `active_channels`가 기준이다.
+`ChannelManager`의 lock은 단일 프로세스 내 한정이다. `yt-web`이 `channels.json`을
+수정하고 `yt-monitor`가 같은 파일을 매초 다시 읽지만, 파일 저장은 임시 파일 작성 후
+`os.replace()`로 교체해 reader가 중간 JSON을 보지 않도록 한다. 실행 중인 worker 수는
+`monitor_status.json`의 `active_channels`가 운영 화면의 기준이다.
 
 ## 테스트 전략
 
@@ -205,4 +245,5 @@ uv run pytest tests/media/test_stream_download.py -k stop  # 특정
 
 ## 변경 이력
 
-자세한 사건/사고 노트는 `docs/history.md`와 `reviews/`를 참고한다.
+초기 v0 프로토타입의 개발 기록은 `docs/history.md`를 참고한다. 현재 구조와 동작의
+권위 문서는 이 파일과 실제 `src/yt_monitor/` 소스다.

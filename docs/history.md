@@ -2,6 +2,9 @@
 
 > 이 문서는 v0 프로토타입 개발 일기다. 현재 아키텍처 / 모듈 구조 / 운영
 > 동작은 [`ARCHITECTURE.md`](ARCHITECTURE.md)를 참고할 것.
+> 아래의 `config.json`, 단일 `main.py`, 미완료 체크리스트는 당시 상태를 보존한
+> 역사 기록이며 현재 구현 상태를 나타내지 않는다. 현재는 `channels.json`,
+> `src/yt_monitor/`, `main.py`(웹), `monitoring.py`(모니터) 구조를 사용한다.
 
 ## 프로젝트 개요
 유튜브 채널의 라이브 방송을 자동으로 감지하고 로컬에 다운로드하는 시스템
