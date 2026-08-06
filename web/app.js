@@ -911,9 +911,8 @@ function renderMergeDownloadDirectory() {
 
   const handle = state.mergeDownloadDirectory;
   path.textContent = handle ? handle.name : '선택되지 않음';
-  note.textContent = handle
-    ? '폴더 선택이 이 브라우저에 저장되었습니다. 다시 열면 쓰기 권한을 확인할 수 있습니다.'
-    : '브라우저 보안상 전체 경로 대신 선택한 폴더 이름만 표시됩니다.';
+  // 정상 동작 중에는 안내를 띄우지 않는다. 위 분기의 미지원 안내만 남긴다.
+  note.textContent = '';
   button.textContent = handle ? '폴더 변경' : '폴더 선택';
 }
 

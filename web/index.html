@@ -139,21 +139,10 @@
 
       <!-- ╔══════════════════════════════ DOWNLOAD ════════════════════╗ -->
       <main id="panel-download" class="panel">
-        <header class="hero">
-          <div>
-            <div class="hero-eyebrow">/ 다운로드</div>
-            <h1 class="hero-title">URL 하나로 끝내는 <em>유튜브 다운로드</em></h1>
-            <p class="hero-sub">
-              유튜브 영상 주소를 붙여넣으면 영상 정보를 보여드립니다. 화질·포맷을 고른 뒤 한 번에 받아보세요.
-            </p>
-          </div>
-        </header>
-
         <section class="card">
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">유튜브 주소 붙여넣기</div>
-              <div class="card-sub">https://www.youtube.com/watch?v=… 또는 youtu.be/… 모두 가능</div>
             </div>
           </div>
           <div class="card-body lg">
@@ -179,7 +168,6 @@
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">미리보기</div>
-              <div class="card-sub">화질·포맷을 고른 뒤 다운로드를 시작하세요</div>
             </div>
             <div class="card-head-actions">
               <button class="btn ghost sm" onclick="closeResult()">✕ 닫기</button>
@@ -244,17 +232,6 @@
 
       <!-- ╔══════════════════════════════ MONITOR ═════════════════════╗ -->
       <main id="panel-monitor" class="panel">
-        <header class="hero">
-          <div>
-            <div class="hero-eyebrow">/ 라이브 녹화</div>
-            <h1 class="hero-title">yt-monitor <em>녹화 상태</em></h1>
-            <p class="hero-sub">
-              자동 녹화는 별도 yt-monitor 컨테이너가 담당합니다. 이 화면에서는 데몬이 실제로
-              살아 있는지와 감시 대상 채널 수만 확인합니다.
-            </p>
-          </div>
-        </header>
-
         <section class="monitor-hero" id="monitor-hero">
           <div class="monitor-hero-left">
             <div class="monitor-pulse"></div>
@@ -290,7 +267,6 @@
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">감시 대상 채널</div>
-              <div class="card-sub">활성화된 채널만 자동 녹화 대상이 됩니다</div>
             </div>
             <div class="card-head-actions">
               <button class="btn primary sm" onclick="openAddChannelModal()">+ 채널 추가</button>
@@ -302,23 +278,12 @@
 
       <!-- ╔══════════════════════════════ MERGE ══════════════════════╗ -->
       <main id="panel-merge" class="panel active">
-        <header class="hero">
-          <div>
-            <div class="hero-eyebrow">/ 영상 합치기</div>
-            <h1 class="hero-title">여러 클립을 <em>한 파일로</em></h1>
-            <p class="hero-sub">
-              다운로드한 영상들을 골라 순서를 정하고 한 번에 합칩니다.
-              같은 코덱이라면 빠른 무손실 결합을, 아니면 재인코딩을 고르세요.
-            </p>
-          </div>
-        </header>
-
         <div class="merge-grid">
           <section class="card">
             <div class="card-head">
               <div class="card-title-group">
                 <div class="card-title">소스 파일</div>
-                <div class="card-sub"><span id="merge-file-count">0 FILES</span> · 체크하면 오른쪽 순서에 추가되고, 삭제는 되돌릴 수 없습니다</div>
+                <div class="card-sub"><span id="merge-file-count">0 FILES</span></div>
               </div>
               <div class="card-head-actions">
                 <button class="btn ghost sm" id="btn-select-all" onclick="selectAllFiles()">전체 선택</button>
@@ -332,7 +297,7 @@
             <div class="card-head">
               <div class="card-title-group">
                 <div class="card-title">합치기 순서</div>
-                <div class="card-sub"><span id="merge-seq-count">0 CLIPS</span> · 드래그로 순서 변경</div>
+                <div class="card-sub"><span id="merge-seq-count">0 CLIPS</span></div>
               </div>
               <div class="card-head-actions">
                 <div class="toggle-group seq-view-toggle" role="group" aria-label="병합 순서 보기 방식">
@@ -367,14 +332,11 @@
               <div>
                 <label class="label">합치기 방식</label>
                 <div class="toggle-group" style="width:100%; display:flex;">
-                  <button type="button" id="mode-concat" class="active" style="flex:1" onclick="setMergeMode('concat')">빠르게 (concat)</button>
-                  <button type="button" id="mode-reencode" style="flex:1" onclick="setMergeMode('reencode')">재인코딩</button>
+                  <button type="button" id="mode-concat" class="active" style="flex:1" onclick="setMergeMode('concat')"
+                          title="무손실로 즉시 합칩니다. 모든 영상의 코덱·해상도가 같아야 합니다.">빠르게 (concat)</button>
+                  <button type="button" id="mode-reencode" style="flex:1" onclick="setMergeMode('reencode')"
+                          title="H.264/AAC로 다시 인코딩합니다. 코덱이 달라도 되지만 시간이 더 걸립니다.">재인코딩</button>
                 </div>
-              </div>
-
-              <div class="help">
-                <b>빠르게</b>는 무손실로 즉시 합칩니다. 모든 영상의 코덱·해상도가 같아야 해요.<br/>
-                <b>재인코딩</b>은 H.264/AAC로 다시 인코딩합니다. 코덱이 달라도 되지만 시간이 더 걸립니다.
               </div>
 
               <div class="row-flex">
@@ -389,7 +351,6 @@
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">작업 목록</div>
-              <div class="card-sub">실행 중이거나 완료된 합치기 작업</div>
             </div>
             <div class="card-head-actions">
               <button class="btn ghost sm" onclick="loadJobs()">↻ 새로고침</button>
@@ -401,23 +362,12 @@
 
       <!-- ╔══════════════════════════════ SPLIT ══════════════════════╗ -->
       <main id="panel-split" class="panel">
-        <header class="hero">
-          <div>
-            <div class="hero-eyebrow">/ 영상 나누기</div>
-            <h1 class="hero-title">긴 영상을 <em>업로드 가능한 길이로</em></h1>
-            <p class="hero-sub">
-              영상 하나를 골라 원하는 시간 간격 또는 같은 길이의 N개 파일로 나눕니다.
-              재인코딩하지 않으며 원본 파일은 그대로 유지됩니다.
-            </p>
-          </div>
-        </header>
-
         <div class="merge-grid">
           <section class="card">
             <div class="card-head">
               <div class="card-title-group">
                 <div class="card-title">나눌 영상</div>
-                <div class="card-sub"><span id="split-file-count">0 FILES</span> · 영상 하나를 선택해 주세요</div>
+                <div class="card-sub"><span id="split-file-count">0 FILES</span></div>
               </div>
               <div class="card-head-actions">
                 <button class="btn primary sm" type="button" id="btn-split-upload" onclick="chooseSplitUpload()">↑ PC 영상 업로드</button>
@@ -443,7 +393,6 @@
             <div class="card-head">
               <div class="card-title-group">
                 <div class="card-title">나누기 설정</div>
-                <div class="card-sub">실행 전에 선택한 영상과 범위를 다시 확인합니다</div>
               </div>
             </div>
             <div class="card-body stack">
@@ -466,7 +415,6 @@
                   <input class="input" type="number" id="split-interval-hours" min="0.1" step="0.1" value="4" />
                   <span class="split-unit">시간마다</span>
                 </div>
-                <div class="merge-download-note">소수도 사용할 수 있습니다. 예: 1.5시간 = 1시간 30분</div>
               </div>
 
               <div class="split-strategy-panel" id="split-parts-fields" style="display:none">
@@ -486,12 +434,8 @@
                 출력 이름: 원본명-1.ext, 원본명-2.ext, …
               </div>
 
-              <div class="help">
-                결과는 <b>downloads/split</b> 폴더에 <b>원본명-1, 원본명-2</b> 순서로 저장됩니다.<br/>
-                빠른 stream copy 방식이라 경계는 가장 가까운 키프레임에 맞춰질 수 있습니다.
-              </div>
-
-              <button class="btn primary lg block" id="btn-execute-split" onclick="executeSplit()">✂ 영상 나누기</button>
+              <button class="btn primary lg block" id="btn-execute-split" onclick="executeSplit()"
+                      title="downloads/split 폴더에 원본명-1, 원본명-2 순서로 저장됩니다. stream copy 방식이라 경계는 가장 가까운 키프레임에 맞춰질 수 있습니다.">✂ 영상 나누기</button>
             </div>
           </section>
         </div>
@@ -500,7 +444,6 @@
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">작업 목록</div>
-              <div class="card-sub">실행 중이거나 완료된 나누기 작업</div>
             </div>
             <div class="card-head-actions">
               <button class="btn ghost sm" onclick="loadSplitJobs()">↻ 새로고침</button>
@@ -512,22 +455,10 @@
 
       <!-- ╔══════════════════════════════ CHANNELS ════════════════════╗ -->
       <main id="panel-channels" class="panel">
-        <header class="hero">
-          <div>
-            <div class="hero-eyebrow">/ 채널 관리</div>
-            <h1 class="hero-title">감시할 <em>유튜브 채널</em> 등록</h1>
-            <p class="hero-sub">
-              여기에 추가한 채널은 라이브 녹화 탭에서 자동 감시 대상이 됩니다.
-              비활성화하면 등록은 유지하되 잠시 감시를 멈춥니다.
-            </p>
-          </div>
-        </header>
-
         <section class="card">
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">등록된 채널</div>
-              <div class="card-sub">활성 상태의 채널만 자동 녹화 대상</div>
             </div>
             <div class="card-head-actions">
               <button class="btn primary sm" onclick="openAddChannelModal()">+ 새 채널</button>
@@ -541,17 +472,12 @@
           <div class="card-head">
             <div class="card-title-group">
               <div class="card-title">디스코드 알림</div>
-              <div class="card-sub">라이브 시작 / 다운로드 완료 / 에러를 디스코드로 받기</div>
             </div>
           </div>
           <div class="card-body">
             <div class="row-flex" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
               <div style="font-size: 13px; color: var(--fg-dim);" id="discord-state-text">상태 확인 중…</div>
               <button class="btn" onclick="testDiscord()">▶ 테스트 메시지 보내기</button>
-            </div>
-            <div class="help" style="margin-top: 16px;">
-              <b>설정 방법</b> · 디스코드 서버 설정 → 연동 → 웹후크 → 새 웹후크 → URL 복사 →
-              <span class="mono">.env</span> 파일의 <span class="mono">DISCORD_WEBHOOK_URL</span>에 붙여넣고 컨테이너 재시작.
             </div>
           </div>
         </section>
@@ -580,9 +506,6 @@
           <div>
             <label class="label">채널 URL</label>
             <input class="input" type="url" id="channel-url" placeholder="https://www.youtube.com/@..." required />
-            <div style="font-size: 11.5px; color: var(--fg-mute); margin-top: 6px;">
-              채널 페이지의 주소를 그대로 붙여넣으세요 (@핸들 또는 /channel/UC… 형식)
-            </div>
           </div>
         </div>
         <div class="modal-foot">
