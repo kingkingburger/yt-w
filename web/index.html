@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
 <link rel="stylesheet" href="/static/app.css">
 </head>
@@ -121,15 +121,9 @@
         </div>
 
         <div class="syspanel-foot">
-          <div><span style="color:var(--fg-dim)">호스트</span> <span id="boot-host">localhost</span>:<span id="boot-port">8088</span></div>
-          <div style="margin-top:4px"><span style="color:var(--fg-dim)">가동</span> <span id="boot-uptime">--</span></div>
-          <div style="margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-            <span style="color:var(--fg-dim)">저장</span> <span id="boot-dlpath">./downloads</span>
-            <span style="color:var(--fg-dim)"> · </span><span id="boot-files">0</span><span style="color:var(--fg-dim)">개</span>
-          </div>
-          <div style="margin-top:8px; text-align:right;">
-            <a href="#" onclick="systemRefresh(); return false;" style="font-size: 11px;">↻ 새로고침</a>
-          </div>
+          <div>호스트 <span id="boot-host">localhost</span>:<span id="boot-port">8088</span></div>
+          <div>가동 <span id="boot-uptime">--</span></div>
+          <div>저장 <span id="boot-dlpath">./downloads</span> · <span id="boot-files">0</span>개</div>
         </div>
       </div>
     </aside>
@@ -142,6 +136,7 @@
         <section class="card">
           <div class="card-head">
             <div class="card-title-group">
+              <span class="step-no">1</span>
               <div class="card-title">유튜브 주소 붙여넣기</div>
             </div>
           </div>
@@ -167,10 +162,11 @@
         <section id="dl-step-result" class="card" style="display:none">
           <div class="card-head">
             <div class="card-title-group">
-              <div class="card-title">미리보기</div>
+              <span class="step-no">2</span>
+              <div class="card-title">받을 형식 고르기</div>
             </div>
             <div class="card-head-actions">
-              <button class="btn ghost sm" onclick="closeResult()">✕ 닫기</button>
+              <button class="btn ghost sm" onclick="closeResult()">닫기</button>
             </div>
           </div>
           <div class="card-body lg">
@@ -208,7 +204,7 @@
             </div>
 
             <div style="height: 18px;"></div>
-            <button class="btn primary lg block" onclick="startDownload()">↓ 다운로드 시작</button>
+            <button class="btn primary lg block" onclick="startDownload()">다운로드 시작</button>
           </div>
         </section>
 
@@ -223,9 +219,9 @@
         <section id="dl-step-finished" class="card" style="display:none">
           <div class="dl-finished">
             <div class="dl-finished-mark">✓</div>
-            <div style="font-family:'Fraunces',serif; font-size:20px; font-weight:500; margin-bottom:6px;">다운로드 완료</div>
-            <div id="finish-message" style="color: var(--fg-dim); font-size:12.5px; margin-bottom: 22px; font-family:'JetBrains Mono',monospace;"></div>
-            <button class="btn" onclick="closeResult()">↻ 다른 영상 받기</button>
+            <div class="dl-finished-title">다운로드 완료</div>
+            <div class="dl-finished-file" id="finish-message"></div>
+            <button class="btn" onclick="closeResult()">다른 영상 받기</button>
           </div>
         </section>
       </main>
@@ -241,25 +237,21 @@
             </div>
           </div>
           <div class="monitor-hero-right">
-            <button class="btn primary lg" onclick="systemRefresh()">↻ 상태 새로고침</button>
-          </div>
-        </section>
-
-        <section class="stats">
-          <div class="stat-card">
-            <div class="lbl">감시 중</div>
-            <div class="val accent" id="tile-active">0</div>
-            <div class="sub">활성화된 채널 수</div>
-          </div>
-          <div class="stat-card">
-            <div class="lbl">전체 채널</div>
-            <div class="val" id="tile-total">0</div>
-            <div class="sub">등록된 채널 총합</div>
-          </div>
-          <div class="stat-card">
-            <div class="lbl">가동 시간</div>
-            <div class="val mono" id="tile-uptime">0s</div>
-            <div class="sub">서버 시작 이후</div>
+            <dl class="hero-stats">
+              <div>
+                <dt>감시 중</dt>
+                <dd class="accent" id="tile-active">0</dd>
+              </div>
+              <div>
+                <dt>전체 채널</dt>
+                <dd id="tile-total">0</dd>
+              </div>
+              <div>
+                <dt>가동 시간</dt>
+                <dd id="tile-uptime">0s</dd>
+              </div>
+            </dl>
+            <button class="btn" onclick="systemRefresh()">상태 새로고침</button>
           </div>
         </section>
 
@@ -269,7 +261,7 @@
               <div class="card-title">감시 대상 채널</div>
             </div>
             <div class="card-head-actions">
-              <button class="btn primary sm" onclick="openAddChannelModal()">+ 채널 추가</button>
+              <button class="btn primary sm" onclick="openAddChannelModal()">채널 추가</button>
             </div>
           </div>
           <div id="monitor-channel-list" class="card-body tight"></div>
@@ -282,12 +274,13 @@
           <section class="card">
             <div class="card-head">
               <div class="card-title-group">
-                <div class="card-title">소스 파일</div>
-                <div class="card-sub"><span id="merge-file-count">0 FILES</span></div>
+                <span class="step-no">1</span>
+                <div class="card-title">합칠 영상 고르기</div>
+                <div class="card-sub" id="merge-file-count">0개</div>
               </div>
               <div class="card-head-actions">
-                <button class="btn ghost sm" id="btn-select-all" onclick="selectAllFiles()">전체 선택</button>
-                <button class="btn ghost sm" onclick="loadFiles()">↻ 다시 읽기</button>
+                <button class="btn sm" id="btn-select-all" onclick="selectAllFiles()">전체 선택</button>
+                <button class="btn ghost sm" onclick="loadFiles(true)">새로고침</button>
               </div>
             </div>
             <div class="file-list" id="merge-file-list"></div>
@@ -296,41 +289,50 @@
           <section class="card">
             <div class="card-head">
               <div class="card-title-group">
-                <div class="card-title">합치기 순서</div>
-                <div class="card-sub"><span id="merge-seq-count">0 CLIPS</span></div>
+                <span class="step-no" id="merge-step-no">2</span>
+                <div class="card-title">순서 정하고 합치기</div>
+                <div class="card-sub" id="merge-seq-count">0개 클립</div>
               </div>
               <div class="card-head-actions">
                 <div class="toggle-group seq-view-toggle" role="group" aria-label="병합 순서 보기 방식">
-                  <button type="button" id="seq-view-compact" class="active" onclick="setSequenceViewMode('compact')">간략</button>
-                  <button type="button" id="seq-view-full" onclick="setSequenceViewMode('full')">전체</button>
+                  <button type="button" id="seq-view-compact" class="active" onclick="setSequenceViewMode('compact')">묶어 보기</button>
+                  <button type="button" id="seq-view-full" onclick="setSequenceViewMode('full')">낱개로 보기</button>
                 </div>
                 <button class="btn ghost sm" id="btn-sort-sequence-name" onclick="sortSequenceByName()">이름순 정렬</button>
-                <button class="btn ghost sm" id="btn-deselect-all" onclick="deselectAllFiles()">전체 해제</button>
+                <button class="btn ghost sm" id="btn-deselect-all" onclick="deselectAllFiles()">모두 빼기</button>
               </div>
             </div>
             <div class="card-body stack">
+              <div class="merge-strip">
+                <div class="strip-head">
+                  <span class="lbl">결과 미리보기</span>
+                  <span class="strip-total" id="merge-strip-total">클립 없음</span>
+                </div>
+                <div class="strip-track empty" id="merge-strip-track">고른 영상이 여기에 순서대로 이어 붙습니다</div>
+                <div class="strip-note" id="merge-strip-note">막대 하나가 클립 하나이고, 폭은 파일 용량 비율입니다.</div>
+              </div>
+
               <div class="seq-list empty-seq" id="merge-seq-list">
-                ← 왼쪽에서 파일을 선택해 주세요
+                왼쪽 목록에서 영상을 고르면 고른 순서대로 여기에 쌓입니다.<br />끌어서 순서를 바꿀 수 있어요.
               </div>
 
               <div>
-                <label class="label">출력 파일 이름</label>
-                <input class="input" type="text" id="merge-output" placeholder="YYYY-MM-DD.mp4" />
+                <label class="label" for="merge-output">저장할 파일 이름</label>
+                <input class="input" type="text" id="merge-output" placeholder="YYYY-MM-DD.mp4"
+                       oninput="renderMergeReady()" />
               </div>
 
               <div>
-                <label class="label">PC 다운로드 폴더</label>
+                <label class="label">PC 저장 폴더</label>
                 <div class="row-flex">
                   <div class="merge-download-path mono" id="merge-download-directory">불러오는 중…</div>
-                  <button class="btn ghost" type="button" id="btn-merge-download-directory" onclick="chooseMergeDownloadDirectory()">폴더 선택</button>
+                  <button class="btn" type="button" id="btn-merge-download-directory" onclick="chooseMergeDownloadDirectory()">폴더 선택</button>
                 </div>
-                <div class="merge-download-note" id="merge-download-directory-note">
-                  선택한 폴더는 이 브라우저에 저장됩니다.
-                </div>
+                <div class="merge-download-note" id="merge-download-directory-note"></div>
               </div>
 
               <div>
-                <label class="label">합치기 방식</label>
+                <label class="label">합치는 방식</label>
                 <div class="toggle-group" style="width:100%; display:flex;">
                   <button type="button" id="mode-concat" class="active" style="flex:1" onclick="setMergeMode('concat')"
                           title="무손실로 즉시 합칩니다. 모든 영상의 코덱·해상도가 같아야 합니다.">빠르게 (concat)</button>
@@ -339,21 +341,28 @@
                 </div>
               </div>
 
+              <div class="ready-bar" id="merge-ready">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span id="merge-ready-text">합치려면 영상을 2개 이상 골라 주세요.</span>
+              </div>
+
               <div class="row-flex">
-                <button class="btn ghost grow" onclick="clearSequence()">목록 비우기</button>
-                <button class="btn primary grow" id="btn-execute-merge" onclick="executeMerge()">▶ 합치기 실행</button>
+                <button class="btn ghost" onclick="clearSequence()">목록 비우기</button>
+                <button class="btn primary grow" id="btn-execute-merge" onclick="executeMerge()" disabled>합치기 실행</button>
               </div>
             </div>
           </section>
         </div>
 
-        <section class="card" style="margin-top: 16px;">
+        <section class="card">
           <div class="card-head">
             <div class="card-title-group">
-              <div class="card-title">작업 목록</div>
+              <div class="card-title">합치기 작업</div>
             </div>
             <div class="card-head-actions">
-              <button class="btn ghost sm" onclick="loadJobs()">↻ 새로고침</button>
+              <button class="btn ghost sm" onclick="loadJobs()">새로고침</button>
             </div>
           </div>
           <div id="merge-jobs" class="card-body tight"></div>
@@ -366,12 +375,13 @@
           <section class="card">
             <div class="card-head">
               <div class="card-title-group">
-                <div class="card-title">나눌 영상</div>
-                <div class="card-sub"><span id="split-file-count">0 FILES</span></div>
+                <span class="step-no">1</span>
+                <div class="card-title">나눌 영상 고르기</div>
+                <div class="card-sub" id="split-file-count">0개</div>
               </div>
               <div class="card-head-actions">
-                <button class="btn primary sm" type="button" id="btn-split-upload" onclick="chooseSplitUpload()">↑ PC 영상 업로드</button>
-                <button class="btn ghost sm" onclick="loadFiles()">↻ 다시 읽기</button>
+                <button class="btn sm" type="button" id="btn-split-upload" onclick="chooseSplitUpload()">PC 영상 올리기</button>
+                <button class="btn ghost sm" onclick="loadFiles(true)">새로고침</button>
                 <input type="file" id="split-upload-input" hidden
                        accept="video/*,audio/*,.mkv,.webm,.m4a,.mp3,.aac,.ts,.mov"
                        onchange="uploadSplitVideo(this.files?.[0]); this.value=''" />
@@ -392,19 +402,20 @@
           <section class="card">
             <div class="card-head">
               <div class="card-title-group">
-                <div class="card-title">나누기 설정</div>
+                <span class="step-no" id="split-step-no">2</span>
+                <div class="card-title">나누는 방법 정하기</div>
               </div>
             </div>
             <div class="card-body stack">
               <div>
-                <label class="label">선택한 영상</label>
-                <div class="split-selected-file mono" id="split-selected-file">왼쪽에서 영상을 선택해 주세요</div>
+                <label class="label">고른 영상</label>
+                <div class="split-selected-file mono" id="split-selected-file">왼쪽 목록에서 영상 하나를 골라 주세요</div>
               </div>
 
               <div>
-                <label class="label">나누기 방식</label>
+                <label class="label">나누는 기준</label>
                 <div class="toggle-group" style="width:100%; display:flex;">
-                  <button type="button" id="split-mode-interval" class="active" style="flex:1" onclick="setSplitStrategy('interval')">시간 간격</button>
+                  <button type="button" id="split-mode-interval" class="active" style="flex:1" onclick="setSplitStrategy('interval')">시간 간격으로</button>
                   <button type="button" id="split-mode-parts" style="flex:1" onclick="setSplitStrategy('parts')">같은 길이로 N등분</button>
                 </div>
               </div>
@@ -412,7 +423,8 @@
               <div class="split-strategy-panel" id="split-interval-fields">
                 <label class="label" for="split-interval-hours">몇 시간 간격으로 나눌까요?</label>
                 <div class="row-flex">
-                  <input class="input" type="number" id="split-interval-hours" min="0.1" step="0.1" value="4" />
+                  <input class="input" type="number" id="split-interval-hours" min="0.1" step="0.1" value="4"
+                         oninput="renderSplitSelection()" />
                   <span class="split-unit">시간마다</span>
                 </div>
               </div>
@@ -431,22 +443,29 @@
               </div>
 
               <div class="split-preview" id="split-output-preview">
-                출력 이름: 원본명-1.ext, 원본명-2.ext, …
+                저장 이름: split/원본명-1.ext, split/원본명-2.ext, …
               </div>
 
-              <button class="btn primary lg block" id="btn-execute-split" onclick="executeSplit()"
-                      title="downloads/split 폴더에 원본명-1, 원본명-2 순서로 저장됩니다. stream copy 방식이라 경계는 가장 가까운 키프레임에 맞춰질 수 있습니다.">✂ 영상 나누기</button>
+              <div class="ready-bar" id="split-ready">
+                <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span id="split-ready-text">나눌 영상을 먼저 골라 주세요.</span>
+              </div>
+
+              <button class="btn primary lg block" id="btn-execute-split" onclick="executeSplit()" disabled
+                      title="원본은 그대로 두고 split 폴더에 번호를 붙여 저장합니다. stream copy 방식이라 경계는 가장 가까운 키프레임에 맞춰질 수 있습니다.">영상 나누기</button>
             </div>
           </section>
         </div>
 
-        <section class="card" style="margin-top: 16px;">
+        <section class="card">
           <div class="card-head">
             <div class="card-title-group">
-              <div class="card-title">작업 목록</div>
+              <div class="card-title">나누기 작업</div>
             </div>
             <div class="card-head-actions">
-              <button class="btn ghost sm" onclick="loadSplitJobs()">↻ 새로고침</button>
+              <button class="btn ghost sm" onclick="loadSplitJobs()">새로고침</button>
             </div>
           </div>
           <div id="split-jobs" class="card-body tight"></div>
@@ -461,8 +480,8 @@
               <div class="card-title">등록된 채널</div>
             </div>
             <div class="card-head-actions">
-              <button class="btn primary sm" onclick="openAddChannelModal()">+ 새 채널</button>
-              <button class="btn ghost sm" onclick="loadChannels()">↻ 새로고침</button>
+              <button class="btn primary sm" onclick="openAddChannelModal()">채널 추가</button>
+              <button class="btn ghost sm" onclick="loadChannels()">새로고침</button>
             </div>
           </div>
           <div id="channel-table" class="card-body tight"></div>
@@ -476,8 +495,8 @@
           </div>
           <div class="card-body">
             <div class="row-flex" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-              <div style="font-size: 13px; color: var(--fg-dim);" id="discord-state-text">상태 확인 중…</div>
-              <button class="btn" onclick="testDiscord()">▶ 테스트 메시지 보내기</button>
+              <div class="ready-bar grow" id="discord-state-text">상태 확인 중…</div>
+              <button class="btn" onclick="testDiscord()">테스트 메시지 보내기</button>
             </div>
           </div>
         </section>

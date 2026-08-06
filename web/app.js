@@ -59,6 +59,17 @@ const initial = (name) => {
   const c = (name || '').trim().charAt(0);
   return c ? c.toUpperCase() : '·';
 };
+const JOB_STATE_LABELS = {
+  queued:    ['차례 기다리는 중', 'dim'],
+  running:   ['진행 중',         'amber'],
+  done:      ['완료',            'ok'],
+  failed:    ['실패',            'err'],
+  cancelled: ['취소됨',          'warn'],
+};
+const jobStateChip = (status) => {
+  const [label, kind] = JOB_STATE_LABELS[status] || [status, 'dim'];
+  return `<span class="chip ${kind}">${label}</span>`;
+};
 
 /* ── tabs ──────────────────────────────────────────────────────────── */
 function switchTab(tab) {
@@ -113,9 +124,11 @@ async function systemRefresh() {
     setDot('sys-discord-dot', s.discord_enabled ? 'ok' : 'warn');
     $('stat-discord-val').textContent = s.discord_enabled ? '연결됨' : '미설정';
     $('stat-discord-val').classList.toggle('dim', !s.discord_enabled);
-    $('discord-state-text').textContent = s.discord_enabled
-      ? '✓  웹후크 URL이 설정되어 있어 라이브/완료/에러 알림이 활성화돼 있습니다'
-      : '⚠  DISCORD_WEBHOOK_URL이 비어 있어요. .env에 웹후크 주소를 넣고 컨테이너를 재시작하세요';
+    const discordText = $('discord-state-text');
+    discordText.textContent = s.discord_enabled
+      ? '웹후크가 연결돼 있어 라이브 감지·다운로드 완료·오류 알림이 디스코드로 갑니다.'
+      : 'DISCORD_WEBHOOK_URL이 비어 있습니다. .env에 웹후크 주소를 넣고 컨테이너를 다시 시작하세요.';
+    discordText.classList.toggle('go', s.discord_enabled);
 
     const used = s.disk.used_bytes;
     const total = s.disk.total_bytes;
@@ -301,7 +314,7 @@ async function loadFiles(refresh = false) {
 function renderFileList() {
   const host = $('merge-file-list');
   const sourceFiles = availableSourceFiles();
-  $('merge-file-count').textContent = `${sourceFiles.length}개 파일`;
+  $('merge-file-count').textContent = `${sourceFiles.length}개`;
   const selectAllBtn = $('btn-select-all');
   const deselectAllBtn = $('btn-deselect-all');
   if (selectAllBtn) selectAllBtn.disabled = sourceFiles.length === 0;
@@ -310,8 +323,9 @@ function renderFileList() {
     host.innerHTML = `
       <div class="empty">
         <div class="empty-icon">⌘</div>
-        <div class="empty-title">아직 다운로드한 영상이 없어요</div>
-        <div class="empty-sub">다운로드 탭이나 라이브 녹화를 통해 영상을 받으면 여기에 표시됩니다</div>
+        <div class="empty-title">아직 받아둔 영상이 없어요</div>
+        <div class="empty-sub">다운로드 탭에서 영상을 받거나, 라이브 녹화가 채널을 녹화하면 여기에 쌓입니다</div>
+        <button class="btn primary" type="button" onclick="switchTab('download')">다운로드 탭으로 가기</button>
       </div>`;
     return;
   }
@@ -320,8 +334,8 @@ function renderFileList() {
     host.innerHTML = `
       <div class="empty">
         <div class="empty-icon">✓</div>
-        <div class="empty-title">추가할 소스 파일이 없어요</div>
-        <div class="empty-sub">현재 파일은 모두 merge 목록에 있습니다</div>
+        <div class="empty-title">고를 영상이 더 없어요</div>
+        <div class="empty-sub">받아둔 영상을 모두 오른쪽 순서에 넣었습니다</div>
       </div>`;
     return;
   }
@@ -332,16 +346,14 @@ function renderFileList() {
     const allSelected = selectedCount === group.paths.length;
     const someSelected = selectedCount > 0 && !allSelected;
     const partBadge = group.partLabel ? `<span class="part-chip">${escapeHtml(group.partLabel)}</span>` : '';
-    const fileWord = group.paths.length === 1 ? 'file' : 'files';
     return `
-      <div class="file-group ${open ? 'open' : ''} ${allSelected ? 'selected' : ''}"
-           style="--group-color:${group.color}">
+      <div class="file-group ${open ? 'open' : ''} ${allSelected ? 'selected' : ''}">
         <div class="file-group-head"
              draggable="true"
              ondragstart="sourceGroupDragStart(event, ${groupIdx})"
              ondragend="fileDragEnd(event)"
              onclick="toggleSourceGroup(${groupIdx})">
-          <span class="tree-toggle" aria-hidden="true">${open ? 'v' : '>'}</span>
+          <span class="tree-toggle" aria-hidden="true">▸</span>
           <span class="selection-control selection-checkbox">
             <input type="checkbox"
                    aria-label="${escapeHtml(group.name)} 전체 선택"
@@ -354,10 +366,11 @@ function renderFileList() {
           <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
           <div class="file-group-tools">
             ${partBadge}
-            <div class="file-meta nowrap">${group.paths.length} ${fileWord}</div>
+            <div class="file-meta nowrap">${group.paths.length}개 · ${fmtBytes(group.paths.reduce((sum, path) => sum + sizeOfPath(path), 0))}</div>
             <button type="button" class="btn danger sm file-delete-btn" draggable="false"
-                    aria-label="${escapeHtml(group.name)} 그룹 삭제"
-                    onclick="deleteSourceGroup(${groupIdx}, event)">그룹 삭제</button>
+                    title="${escapeHtml(group.name)} 그룹 전체 삭제"
+                    aria-label="${escapeHtml(group.name)} 그룹 전체 삭제"
+                    onclick="deleteSourceGroup(${groupIdx}, event)">✕</button>
           </div>
         </div>
         <div class="file-group-children">
@@ -389,8 +402,9 @@ function renderSourceFileRow(f) {
       <div class="file-meta nowrap">${fmtBytes(f.size_bytes)}</div>
       <div class="file-meta nowrap">${fmtAge(f.mtime)}</div>
       <button type="button" class="btn danger sm file-delete-btn" draggable="false"
+              title="${escapeHtml(fname)} 삭제"
               aria-label="${escapeHtml(fname)} 삭제"
-              onclick="deleteSourceFile('${safePath}', event)">삭제</button>
+              onclick="deleteSourceFile('${safePath}', event)">✕</button>
     </label>`;
 }
 async function deleteSourceFiles(paths, label) {
@@ -492,22 +506,8 @@ function availableSourceFiles(files = state.files, sequence = state.sequence) {
   const inSequence = new Set(sequence);
   return files.filter(file => !inSequence.has(file.path));
 }
-const GROUP_COLORS = [
-  '#f0a83c',
-  '#6fb7ff',
-  '#7ccc92',
-  '#d78bff',
-  '#ff8f8f',
-  '#6ed6c5',
-  '#f0d36c',
-  '#9aa8ff',
-];
-function colorForGroup(key) {
-  let hash = 0;
-  for (let i = 0; i < key.length; i += 1) {
-    hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0;
-  }
-  return GROUP_COLORS[Math.abs(hash) % GROUP_COLORS.length];
+function sizeOfPath(path) {
+  return state.files.find(file => file.path === path)?.size_bytes || 0;
 }
 function inferPartGroup(prefix) {
   const cleaned = prefix.replace(/[._\-\s]+$/g, '');
@@ -541,6 +541,10 @@ function getPartInfo(path) {
     prefix,
     suffix,
     group,
+    /* 묶는 기준(group)은 날짜·시간까지만 좁히지만, 화면에 띄우는 이름은
+       접두사 전체를 쓴다. "20260804_210000"만 보여주면 어느 채널의 녹화인지
+       알 수 없다. */
+    label: prefix.replace(/[._\-\s]+$/g, '') || group,
     number,
     rawNumber: match[2],
     key: `${dir}\u0000${group.toLowerCase()}\u0000${suffix.toLowerCase()}`,
@@ -578,8 +582,8 @@ function getPartRunLabel(path, filePaths = state.files.map(f => f.path)) {
   const nums = infos.map(info => info.number);
   const first = String(Math.min(...nums)).padStart(width, '0');
   const last = String(Math.max(...nums)).padStart(width, '0');
-  const group = infos[0]?.group || '';
-  return group ? `${group} - part ${first}-${last}` : `part ${first}-${last}`;
+  const label = infos[0]?.label || '';
+  return label ? `${label} · part ${first}-${last}` : `part ${first}-${last}`;
 }
 function getPartRangeLabel(paths) {
   const infos = paths.map(getPartInfo).filter(Boolean);
@@ -602,11 +606,10 @@ function buildFileGroups(files = state.files) {
       group = {
         id,
         key: info?.key || id,
-        name: info?.group || mergeFileName(file.path),
+        name: info?.label || mergeFileName(file.path),
         isPartGroup: Boolean(info),
         files: [],
         paths: [],
-        color: colorForGroup(id),
       };
       byId.set(id, group);
       groups.push(group);
@@ -698,7 +701,7 @@ function formatPartRangeName(paths) {
   const width = Math.max(first.rawNumber.length, last.rawNumber.length);
   const firstNum = String(first.number).padStart(width, '0');
   const lastNum = String(last.number).padStart(width, '0');
-  return `${first.group} - part ${firstNum}-${lastNum}${first.suffix}`;
+  return `${first.label} · part ${firstNum}-${lastNum}${first.suffix}`;
 }
 function sequenceRowName(row) {
   if (row.paths.length === 1) return mergeFileName(row.paths[0]);
@@ -715,7 +718,7 @@ function renderSequence() {
   host.ondragleave = seqListDragLeave;
   host.ondrop = seqListDrop;
   const rows = buildSequenceRows();
-  $('merge-seq-count').textContent = state.sequenceViewMode === 'compact'
+  $('merge-seq-count').textContent = state.sequenceViewMode === 'compact' && rows.length !== state.sequence.length
     ? `${state.sequence.length}개 클립 · ${rows.length}줄`
     : `${state.sequence.length}개 클립`;
   const compactBtn = $('seq-view-compact');
@@ -724,15 +727,14 @@ function renderSequence() {
   if (fullBtn) fullBtn.classList.toggle('active', state.sequenceViewMode === 'full');
   const sortBtn = $('btn-sort-sequence-name');
   if (sortBtn) sortBtn.disabled = state.sequence.length < 2;
+  renderMergeStrip();
+  renderMergeReady();
   if (!state.sequence.length) {
     host.classList.add('empty-seq');
-    host.classList.remove('compact', 'full');
-    host.innerHTML = '← 왼쪽에서 파일을 선택해 주세요';
+    host.innerHTML = '왼쪽 목록에서 영상을 고르면 고른 순서대로 여기에 쌓입니다.<br />끌어서 순서를 바꿀 수 있어요.';
     return;
   }
   host.classList.remove('empty-seq');
-  host.classList.toggle('compact', state.sequenceViewMode === 'compact');
-  host.classList.toggle('full', state.sequenceViewMode === 'full');
   host.innerHTML = rows.map((row) => {
     const fname = sequenceRowName(row);
     const blockSize = row.end - row.start + 1;
@@ -745,11 +747,8 @@ function renderSequence() {
     const removeAction = blockSize > 1
       ? `removeSeqBlock(${row.start}, ${row.end})`
       : `removeSeqItem(${row.start})`;
-    const rowInfo = getPartInfo(row.paths[0]);
-    const rowColor = colorForGroup(rowInfo?.key || row.paths[0]);
     return `
       <div class="seq-item ${blockSize > 1 ? 'part-block' : ''}" draggable="true" data-idx="${row.start}"
-           style="--group-color:${rowColor}"
            ondragstart="seqDragStart(event, ${row.start})"
            ondragover="seqDragOver(event, ${row.start})"
            ondragleave="seqDragLeave(event, ${row.start})"
@@ -757,11 +756,76 @@ function renderSequence() {
            ondragend="seqDragEnd(event)">
         <div class="grip">⋮⋮</div>
         <div class="idx">${idxLabel}</div>
-        <div class="name" title="${escapeHtml(title)}">${escapeHtml(fname)}</div>
-        ${blockBadge}
-        <button class="btn sm danger" onclick="${removeAction}">✕</button>
+        <div class="name" title="${escapeHtml(title)}">${escapeHtml(fname)}${blockBadge}</div>
+        <button class="btn sm danger" aria-label="${escapeHtml(fname)} 목록에서 빼기"
+                onclick="${removeAction}">✕</button>
       </div>`;
   }).join('');
+}
+
+/* ── merge :: 결과 미리보기 스트립 ─────────────────────────────────── */
+/* 조각을 하나로 붙이는 게 이 화면의 본론이라, 실행 전에 결과를 한 줄로 본다.
+   폭은 용량 비율이다. 재생 길이는 서버가 알려주지 않으므로 그렇게 표기한다. */
+function renderMergeStrip() {
+  const track = $('merge-strip-track');
+  const total = $('merge-strip-total');
+  const note = $('merge-strip-note');
+  if (!track) return;
+
+  const totalBytes = state.sequence.reduce((sum, path) => sum + sizeOfPath(path), 0);
+  if (!state.sequence.length) {
+    track.className = 'strip-track empty';
+    track.textContent = '고른 영상이 여기에 순서대로 이어 붙습니다';
+    total.textContent = '클립 없음';
+    note.style.display = 'none';
+    return;
+  }
+
+  note.style.display = '';
+  total.textContent = `${state.sequence.length}개 클립 · ${fmtBytes(totalBytes)}`;
+  track.className = 'strip-track';
+  track.innerHTML = state.sequence.map((path, index) => {
+    const bytes = sizeOfPath(path);
+    const share = totalBytes > 0 ? bytes / totalBytes : 1 / state.sequence.length;
+    const label = String(index + 1).padStart(2, '0');
+    return `
+      <div class="strip-block" style="flex: ${Math.max(share, 0.001)} 1 0"
+           title="${escapeHtml(mergeFileName(path))} · ${fmtBytes(bytes)}"
+           onmouseenter="highlightSeqIndex(${index}, true)"
+           onmouseleave="highlightSeqIndex(${index}, false)">${label}</div>`;
+  }).join('');
+}
+function highlightSeqIndex(index, on) {
+  const rows = buildSequenceRows();
+  const row = rows.find(item => index >= item.start && index <= item.end);
+  if (!row) return;
+  document.querySelector(`.seq-item[data-idx="${row.start}"]`)?.classList.toggle('hot', on);
+}
+
+/* ── merge :: 실행 준비 상태 ───────────────────────────────────────── */
+/* 못 누르는 이유를 버튼을 누르기 전에 말한다. */
+function renderMergeReady() {
+  const bar = $('merge-ready');
+  const text = $('merge-ready-text');
+  const button = $('btn-execute-merge');
+  const stepNo = $('merge-step-no');
+  if (!bar || !text || !button) return;
+
+  const outputName = ($('merge-output')?.value || '').trim();
+  const totalBytes = state.sequence.reduce((sum, path) => sum + sizeOfPath(path), 0);
+  const modeLabel = state.mergeMode === 'concat' ? '빠르게' : '재인코딩';
+
+  let blockedReason = '';
+  if (state.sequence.length === 0) blockedReason = '합치려면 왼쪽에서 영상을 2개 이상 골라 주세요.';
+  else if (state.sequence.length === 1) blockedReason = '영상이 1개뿐입니다. 하나 더 고르면 합칠 수 있어요.';
+  else if (!outputName) blockedReason = '저장할 파일 이름을 입력해 주세요.';
+
+  button.disabled = Boolean(blockedReason);
+  bar.classList.toggle('go', !blockedReason);
+  if (stepNo) stepNo.classList.toggle('done', !blockedReason);
+  text.innerHTML = blockedReason
+    ? escapeHtml(blockedReason)
+    : `${state.sequence.length}개 클립 ${fmtBytes(totalBytes)}를 <strong>${escapeHtml(outputName)}</strong> 하나로 ${modeLabel} 합칩니다.`;
 }
 function clearSequence() {
   deselectAllFiles();
@@ -890,6 +954,7 @@ function setMergeMode(mode) {
   state.mergeMode = mode;
   $('mode-concat').classList.toggle('active', mode === 'concat');
   $('mode-reencode').classList.toggle('active', mode === 'reencode');
+  renderMergeReady();
 }
 
 function supportsMergeDownloadDirectory() {
@@ -962,7 +1027,7 @@ async function executeMerge() {
   }
   const out = currentMergeOutputName();
   const btn = $('btn-execute-merge');
-  btn.disabled = true; const orig = btn.textContent; btn.textContent = '◴ 작업 등록 중…';
+  btn.disabled = true; const orig = btn.textContent; btn.textContent = '작업 등록 중…';
   try {
     const r = await fetch(`${API}/api/merge`, {
       method: 'POST',
@@ -971,11 +1036,11 @@ async function executeMerge() {
     });
     const d = await r.json();
     if (!r.ok) throw new Error(d.detail || '합치기 실패');
-    notify('완료', `합치기 작업 ${d.id.slice(0,8)} 등록`, 'ok');
+    notify('등록됨', `합치기 작업 ${d.id.slice(0,8)}을 시작했어요`, 'ok');
     setDefaultMergeOutputName();
     loadJobs();
   } catch (e) { notify('오류', e.message, 'err'); }
-  finally { btn.disabled = false; btn.textContent = orig; }
+  finally { btn.textContent = orig; renderMergeReady(); }
 }
 
 /* ── merge :: jobs ─────────────────────────────────────────────────── */
@@ -993,46 +1058,34 @@ function renderJobs(jobs) {
     host.innerHTML = `<div class="empty">
       <div class="empty-icon">▦</div>
       <div class="empty-title">아직 합치기 작업이 없어요</div>
-      <div class="empty-sub">위에서 파일을 골라 합치기를 실행하면 여기에 표시됩니다</div>
+      <div class="empty-sub">위에서 영상을 골라 합치기를 실행하면 진행 상황이 여기에 표시됩니다</div>
     </div>`;
     return;
   }
-  const stateChip = (st) => {
-    const map = {
-      queued:    ['대기',   'dim'],
-      running:   ['진행 중', 'amber'],
-      done:      ['완료',   'ok'],
-      failed:    ['실패',   'err'],
-      cancelled: ['취소됨', 'warn'],
-    };
-    const [t, c] = map[st] || [st, 'dim'];
-    return `<span class="chip ${c}">${t}</span>`;
-  };
   host.innerHTML = `
     <div class="job-row head">
       <div>작업 ID</div>
-      <div>출력 파일</div>
+      <div>저장 파일</div>
       <div>방식</div>
-      <div>경과</div>
+      <div>걸린 시간</div>
       <div></div>
     </div>
     ${jobs.map(j => `
       <div class="job-row">
         <div class="job-id">${j.id.slice(0,8)}</div>
         <div>
-          <div style="color: var(--fg); font-weight:500;">${escapeHtml(j.output)}</div>
-          <div style="color:var(--fg-mute); font-size:11px; margin-top:2px;">
-            ${j.inputs.length}개 클립 · ${escapeHtml((j.message || '').slice(0,80))}
-          </div>
+          <div class="job-out">${escapeHtml(j.output)}</div>
+          <div class="job-msg ${j.status === 'failed' ? 'failed' : ''}">${j.inputs.length}개 클립 · ${escapeHtml((j.message || '').slice(0,80))}</div>
+          ${j.status === 'running' ? '<div class="job-progress indeterminate"><div></div></div>' : ''}
         </div>
         <div class="job-mode">${j.mode === 'concat' ? '빠르게' : '재인코딩'}</div>
-        <div class="mono" style="color: var(--fg-dim); font-size:12px;">${fmtDuration(j.elapsed_seconds)}</div>
-        <div class="actions" style="text-align:right">
-          ${stateChip(j.status)}
+        <div class="job-elapsed">${fmtDuration(j.elapsed_seconds)}</div>
+        <div class="actions">
+          ${jobStateChip(j.status)}
           ${j.status === 'done' && supportsMergeDownloadDirectory()
-            ? `<button class="btn sm" type="button" onclick="saveMergedJob('${j.id}')" ${state.savingMergeJobs.has(j.id) ? 'disabled' : ''}>${state.savingMergeJobs.has(j.id) ? '저장 중…' : '↓ 저장'}</button>`
+            ? `<button class="btn sm" type="button" onclick="saveMergedJob('${j.id}')" ${state.savingMergeJobs.has(j.id) ? 'disabled' : ''}>${state.savingMergeJobs.has(j.id) ? '저장 중…' : '내 폴더에 저장'}</button>`
             : ''}
-          ${j.status === 'done' ? `<a class="btn sm ghost" href="${API}/api/merge/jobs/${j.id}/download">기본 받기</a>` : ''}
+          ${j.status === 'done' ? `<a class="btn sm ghost" href="${API}/api/merge/jobs/${j.id}/download">그냥 받기</a>` : ''}
           ${(j.status === 'queued' || j.status === 'running') ? `<button class="btn sm danger" onclick="cancelJob('${j.id}')">취소</button>` : ''}
         </div>
       </div>
@@ -1080,13 +1133,14 @@ function renderSplitFileList() {
   if (!host) return;
   const filteredFiles = filterSplitFiles(state.files, state.splitSearchQuery);
   $('split-file-count').textContent = state.splitSearchQuery
-    ? `${filteredFiles.length}/${state.files.length}개 파일`
-    : `${state.files.length}개 파일`;
+    ? `${filteredFiles.length}/${state.files.length}개`
+    : `${state.files.length}개`;
   if (!state.files.length) {
     host.innerHTML = `<div class="empty">
       <div class="empty-icon">⌘</div>
       <div class="empty-title">나눌 영상이 없어요</div>
-      <div class="empty-sub">다운로드하거나 합친 영상이 여기에 표시됩니다</div>
+      <div class="empty-sub">다운로드하거나 합친 영상이 여기에 표시됩니다. PC에 있는 영상은 위의 'PC 영상 올리기'로 가져올 수 있어요.</div>
+      <button class="btn primary" type="button" onclick="chooseSplitUpload()">PC 영상 올리기</button>
     </div>`;
     return;
   }
@@ -1105,16 +1159,14 @@ function renderSplitFileList() {
     const partBadge = group.partLabel
       ? `<span class="part-chip">${escapeHtml(group.partLabel)}</span>`
       : '';
-    const fileWord = group.paths.length === 1 ? 'file' : 'files';
     return `
-      <div class="file-group ${open ? 'open' : ''} ${selected ? 'selected' : ''}"
-           style="--group-color:${group.color}">
+      <div class="file-group ${open ? 'open' : ''} ${selected ? 'selected' : ''}">
         <div class="file-group-head split-file-group-head"
              onclick="toggleSplitGroup(${groupIdx})">
-          <span class="tree-toggle" aria-hidden="true">${open ? 'v' : '>'}</span>
+          <span class="tree-toggle" aria-hidden="true">▸</span>
           <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
           ${partBadge}
-          <div class="file-meta nowrap">${group.paths.length} ${fileWord}</div>
+          <div class="file-meta nowrap">${group.paths.length}개</div>
         </div>
         <div class="file-group-children">
           ${group.files.map(file => renderSplitFileRow(file)).join('')}
@@ -1256,12 +1308,50 @@ function renderSplitSelection() {
   const selectedHost = $('split-selected-file');
   const previewHost = $('split-output-preview');
   if (!selectedHost || !previewHost) return;
-  selectedHost.textContent = state.splitSelectedPath || '왼쪽에서 영상을 선택해 주세요';
+  selectedHost.textContent = state.splitSelectedPath || '왼쪽 목록에서 영상 하나를 골라 주세요';
   const requestedParts = Math.max(2, Number.parseInt($('split-parts')?.value || '2', 10) || 2);
   const previewCount = state.splitStrategy === 'parts' ? Math.min(requestedParts, 3) : 2;
   const names = splitOutputNames(state.splitSelectedPath, previewCount);
   const suffix = state.splitStrategy === 'parts' && requestedParts <= 3 ? '' : ', …';
-  previewHost.textContent = `출력 이름: split/${names.join(', split/')}${suffix}`;
+  previewHost.textContent = `저장 이름: split/${names.join(', split/')}${suffix}`;
+  renderSplitReady();
+}
+
+function renderSplitReady() {
+  const bar = $('split-ready');
+  const text = $('split-ready-text');
+  const button = $('btn-execute-split');
+  const stepNo = $('split-step-no');
+  if (!bar || !text || !button) return;
+
+  let blockedReason = '';
+  if (!state.splitSelectedPath) {
+    blockedReason = '왼쪽 목록에서 나눌 영상을 하나 골라 주세요.';
+  } else if (state.splitStrategy === 'interval') {
+    const intervalHours = Number($('split-interval-hours')?.value);
+    if (!Number.isFinite(intervalHours) || intervalHours <= 0) {
+      blockedReason = '나누는 간격은 0보다 큰 시간이어야 합니다.';
+    }
+  } else {
+    const parts = Number($('split-parts')?.value);
+    if (!Number.isInteger(parts) || parts < 2) {
+      blockedReason = '등분 수는 2 이상의 정수로 입력해 주세요.';
+    }
+  }
+
+  button.disabled = Boolean(blockedReason);
+  bar.classList.toggle('go', !blockedReason);
+  if (stepNo) stepNo.classList.toggle('done', !blockedReason);
+  if (blockedReason) {
+    text.textContent = blockedReason;
+    return;
+  }
+  /* 파일명은 바로 위 "고른 영상"에 이미 크게 떠 있다. 여기서는 무엇을 어떻게
+     자르는지와 원본이 남는지만 말한다. */
+  const rule = state.splitStrategy === 'interval'
+    ? `${Number($('split-interval-hours').value)}시간 간격으로`
+    : `${Number($('split-parts').value)}등분으로`;
+  text.textContent = `${rule} 나눠 split 폴더에 저장합니다. 원본은 그대로 남습니다.`;
 }
 
 function splitRuleLabel(job) {
@@ -1299,7 +1389,7 @@ async function executeSplit() {
   const button = $('btn-execute-split');
   const originalText = button.textContent;
   button.disabled = true;
-  button.textContent = '◴ 작업 등록 중…';
+  button.textContent = '작업 등록 중…';
   try {
     const response = await fetch(`${API}/api/split`, {
       method: 'POST',
@@ -1308,13 +1398,13 @@ async function executeSplit() {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.detail || '영상 나누기 실패');
-    notify('완료', `${data.total_parts}개 파일로 나누는 작업을 등록했어요`, 'ok');
+    notify('등록됨', `${data.total_parts}개 파일로 나누는 작업을 시작했어요`, 'ok');
     loadSplitJobs();
   } catch (error) {
     notify('오류', error.message || '영상 나누기 실패', 'err');
   } finally {
-    button.disabled = false;
     button.textContent = originalText;
+    renderSplitReady();
   }
 }
 
@@ -1334,21 +1424,13 @@ function renderSplitJobs(jobs) {
     host.innerHTML = `<div class="empty">
       <div class="empty-icon">✂</div>
       <div class="empty-title">아직 나누기 작업이 없어요</div>
-      <div class="empty-sub">위에서 영상과 범위를 골라 실행하면 여기에 표시됩니다</div>
+      <div class="empty-sub">위에서 영상과 나누는 기준을 골라 실행하면 진행 상황이 여기에 표시됩니다</div>
     </div>`;
     return;
   }
-  const stateChip = (status) => {
-    const map = {
-      queued: ['대기', 'dim'], running: ['진행 중', 'amber'], done: ['완료', 'ok'],
-      failed: ['실패', 'err'], cancelled: ['취소됨', 'warn'],
-    };
-    const [text, kind] = map[status] || [status, 'dim'];
-    return `<span class="chip ${kind}">${text}</span>`;
-  };
   host.innerHTML = `
     <div class="job-row head split-job-row">
-      <div>작업 ID</div><div>원본 / 출력 파일</div><div>범위</div><div>진행</div><div></div>
+      <div>작업 ID</div><div>원본 / 저장 파일</div><div>기준</div><div>진행</div><div></div>
     </div>
     ${jobs.map(job => {
       const downloadList = job.status === 'done'
@@ -1356,17 +1438,25 @@ function renderSplitJobs(jobs) {
             <div>${job.outputs.map((output, index) => `<a href="${API}/api/split/jobs/${job.id}/download/${index + 1}">↓ ${escapeHtml(mergeFileName(output))}</a>`).join('')}</div>
            </details>`
         : '';
+      /* 나누기는 남은 조각 수를 아니까 실제 비율로 그린다. */
+      const donePercent = job.total_parts > 0
+        ? Math.round(job.completed_parts / job.total_parts * 100)
+        : 0;
+      const progress = job.status === 'running'
+        ? `<div class="job-progress"><div style="width:${donePercent}%"></div></div>`
+        : '';
       return `
         <div class="job-row split-job-row">
           <div class="job-id">${job.id.slice(0,8)}</div>
           <div>
-            <div style="color:var(--fg); font-weight:500;">${escapeHtml(job.input)}</div>
-            <div style="color:var(--fg-mute); font-size:11px; margin-top:2px;">${escapeHtml((job.message || '').slice(0,100))}</div>
+            <div class="job-out">${escapeHtml(job.input)}</div>
+            <div class="job-msg ${job.status === 'failed' ? 'failed' : ''}">${escapeHtml((job.message || '').slice(0,100))}</div>
+            ${progress}
             ${downloadList}
           </div>
           <div class="job-mode">${splitRuleLabel(job)}</div>
-          <div class="mono" style="color:var(--fg-dim); font-size:12px;">${job.completed_parts}/${job.total_parts}<br/>${fmtDuration(job.elapsed_seconds)}</div>
-          <div class="actions">${stateChip(job.status)}
+          <div class="job-elapsed">${job.completed_parts}/${job.total_parts}개<br/>${fmtDuration(job.elapsed_seconds)}</div>
+          <div class="actions">${jobStateChip(job.status)}
             ${(job.status === 'queued' || job.status === 'running') ? `<button class="btn sm danger" onclick="cancelSplitJob('${job.id}')">취소</button>` : ''}
           </div>
         </div>`;
