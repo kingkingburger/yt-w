@@ -493,7 +493,7 @@ function availableSourceFiles(files = state.files, sequence = state.sequence) {
   return files.filter(file => !inSequence.has(file.path));
 }
 const GROUP_COLORS = [
-  '#e6a04d',
+  '#f0a83c',
   '#6fb7ff',
   '#7ccc92',
   '#d78bff',
