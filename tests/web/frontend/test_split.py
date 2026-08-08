@@ -26,7 +26,7 @@ def test_split_tab_contains_search_and_upload_controls():
     assert 'id="split-file-search"' in html
     assert 'id="split-upload-input"' in html
     assert 'onclick="chooseSplitUpload()"' in html
-    assert "PC 영상 업로드" in html
+    assert "PC 영상 올리기" in html
 
 
 def test_split_file_search_matches_name_and_path():

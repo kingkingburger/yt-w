@@ -162,7 +162,7 @@ console.log(JSON.stringify({{
             "renamed_a1b2c3d4_part002.mp4",
         ],
         "rows": [
-            [0, 1, "a1b2c3d4 - part 001-002.mp4"],
+            [0, 1, "title_a1b2c3d4 · part 001-002.mp4"],
             [2, 2, "other_z9y8x7w6_part001.mp4"],
         ],
         "fullRows": [
@@ -185,7 +185,6 @@ def test_frontend_source_tree_groups_by_hash_token():
         for name in [
             "splitMergePath",
             "mergeFileName",
-            "colorForGroup",
             "inferPartGroup",
             "getPartInfo",
             "getPartRangeLabel",
@@ -194,7 +193,6 @@ def test_frontend_source_tree_groups_by_hash_token():
     )
 
     script = f"""
-const GROUP_COLORS = ['#e6a04d', '#6fb7ff'];
 {helpers}
 const groups = buildFileGroups([
   {{ path: 'live/channel/channel_20260514_025824_part002.mp4', size_bytes: 1, mtime: 1 }},
@@ -218,7 +216,7 @@ console.log(JSON.stringify(groups.map(group => ({{
 
     assert json.loads(result.stdout) == [
         {
-            "name": "20260514_025824",
+            "name": "channel_20260514_025824",
             "partLabel": "part 000-002",
             "paths": [
                 "live/channel/channel_20260514_025824_part000.mp4",
@@ -249,7 +247,6 @@ def test_frontend_source_tree_hides_files_already_in_sequence():
             "splitMergePath",
             "mergeFileName",
             "availableSourceFiles",
-            "colorForGroup",
             "inferPartGroup",
             "getPartInfo",
             "getPartRangeLabel",
@@ -258,7 +255,6 @@ def test_frontend_source_tree_hides_files_already_in_sequence():
     )
 
     script = f"""
-const GROUP_COLORS = ['#e6a04d', '#6fb7ff'];
 const state = {{
   files: [
     {{ path: 'live/channel/channel_20260514_025824_part000.mp4', size_bytes: 1, mtime: 1 }},
@@ -286,7 +282,7 @@ console.log(JSON.stringify(groups.map(group => ({{
 
     assert json.loads(result.stdout) == [
         {
-            "name": "20260514_025824",
+            "name": "channel_20260514_025824",
             "paths": ["live/channel/channel_20260514_025824_part000.mp4"],
         },
     ]

@@ -24,11 +24,11 @@ def extract_js_function(source: str, name: str) -> str:
 def test_merge_page_exposes_select_all_and_deselect_all_controls() -> None:
     index_html = Path("web/index.html").read_text(encoding="utf-8")
 
-    source_title = index_html.index('<div class="card-title">소스 파일</div>')
+    source_title = index_html.index('<div class="card-title">합칠 영상 고르기</div>')
     select_all = index_html.index(
         'id="btn-select-all" onclick="selectAllFiles()"'
     )
-    sequence_title = index_html.index('<div class="card-title">합치기 순서</div>')
+    sequence_title = index_html.index('<div class="card-title">순서 정하고 합치기</div>')
     deselect_all = index_html.index(
         'id="btn-deselect-all" onclick="deselectAllFiles()"'
     )
@@ -50,7 +50,6 @@ def test_frontend_select_all_keeps_part_files_compact_and_deselect_all_clears() 
             "splitMergePath",
             "mergeFileName",
             "availableSourceFiles",
-            "colorForGroup",
             "inferPartGroup",
             "getPartInfo",
             "getPartRangeLabel",
@@ -65,7 +64,6 @@ def test_frontend_select_all_keeps_part_files_compact_and_deselect_all_clears() 
     )
 
     script = f"""
-const GROUP_COLORS = ['#e6a04d', '#6fb7ff'];
 const state = {{
   files: [
     {{ path: 'live/channel/channel_20260514_025824_part002.mp4', size_bytes: 1, mtime: 1 }},
@@ -112,7 +110,7 @@ console.log(JSON.stringify({{
                 "live/channel/loose_video.mp4",
             ],
             "rows": [
-                [0, 2, "20260514_025824 - part 000-002.mp4"],
+                [0, 2, "channel_20260514_025824 · part 000-002.mp4"],
                 [3, 3, "loose_video.mp4"],
             ],
         },
