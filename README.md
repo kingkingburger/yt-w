@@ -35,7 +35,7 @@ YouTube 라이브 방송 자동 모니터링 + 일반 동영상 다운로드. Do
 
 ## 기술 스택
 
-- **Python 3.13** + **uv** (패키지 매니저)
+- **Python 3.15 RC** + **uv** (패키지 매니저) — 컨테이너는 `python:3.15-rc-alpine`, 소스 하한은 3.13
 - **FastAPI** + **Uvicorn** (웹 서버)
 - **yt-dlp** (YouTube 다운로드 엔진)
 - **Node.js** (yt-dlp JavaScript challenge solver)
@@ -229,7 +229,10 @@ yt-w/
 │   ├── start-windows.ps1                  # Task 상태 확인 + Docker 시작
 │   ├── uninstall-windows-recycle-task.ps1 # helper Task 등록 해제
 │   └── windows-recycle-helper.ps1         # 실제 Windows 휴지통 처리
-├── docs/                         # 현재 아키텍처와 v0 개발 이력
+├── docs/
+│   ├── ARCHITECTURE.md          # 현재 구조와 운영 계약의 권위 문서
+│   ├── history.md               # v0 프로토타입 개발 이력
+│   └── verify/                  # 실측 검증 리포트와 스크린샷
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml               # Python 의존성과 pytest 설정
@@ -299,6 +302,7 @@ uv run pre-commit run --all-files     # Ruff + 고아 .pyc 검사
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)
 - [변경 이력](docs/history.md)
+- [검증 리포트](docs/verify/) — 실제 실행으로 확인한 회귀 검증과 문서 감사 기록
 
 ## 라이선스
 

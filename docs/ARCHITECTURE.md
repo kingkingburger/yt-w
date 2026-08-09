@@ -61,7 +61,7 @@ yt-w/
 │   ├── merge_output_name.js             # 기본 병합 파일명 계산
 │   └── merge_download_directory.js      # PC 저장 폴더 기억/쓰기
 ├── scripts/                             # Windows 시작/휴지통 helper와 pre-commit 도구
-├── docs/                                # 현재 아키텍처와 v0 개발 이력
+├── docs/                                # 이 문서, v0 개발 이력, 실측 검증 리포트(verify/)
 ├── main.py                              # 웹 서버 엔트리
 ├── monitoring.py                        # 모니터 데몬 엔트리
 ├── docker-compose.yml
@@ -194,6 +194,7 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다. P
 | 컴포넌트 | 동시성 보호 |
 |----------|-------------|
 | `ChannelManager` mutating 메서드 | `RLock` (read-modify-write 직렬화) |
+| `MultiChannelMonitor._monitor_threads` | `Lock` (worker map 추가·중지·재시작 직렬화) |
 | `StreamDownloader._proc` | `Lock` (set/clear/stop 보호) |
 | `CookieValidator` 캐시 | `Lock` |
 | `DiscordNotifier` rate-limit | `Lock` |
