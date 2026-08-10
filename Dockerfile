@@ -32,9 +32,12 @@ COPY channels.example.json ./channels.json
 # Expose port for web server (configurable via YT_WEB_PORT env, default 8011)
 EXPOSE 8011
 
-# Health check for yt-web container (wget available in Alpine by default)
+# Health check for yt-web container (wget available in Alpine by default).
+# BusyBox wget에서 'localhost'가 IPv6(::1)로 먼저 풀려 앱의 IPv4 bind에
+# connection refused가 나므로 127.0.0.1로 고정한다. docker-compose.yml도 같은 이유로
+# 127.0.0.1을 쓰며, Compose 없이 단독 실행할 때 이 지시어가 적용된다.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -q --spider http://localhost:${YT_WEB_PORT:-8011}/health || exit 1
+    CMD wget -q --spider http://127.0.0.1:${YT_WEB_PORT:-8011}/health || exit 1
 
 # Default command: run web server
 CMD ["uv", "run", "python", "main.py"]
