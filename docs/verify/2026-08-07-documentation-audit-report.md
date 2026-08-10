@@ -111,8 +111,14 @@ thread map을 다루며"라고 이 경계를 전제하고 있어, 표 사이에 
 
 ## 후속 조치
 
-| 항목 | 조치 |
-|------|------|
-| V14 | `tests/web/frontend/` 3개 파일의 기대값을 현재 콘솔에 맞춰 복구 |
-| V15, V16, V17 | `README.md`, `docs/ARCHITECTURE.md` 동기화 |
-| V18 + Dockerfile HEALTHCHECK | `.env.example` 보완, `Dockerfile`을 `127.0.0.1`로 정리 |
+| 항목 | 조치 | 상태 |
+|------|------|------|
+| V14 | `tests/web/frontend/` 3개 파일의 기대값을 현재 콘솔에 맞춰 복구 | `dc29c7e` — 291 passed |
+| V15, V16, V17 | `README.md`, `docs/ARCHITECTURE.md` 동기화 | `a6fb0ab` |
+| V18 + Dockerfile HEALTHCHECK | `.env.example` 보완, `Dockerfile`을 `127.0.0.1`로 정리 | `77fe762` — 단독 run healthy 확인 |
+| V14 재발 방지 | `web/` 변경이 frontend 테스트를 앞지르지 못하도록 pre-commit hook 추가 | 이 리포트와 함께 갱신 |
+
+V14는 기대값을 고치는 것만으로 닫히지 않는다. 테스트가 뒤처진 것이 원인이 아니라
+**뒤처져도 아무도 막지 않은 것**이 원인이기 때문이다. `frontend-regression` hook이
+`web/`·`tests/web/frontend/` stage 시 테스트를 실행해 같은 유입 경로를 차단한다.
+훅 자체는 라벨을 일부러 되돌려 실패(exit 1)를 재현하는 방식으로 검증했다.

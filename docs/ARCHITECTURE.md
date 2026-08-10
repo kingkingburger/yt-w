@@ -53,7 +53,8 @@ yt-w/
 │   ├── web/
 │   │   ├── routes/                      # FastAPI 라우트별 계약
 │   │   └── frontend/                    # 정적 UI와 Node 실행 회귀
-│   └── youtube/                         # 라이브 감지, cookie, 실제 응답 fixture
+│   ├── youtube/                         # 라이브 감지, cookie, 실제 응답 fixture
+│   └── test_logging.py                  # 일별 회전 로거
 ├── web/
 │   ├── index.html                       # Operator console markup
 │   ├── app.css                          # Operator console styles
@@ -229,6 +230,11 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다. P
 | 사용자 화면의 병합·분할 동작 | `tests/web/frontend/` | 별도 frontend test runner가 없으므로 Node로 실제 함수를 실행하고, markup-only 계약은 필요한 DOM selector만 확인한다. |
 
 Node는 production image의 필수 runtime이므로 frontend 테스트에서 찾을 수 없으면 skip하지 않고 실패한다. FastAPI route 테스트는 실제 cleanup daemon을 시작하지 않아 HTTP test harness와 background thread의 생명주기를 분리한다.
+
+`web/`이나 `tests/web/frontend/`가 stage되면 pre-commit의 `frontend-regression`
+hook이 이 테스트를 실행한다(약 3초). 콘솔 리디자인 4개 커밋이 `web/`만 바꾸는 동안
+6개가 조용히 깨진 적이 있어, 같은 유입 경로를 커밋 시점에 막는다. 이 경계는 CI가
+아니라 hook이 지키므로 `--no-verify`로 우회하면 보호도 함께 사라진다.
 
 테스트 실행:
 

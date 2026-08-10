@@ -297,8 +297,11 @@ downloads/
 uv run pytest                         # 전체 테스트 실행
 uv run pytest -v                      # 상세 출력
 uv run pytest tests/web/test_app.py   # 웹 콘솔/정적 자산 최소 검증
-uv run pre-commit run --all-files     # Ruff + 고아 .pyc 검사
+uv run pre-commit run --all-files     # Ruff + 고아 .pyc + frontend 회귀 검사
 ```
+
+`web/`이나 `tests/web/frontend/`를 stage하면 pre-commit이 frontend 회귀 테스트를
+자동으로 실행합니다 (약 3초).
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)
 - [변경 이력](docs/history.md)

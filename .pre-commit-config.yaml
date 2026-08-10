@@ -13,3 +13,10 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+
+      - id: frontend-regression
+        name: frontend regression tests (web/ 변경 시)
+        entry: uv run pytest tests/web/frontend -q
+        language: system
+        pass_filenames: false
+        files: ^(web/|tests/web/frontend/)
