@@ -58,6 +58,16 @@
           <span class="arrow">→</span>
         </button>
 
+        <button class="nav-btn" data-tab="youtube-upload" onclick="switchTab('youtube-upload')">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 16l-4-4-4 4" />
+            <line x1="12" y1="12" x2="12" y2="21" />
+            <path d="M20.4 17.5A5 5 0 0 0 18 8.2 7 7 0 0 0 4.3 10.7 4.5 4.5 0 0 0 5.5 19H7" />
+          </svg>
+          <span>YouTube 업로드</span>
+          <span class="arrow">→</span>
+        </button>
+
         <button class="nav-btn" data-tab="monitor" onclick="switchTab('monitor')">
           <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10" />
@@ -226,7 +236,126 @@
         </section>
       </main>
 
-      <!-- ╔══════════════════════════════ MONITOR ═════════════════════╗ -->
+      <!-- YouTube upload -->
+      <main id="panel-youtube-upload" class="panel">
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">YouTube 계정</div>
+              <span class="chip dim" id="youtube-oauth-chip">확인 중</span>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn primary sm" type="button" id="btn-youtube-connect"
+                      onclick="connectYouTubeAccount()" style="display:none">Google 계정 연결</button>
+              <button class="btn danger sm" type="button" id="btn-youtube-disconnect"
+                      onclick="disconnectYouTubeAccount()" style="display:none">연결 해제</button>
+              <button class="btn ghost sm" type="button" onclick="loadYouTubeOAuthStatus()">새로고침</button>
+            </div>
+          </div>
+          <div class="card-body youtube-auth-body">
+            <div id="youtube-oauth-message" role="status" aria-live="polite">YouTube 계정 연결 상태를 확인하고 있습니다.</div>
+            <div class="youtube-auth-note">단일 계정을 사용하며, 업로드된 영상은 항상 <strong>비공개</strong>로 저장됩니다.</div>
+          </div>
+        </section>
+
+        <div class="youtube-upload-grid">
+          <section class="card">
+            <div class="card-head">
+              <div class="card-title-group">
+                <span class="step-no">1</span>
+                <div class="card-title">서버 영상 고르기</div>
+                <div class="card-sub" id="youtube-upload-file-count">0개</div>
+              </div>
+              <div class="card-head-actions">
+                <button class="btn ghost sm" type="button" onclick="loadFiles(true)">새로고침</button>
+              </div>
+            </div>
+            <div class="file-list youtube-upload-file-list" id="youtube-upload-file-list"></div>
+          </section>
+
+          <section class="card youtube-upload-settings">
+            <div class="card-head">
+              <div class="card-title-group">
+                <span class="step-no" id="youtube-upload-step-no">2</span>
+                <div class="card-title">영상 정보</div>
+              </div>
+            </div>
+            <form id="youtube-upload-form" onsubmit="submitYouTubeUpload(event)">
+              <div class="card-body stack">
+                <div>
+                  <label class="label">고른 파일</label>
+                  <div class="youtube-selected-source mono" id="youtube-upload-selected-source">영상을 먼저 골라 주세요.</div>
+                </div>
+                <div>
+                  <label class="label" for="youtube-upload-title">제목</label>
+                  <input class="input" type="text" id="youtube-upload-title" maxlength="100"
+                         placeholder="YouTube에 보일 영상 제목" required
+                         oninput="renderYouTubeUploadReady()" />
+                </div>
+                <div>
+                  <label class="label" for="youtube-upload-description">설명</label>
+                  <textarea class="input youtube-upload-description" id="youtube-upload-description" maxlength="5000"
+                            placeholder="영상 설명을 입력하세요."></textarea>
+                </div>
+                <div>
+                  <label class="label" for="youtube-upload-tags">태그</label>
+                  <input class="input" type="text" id="youtube-upload-tags"
+                         placeholder="예: 라이브, 하이라이트, 게임" />
+                  <div class="youtube-field-note">쉼표로 구분해 입력합니다.</div>
+                </div>
+                <div class="field-row">
+                  <div>
+                    <label class="label" for="youtube-upload-category">카테고리</label>
+                    <select class="select" id="youtube-upload-category">
+                      <option value="22" selected>인물/블로그</option>
+                      <option value="24">엔터테인먼트</option>
+                      <option value="20">게임</option>
+                      <option value="10">음악</option>
+                      <option value="27">교육</option>
+                      <option value="28">과학/기술</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="label">아동용 콘텐츠</label>
+                    <label class="youtube-kids-control">
+                      <input type="checkbox" id="youtube-upload-made-for-kids" />
+                      <span>아동용으로 설정</span>
+                    </label>
+                  </div>
+                </div>
+                <div>
+                  <label class="label">공개 범위</label>
+                  <div class="youtube-privacy-fixed">
+                    <span class="chip warn no-dot">비공개 · 고정</span>
+                    <span>업로드 후 YouTube Studio에서 확인하고 필요할 때 공개하세요.</span>
+                  </div>
+                </div>
+                <div class="ready-bar" id="youtube-upload-ready">
+                  <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="9" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <span id="youtube-upload-ready-text">YouTube 계정을 연결해 주세요.</span>
+                </div>
+                <button class="btn primary lg block" type="submit" id="btn-youtube-upload" disabled>비공개로 업로드</button>
+              </div>
+            </form>
+          </section>
+        </div>
+
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">YouTube 업로드 작업</div>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn ghost sm" type="button" onclick="loadYouTubeUploadJobs()">새로고침</button>
+            </div>
+          </div>
+          <div id="youtube-upload-jobs" class="card-body tight"></div>
+        </section>
+      </main>
+
+      <!-- ╔══════════════════════════════ MONITOR ═════════════════║ -->
       <main id="panel-monitor" class="panel">
         <section class="monitor-hero" id="monitor-hero">
           <div class="monitor-hero-left">
