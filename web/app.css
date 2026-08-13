@@ -825,8 +825,8 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 }
 
 /* ──── Merge / split two-pane ─────────────────────────────────────── */
-/* 오른쪽 설정 카드가 늘 길다. 두 판의 위아래를 맞춰 붙이고, 남는 높이는
-   목록에 준다. 목록은 길수록 쓸모 있으니 버려지는 공간이 아니다. */
+/* 합치기 판은 양쪽 높이를 맞추고, 남는 높이는 목록에 준다. 목록은 길수록
+   쓸모 있으니 버려지는 공간이 아니다. */
 .merge-grid {
   display: grid;
   grid-template-columns: 1.05fr 1fr;
@@ -834,6 +834,8 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   gap: 12px;
 }
 .merge-grid > .card { display: flex; flex-direction: column; }
+/* 나누기 설정은 늘어나는 목록이 없으므로 내용 높이만 차지한다. */
+#panel-split > .merge-grid > .card:last-child { align-self: start; }
 @media (max-width: 1180px) { .merge-grid { grid-template-columns: 1fr; } }
 
 .file-list {

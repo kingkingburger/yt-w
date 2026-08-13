@@ -29,6 +29,16 @@ def test_split_tab_contains_search_and_upload_controls():
     assert "PC 영상 올리기" in html
 
 
+def test_split_settings_card_stays_content_sized():
+    css = Path("web/app.css").read_text(encoding="utf-8")
+
+    assert re.search(
+        r"#panel-split > \.merge-grid > \.card:last-child\s*"
+        r"\{\s*align-self: start;\s*\}",
+        css,
+    )
+
+
 def test_split_file_search_matches_name_and_path():
     node = shutil.which("node")
     if node is None:
