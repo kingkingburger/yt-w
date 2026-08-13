@@ -65,16 +65,23 @@ services:
       pot-provider:
         condition: service_healthy
     ports:
-      - "8088:${YT_WEB_PORT:-8011}"
+      - "127.0.0.1:8088:${YT_WEB_PORT:-8011}"
     environment:
       - YT_WEB_PORT=${YT_WEB_PORT}
+      - YT_WEB_HOST=0.0.0.0
       - YT_POT_PROVIDER_URL=http://pot-provider:4416
       - DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+      - YT_YOUTUBE_CLIENT_SECRETS_FILE=/run/secrets/youtube-client.json
+      - YT_YOUTUBE_TOKEN_FILE=/app/data/youtube-oauth/token.json
+      - YT_YOUTUBE_REDIRECT_URI=http://localhost:8088/api/youtube/oauth/callback
+      - YT_WEB_ALLOWED_HOSTS=localhost,127.0.0.1
     volumes:
       - ./channels.json:/app/channels.json
       - ./downloads:/app/downloads
       - ./logs:/app/logs
       - ${FIREFOX_PROFILE_PATH}:/app/firefox_profile:ro
+      - ./secrets:/run/secrets:ro
+      - youtube-oauth-data:/app/data/youtube-oauth
     command: ["uv", "run", "python", "main.py"]
     # BusyBox wget에서 'localhost'가 IPv6(::1)로 먼저 풀려 앱의 IPv4 bind에 connection refused 발생
     healthcheck:
@@ -83,3 +90,6 @@ services:
       timeout: 5s
       start_period: 10s
       retries: 3
+
+volumes:
+  youtube-oauth-data:

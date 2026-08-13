@@ -35,6 +35,13 @@ logs
 cookie.txt
 cookies.txt
 
+# YouTube OAuth credentials and tokens
+secrets/*
+!secrets/.gitkeep
+**/client_secret*.json
+**/youtube-client*.json
+**/token*.json
+
 # Claude Code
 .omc/
 # Claude Code

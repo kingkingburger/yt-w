@@ -2,7 +2,7 @@
 
 from typing import List, Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 
 class ChannelCreateRequest(BaseModel):
@@ -46,6 +46,43 @@ class SplitUploadResponse(BaseModel):
     path: str
     name: str
     size_bytes: int
+
+
+class YouTubeUploadRequest(BaseModel):
+    source: str = Field(min_length=1, max_length=1024)
+    title: str = Field(min_length=1, max_length=100)
+    description: str = Field(default="", max_length=5000)
+    tags: List[str] = Field(default_factory=list, max_length=30)
+    category_id: str = "22"
+    made_for_kids: bool = False
+
+    @field_validator("source", "title", "description")
+    @classmethod
+    def strip_text(cls, value: str) -> str:
+        return value.strip()
+
+    @field_validator("title")
+    @classmethod
+    def require_title(cls, value: str) -> str:
+        if not value:
+            raise ValueError("제목을 입력해 주세요")
+        return value
+
+    @field_validator("tags")
+    @classmethod
+    def normalize_tags(cls, tags: List[str]) -> List[str]:
+        normalized = list(dict.fromkeys(tag.strip() for tag in tags if tag.strip()))
+        if sum(len(tag) for tag in normalized) > 500:
+            raise ValueError("태그가 너무 깁니다")
+        return normalized
+
+    @field_validator("category_id")
+    @classmethod
+    def validate_category_id(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized.isdigit():
+            raise ValueError("category_id는 숫자여야 합니다")
+        return normalized
 
 
 class MonitorStatus(BaseModel):

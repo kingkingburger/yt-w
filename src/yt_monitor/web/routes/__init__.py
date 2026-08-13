@@ -8,6 +8,7 @@ from .monitor import register_monitor_routes
 from .split import register_split_routes
 from .system import register_system_routes
 from .video import register_video_routes
+from .youtube_upload import register_youtube_upload_routes
 
 __all__ = [
     "register_channel_routes",
@@ -18,4 +19,5 @@ __all__ = [
     "register_split_routes",
     "register_system_routes",
     "register_video_routes",
+    "register_youtube_upload_routes",
 ]

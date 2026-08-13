@@ -6,7 +6,13 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "bgutil-ytdlp-pot-provider>=1.3.1",
+    # Python 3.15 alpha rejects newer cp315 charset-normalizer wheels built
+    # against a later ABI; 3.4.2 installs the portable implementation here.
+    "charset-normalizer==3.4.2",
     "fastapi>=0.141.1",
+    "google-api-python-client>=2.185.0",
+    "google-auth-httplib2>=0.3.0",
+    "google-auth-oauthlib>=1.2.3",
     "python-multipart>=0.0.32",
     "uvicorn[standard]>=0.52.1",
     "yt-dlp>=2026.7.4",

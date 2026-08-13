@@ -13,7 +13,7 @@ def main() -> None:
     except ValueError:
         raise SystemExit(f"Invalid YT_WEB_PORT: {raw_port!r}")
 
-    host = "0.0.0.0"
+    host = os.environ.get("YT_WEB_HOST") or "127.0.0.1"
     channels_file = "channels.json"
 
     print("=" * 60)
