@@ -1,47 +1,49 @@
 /* yt-w operator console styles.
 
-   은유는 방송 장비 랙이다. 왼쪽에 짙게 도장한 패널(사이드바·모니터 히어로),
-   오른쪽에 회색 작업면을 깔고 그 위에 흰 작업 시트(카드)를 올린다.
-   램프색은 어두운 패널 위에서만 빛나고, 흰 시트 위에서는 잉크로만 읽힌다.
-   이 규칙 하나가 "지금 봐야 할 곳"을 화면마다 한 군데로 좁힌다. */
+   방송 장비 랙의 정보 구조에 인디 스튜디오 포스터의 색과 인쇄 질감을 섞는다.
+   짙은 사이드바는 장비 패널, 연보라 작업면은 편집 데스크, 크림색 카드는
+   종이 작업표다. 전기 보라는 선택, 애시드 라임은 실행, 핫 핑크는 녹화와
+   경고에만 써서 개성은 올리되 상태 의미는 흐리지 않는다. */
 :root {
-  /* 작업면과 시트. 배경(회색)과 카드(흰색)를 갈라놔야 카드가 판으로 읽힌다. */
-  --bench:    #dde1e4;
-  --bench-2:  #d3d8dc;
-  --paper:    #ffffff;
-  --paper-2:  #f4f6f7;
-  --paper-3:  #e9edef;
+  /* 작업면과 시트. 차가운 보라와 따뜻한 종이를 나눠 층위를 만든다. */
+  --bench:    #ddd7ff;
+  --bench-2:  #cbc2fb;
+  --paper:    #fffdf7;
+  --paper-2:  #f4f0ff;
+  --paper-3:  #e9e3f3;
 
-  --ink:      #14181c;
-  --ink-2:    #3c454d;
-  --ink-3:    #68727b;
+  --ink:      #18141f;
+  --ink-2:    #484052;
+  --ink-3:    #655b70;
 
-  --rule:     #dce2e6;
-  --rule-2:   #b8c2c9;
-  /* 카드 윤곽은 더 연하게. 형태는 테두리가 아니라 그림자가 만든다. */
-  --card-line: #e4e9ec;
+  --rule:      #ded6e8;
+  --rule-2:    #a99db7;
+  --card-line: #c9bfd3;
 
-  /* 실행·선택은 딥 페트롤 하나로만. 흰 시트 위 7.3:1이라 글자로도 쓸 수 있다. */
-  --action:      #0b5b63;
-  --action-2:    #0e7079;
-  --action-3:    #08464c;
-  --action-tint: #e2eff0;
-  --action-line: #a9cdd0;
+  /* 전기 보라는 선택과 포커스, 애시드 라임은 실행 버튼에만 쓴다. */
+  --action:      #6847ed;
+  --action-2:    #5e3ee6;
+  --action-3:    #4326b9;
+  --action-tint: #eee9ff;
+  --action-line: #c4b7ff;
+  --acid:        #caff58;
+  --acid-ink:    #1d260c;
+  --hot:         #d91e63;
 
   /* 랙 패널. 사이드바·모니터 히어로·타임라인 트랙이 같은 재질을 공유한다. */
-  --rack:      #1b2429;
-  --rack-2:    #232e34;
-  --rack-3:    #2f3c43;
-  --rack-line: #35434b;
-  --rack-ink:    #e6ebee;
-  --rack-ink-2:  #9aa7af;
-  --rack-ink-3:  #78858d;
+  --rack:      #15111e;
+  --rack-2:    #211a30;
+  --rack-3:    #302442;
+  --rack-line: #4b3a61;
+  --rack-ink:    #f7f2ff;
+  --rack-ink-2:  #b9aec6;
+  --rack-ink-3:  #8d8099;
 
   /* 램프. 빨강은 녹화·실패에만 쓴다. 삭제 버튼은 평상시 중립으로 둔다. */
-  --rec:        #d1332a;
-  --rec-glow:   rgba(209,51,42,0.55);
-  --rec-tint:   #fdeceb;
-  --rec-line:   #f0b6b2;
+  --rec:        #e72d61;
+  --rec-glow:   rgba(217,30,99,0.5);
+  --rec-tint:   #ffe8f0;
+  --rec-line:   #f4abc2;
   --ok:         #14724a;
   --ok-glow:    rgba(52,199,133,0.5);
   --ok-tint:    #e4f4ec;
@@ -60,9 +62,9 @@
   --radius:    9px;
   --radius-sm: 6px;
 
-  --shadow-sm: 0 1px 2px rgba(20,32,40,0.05), 0 5px 14px -8px rgba(20,32,40,0.16);
-  --shadow:    0 2px 6px rgba(20,32,40,0.07), 0 14px 30px -14px rgba(20,32,40,0.24);
-  --shadow-lg: 0 12px 28px -12px rgba(20,32,40,0.3), 0 40px 70px -40px rgba(20,32,40,0.45);
+  --shadow-sm: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1);
+  --shadow:    0 8px 22px -15px rgba(36,24,54,0.42), 6px 7px 0 rgba(104,71,237,0.12);
+  --shadow-lg: 0 18px 36px -18px rgba(24,20,31,0.46), 9px 10px 0 rgba(217,30,99,0.16);
 
   --ease:      cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
@@ -83,7 +85,14 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
-  background: var(--bench);
+  background-color: var(--bench);
+  background-image:
+    radial-gradient(circle at 86% -8%, rgba(202,255,88,0.62), transparent 30rem),
+    radial-gradient(circle at 4% 105%, rgba(217,30,99,0.22), transparent 34rem),
+    linear-gradient(rgba(41,27,65,0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(41,27,65,0.07) 1px, transparent 1px);
+  background-size: auto, auto, 24px 24px, 24px 24px;
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: 15px;
@@ -97,11 +106,11 @@ html, body {
   word-break: keep-all;
 }
 
-::selection { background: var(--action); color: #fff; }
+::selection { background: var(--acid); color: var(--acid-ink); }
 
 :focus-visible {
-  outline: 2px solid var(--action);
-  outline-offset: 2px;
+  outline: 3px solid var(--action);
+  outline-offset: 3px;
   border-radius: 2px;
 }
 
@@ -114,7 +123,7 @@ html, body {
   background-clip: content-box;
   transition: background-color var(--t-1);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--ink-3); background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--action); background-clip: content-box; }
 .sidebar ::-webkit-scrollbar-thumb { background: var(--rack-3); background-clip: content-box; }
 
 a {
@@ -148,7 +157,10 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 }
 
 .sidebar {
-  background: var(--rack);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(123,92,255,0.26), transparent 260px),
+    linear-gradient(180deg, rgba(255,255,255,0.025), transparent 45%),
+    var(--rack);
   color: var(--rack-ink);
   padding: 18px 12px 14px;
   display: flex;
@@ -159,17 +171,23 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   height: 100vh;
   overflow-y: auto;
   z-index: 2;
+  border-top: 4px solid var(--acid);
+  border-right: 1px solid var(--rack-line);
+  box-shadow: 8px 0 0 rgba(24,20,31,0.08);
 }
 
-.brand { padding: 0 8px; }
+.brand {
+  padding: 4px 8px 18px;
+  border-bottom: 1px solid var(--rack-line);
+}
 .brand-mark {
   display: inline-flex;
   align-items: baseline;
   gap: 1px;
   font-family: var(--font-panel);
   font-weight: 700;
-  font-size: 27px;
-  letter-spacing: 0.01em;
+  font-size: 31px;
+  letter-spacing: -0.04em;
   text-transform: uppercase;
   color: var(--rack-ink);
   line-height: 1;
@@ -179,20 +197,22 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   width: auto; height: auto;
   border-radius: 0;
   background: none;
-  color: var(--rec);
+  color: var(--hot);
+  text-shadow: 2px 0 0 rgba(202,255,88,0.75);
   animation: none;
 }
 .brand-tag {
   margin-top: 9px;
   color: var(--rack-ink-2);
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.5;
+  letter-spacing: 0.025em;
 }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-label {
   padding: 0 12px;
-  color: var(--rack-ink-3);
+  color: var(--acid);
   margin-bottom: 8px;
 }
 .nav-btn {
@@ -202,7 +222,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   padding: 8px 11px;
   background: transparent;
   color: var(--rack-ink-2);
-  border: 0;
+  border: 1px solid transparent;
   border-radius: var(--radius);
   text-align: left;
   font-family: inherit;
@@ -211,9 +231,17 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   cursor: pointer;
   width: 100%;
   position: relative;
-  transition: background var(--t-2) var(--ease-soft), color var(--t-2) var(--ease-soft);
+  transition: background var(--t-2) var(--ease-soft),
+              border-color var(--t-2) var(--ease-soft),
+              color var(--t-2) var(--ease-soft),
+              box-shadow var(--t-2) var(--ease),
+              transform var(--t-2) var(--ease);
 }
-.nav-btn:hover { background: var(--rack-2); color: var(--rack-ink); }
+.nav-btn:hover {
+  background: var(--rack-2);
+  border-color: var(--rack-line);
+  color: var(--rack-ink);
+}
 .nav-btn .ico {
   width: 17px; height: 17px;
   flex-shrink: 0;
@@ -229,27 +257,33 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .nav-btn::before {
   content: '';
   position: absolute;
-  left: -12px;
+  left: -4px;
   top: 50%;
   width: 3px;
   height: 0;
-  background: var(--rec);
+  background: var(--acid);
   transform: translateY(-50%);
   transition: height var(--t-2) var(--ease);
 }
-.nav-btn.active::before { height: 100%; }
+.nav-btn.active::before { height: calc(100% - 8px); }
 .nav-btn.active {
-  background: var(--rack-3);
+  background: var(--action);
+  border-color: var(--action);
   color: #fff;
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 4px 4px 0 var(--acid);
+  transform: translate(-1px, -1px);
 }
-.nav-btn.active .arrow { opacity: 1; color: var(--rack-ink-2); }
+.nav-btn.active .arrow { opacity: 1; color: #fff; }
 
 .sidebar-spacer { flex: 1; min-height: 16px; }
 
 .syspanel {
-  border-top: 1px solid var(--rack-line);
-  padding-top: 12px;
+  border: 1px solid var(--rack-line);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  background: rgba(33,26,48,0.72);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 4px 4px 0 rgba(0,0,0,0.14);
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -258,7 +292,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  color: var(--rack-ink-3);
+  color: var(--acid);
 }
 .syspanel-title .clock {
   font-family: var(--font-mono);
@@ -329,7 +363,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 /* 왼쪽에 사이드바가 있어 콘텐츠까지 왼쪽으로 몰리면 화면이 한쪽으로 기운다.
    폭을 넉넉히 주고, 남으면 가운데로 모은다. 세로로는 화면을 끝까지 쓴다. */
 .content {
-  padding: 18px 22px;
+  padding: 22px 26px 28px;
   max-width: 1600px;
   width: 100%;
   min-width: 0;
@@ -373,8 +407,11 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 
 /* ──── Cards ──────────────────────────────────────────────────────── */
 .card {
-  background: var(--paper);
-  border: 1px solid var(--card-line);
+  background:
+    linear-gradient(145deg, rgba(255,255,255,0.68), transparent 48%),
+    var(--paper);
+  border: 1px solid rgba(24,20,31,0.32);
+  border-top: 3px solid var(--ink);
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
@@ -388,15 +425,16 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   /* 헤더에 컨트롤이 서너 개씩 붙는 카드가 있다. 줄바꿈을 허용하지 않으면
      좁은 폭에서 제목이 눌려 한 글자씩 세로로 쪼개진다. */
   flex-wrap: wrap;
-  /* 헤더에 회색 띠를 깔면 카드마다 표 머리글처럼 칸이 져서 화면이 뻣뻣해진다.
-     시트는 한 장으로 두고 연한 선으로만 나눈다. */
+  /* 연보라 잉크가 아주 옅게 번지는 헤더로 종이 작업표의 시작점을 잡는다. */
   border-bottom: 1px solid var(--card-line);
+  background: linear-gradient(90deg, var(--paper-2), rgba(255,253,247,0.7));
 }
 .card-title-group { min-width: 0; display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .card-title {
-  font-size: 15px;
+  font-family: var(--font-panel);
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: -0.005em;
+  letter-spacing: 0.005em;
   color: var(--ink);
 }
 .card-sub {
@@ -417,15 +455,21 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   justify-content: center;
   width: 20px; height: 20px;
   flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--ink);
+  border-radius: var(--radius-sm);
+  background: var(--action);
   color: #fff;
   font-family: var(--font-panel);
   font-size: 12px;
   font-weight: 600;
   align-self: center;
+  border: 1px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--acid);
 }
-.step-no.done { background: var(--action); }
+.step-no.done {
+  background: var(--acid);
+  color: var(--acid-ink);
+  box-shadow: 2px 2px 0 var(--action);
+}
 
 /* ──── Hero stats ─────────────────────────────────────────────────── */
 /* 카드 세 장으로 따로 세웠더니 히어로 문구와 같은 말을 반복하면서 한 줄을
@@ -457,7 +501,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .btn {
   background: var(--paper);
   color: var(--ink-2);
-  border: 1px solid var(--rule-2);
+  border: 1px solid rgba(24,20,31,0.48);
   padding: 7px 13px;
   border-radius: var(--radius);
   font-family: inherit;
@@ -471,35 +515,46 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   transition: background var(--t-1) var(--ease-soft),
               border-color var(--t-1) var(--ease-soft),
               color var(--t-1) var(--ease-soft),
-              box-shadow var(--t-1) var(--ease-soft);
+              box-shadow var(--t-1) var(--ease-soft),
+              transform var(--t-1) var(--ease);
 }
 .btn:hover:not(:disabled) {
   background: var(--paper-2);
-  border-color: var(--ink-3);
+  border-color: var(--ink);
   color: var(--ink);
+  box-shadow: 3px 3px 0 rgba(104,71,237,0.2);
 }
-.btn:active:not(:disabled) { background: var(--paper-3); }
+.btn:active:not(:disabled) {
+  background: var(--paper-3);
+  box-shadow: 1px 1px 0 rgba(104,71,237,0.16);
+  transform: translate(1px, 1px);
+}
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 .btn.primary {
-  background: var(--action);
-  color: #fff;
-  border-color: var(--action);
+  background: var(--acid);
+  color: var(--acid-ink);
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--action);
 }
 .btn.primary:hover:not(:disabled) {
-  background: var(--action-2);
-  border-color: var(--action-2);
-  color: #fff;
-  box-shadow: 0 2px 8px -2px rgba(11,91,99,0.45);
+  background: #d6ff7e;
+  border-color: var(--ink);
+  color: var(--acid-ink);
+  box-shadow: 5px 5px 0 var(--action);
 }
-.btn.primary:active:not(:disabled) { background: var(--action-3); }
-/* 조건이 안 맞아 못 누르는 상태는 회색으로 완전히 물러난다. 앰버로 빛나는
+.btn.primary:active:not(:disabled) {
+  background: #b8ed43;
+  box-shadow: 1px 1px 0 var(--action-3);
+}
+/* 조건이 안 맞아 못 누르는 상태는 회색으로 완전히 물러난다. 강한 색으로 빛나는
    버튼을 눌러야만 "안 된다"를 알게 되는 게 이 화면의 가장 큰 혼란이었다. */
 .btn.primary:disabled {
   background: var(--paper-3);
   color: var(--ink-3);
   border-color: var(--rule);
   opacity: 1;
+  box-shadow: none;
 }
 
 .btn.ghost {
@@ -543,9 +598,9 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 
 /* ──── Inputs ─────────────────────────────────────────────────────── */
 .input, .select {
-  background: var(--paper);
+  background: rgba(255,253,247,0.92);
   color: var(--ink);
-  border: 1px solid var(--rule-2);
+  border: 1px solid rgba(24,20,31,0.5);
   padding: 8px 11px;
   border-radius: var(--radius);
   font-family: inherit;
@@ -557,7 +612,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .input:focus, .select:focus {
   outline: none;
   border-color: var(--action);
-  box-shadow: 0 0 0 3px var(--action-tint);
+  box-shadow: 0 0 0 3px var(--action-tint), 3px 3px 0 var(--action);
 }
 .input::placeholder { color: var(--ink-3); }
 .input.url-hero {
@@ -587,7 +642,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 /* ──── Toggle group ───────────────────────────────────────────────── */
 .toggle-group {
   display: inline-flex;
-  border: 1px solid var(--rule-2);
+  border: 1px solid rgba(24,20,31,0.5);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--paper);
@@ -610,6 +665,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   background: var(--action);
   color: #fff;
   font-weight: 600;
+  box-shadow: inset 0 -3px 0 rgba(24,20,31,0.22);
 }
 .seq-view-toggle button { padding: 5px 11px; font-size: 12.5px; }
 
@@ -624,7 +680,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   padding: 8px 14px;
   color: var(--ink-3);
   border-bottom: 1px solid var(--rule);
-  background: var(--paper-2);
+  background: linear-gradient(90deg, var(--paper-2), rgba(202,255,88,0.12));
 }
 .table td {
   padding: 10px 14px;
@@ -648,8 +704,8 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   width: 34px; height: 34px;
   margin: 0 auto 10px;
   border-radius: var(--radius);
-  background: var(--paper-2);
-  border: 1px dashed var(--rule-2);
+  background: rgba(202,255,88,0.25);
+  border: 1px dashed var(--ink-3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -680,7 +736,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 11.5px;
   font-weight: 600;
   border-radius: 999px;
-  border: 1px solid var(--rule-2);
+  border: 1px solid rgba(24,20,31,0.32);
   background: var(--paper);
   color: var(--ink-2);
   white-space: nowrap;
@@ -705,7 +761,12 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 /* ──── Hero monitor panel ─────────────────────────────────────────── */
 /* 히어로만 랙 패널 재질이다. 탤리 램프는 어두운 면 위에서만 진짜로 빛난다. */
 .monitor-hero {
-  background: var(--rack);
+  background:
+    radial-gradient(circle at 90% 0%, rgba(217,30,99,0.22), transparent 320px),
+    linear-gradient(135deg, rgba(123,92,255,0.22), transparent 48%),
+    var(--rack);
+  border: 1px solid var(--rack-line);
+  border-top: 3px solid var(--acid);
   border-radius: var(--radius-lg);
   padding: 16px 20px;
   display: flex;
@@ -717,17 +778,22 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   overflow: hidden;
   color: var(--rack-ink);
   flex-shrink: 0;
+  box-shadow: 6px 7px 0 rgba(104,71,237,0.18);
 }
 .monitor-hero::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(420px 220px at 100% 0%, rgba(209,51,42,0.16), transparent 65%);
+  background:
+    repeating-linear-gradient(112deg, transparent 0 22px, rgba(255,255,255,0.025) 22px 23px),
+    radial-gradient(420px 220px at 100% 0%, rgba(217,30,99,0.18), transparent 65%);
   pointer-events: none;
   transition: background var(--t-3) var(--ease-soft);
 }
 .monitor-hero.running::before {
-  background: radial-gradient(420px 220px at 100% 0%, rgba(52,199,133,0.16), transparent 65%);
+  background:
+    repeating-linear-gradient(112deg, transparent 0 22px, rgba(255,255,255,0.025) 22px 23px),
+    radial-gradient(420px 220px at 100% 0%, rgba(52,199,133,0.18), transparent 65%);
 }
 .monitor-hero-left { display: flex; align-items: center; gap: 16px; position: relative; }
 
@@ -771,16 +837,18 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .monitor-state-text em { font-style: normal; color: #6ddba6; }
 .monitor-state-sub { color: var(--rack-ink-2); font-size: 13px; margin-top: 4px; }
 .monitor-hero-right { display: flex; align-items: center; gap: 22px; position: relative; }
-/* 어두운 패널 위의 버튼은 패널 쪽 팔레트를 따른다. */
+/* 상태 새로고침은 실행 작업이 아니므로 랙 패널의 중립 컨트롤로 둔다. */
 .monitor-hero .btn {
   background: var(--rack-3);
   border-color: var(--rack-line);
   color: var(--rack-ink);
+  box-shadow: none;
 }
 .monitor-hero .btn:hover:not(:disabled) {
-  background: #3b4a52;
-  border-color: #4a5a63;
+  background: #3b2e50;
+  border-color: #5d4775;
   color: #fff;
+  box-shadow: 3px 3px 0 rgba(202,255,88,0.25);
 }
 
 /* ──── Channel rows ───────────────────────────────────────────────── */
@@ -798,9 +866,9 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .channel-avatar {
   width: 36px; height: 36px;
   border-radius: var(--radius);
-  background: var(--action-tint);
-  border: 1px solid var(--action-line);
-  color: var(--action);
+  background: var(--acid);
+  border: 1px solid var(--ink);
+  color: var(--acid-ink);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -808,6 +876,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-weight: 600;
   font-size: 16px;
   flex-shrink: 0;
+  box-shadow: 2px 2px 0 var(--action);
 }
 .channel-info { flex: 1; min-width: 0; }
 .channel-name {
@@ -868,7 +937,10 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   transition: background var(--t-1) var(--ease-soft), opacity var(--t-2) var(--ease-soft);
 }
 .file-group:last-child { border-bottom: 0; }
-.file-group.selected { background: var(--action-tint); }
+.file-group.selected {
+  background: var(--action-tint);
+  box-shadow: inset 4px 0 0 var(--action);
+}
 .file-group.dragging { opacity: 0.5; }
 .file-group-head {
   display: grid;
@@ -879,7 +951,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   cursor: pointer;
   transition: background var(--t-1) var(--ease-soft);
 }
-.file-group-head:hover { background: rgba(20,24,28,0.035); }
+.file-group-head:hover { background: rgba(104,71,237,0.065); }
 .selection-control {
   position: relative;
   display: inline-grid;
@@ -903,7 +975,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   position: relative;
   width: 17px;
   height: 17px;
-  border: 1.5px solid var(--rule-2);
+  border: 1.5px solid var(--ink-3);
   border-radius: var(--radius-sm);
   background: var(--paper);
   transition: border-color var(--t-1) var(--ease-soft), background var(--t-1) var(--ease-soft);
@@ -919,7 +991,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .selection-control:hover .selection-mark { border-color: var(--action); }
 .selection-control input:focus-visible + .selection-mark {
   border-color: var(--action);
-  box-shadow: 0 0 0 3px var(--action-tint);
+  box-shadow: 0 0 0 3px var(--action-tint), 2px 2px 0 var(--action);
 }
 .selection-control input:checked + .selection-mark,
 .selection-control input:indeterminate + .selection-mark {
@@ -1099,8 +1171,8 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .strip-block {
   min-width: 10px;
   border-radius: var(--radius-sm);
-  background: var(--action-2);
-  color: #dff2f3;
+  background: var(--action);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1112,10 +1184,10 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   cursor: pointer;
   transition: background var(--t-1) var(--ease-soft), color var(--t-1) var(--ease-soft);
 }
-/* 인접 클립은 밝기만 교차시킨다. 색을 바꾸면 다시 의미 없는 색 코딩이 된다. */
-.strip-block:nth-child(even) { background: #12656d; }
-/* 가리킨 막대는 밝은 페트롤로 든다. 초록은 완료 상태 전용이라 쓰지 않는다. */
-.strip-block:hover, .strip-block.hot { background: #2fa0a9; color: #04262a; }
+/* 인접 클립은 같은 보라의 밝기만 교차시켜 경계만 드러낸다. */
+.strip-block:nth-child(even) { background: var(--action-3); }
+/* 가리킨 막대는 실행색으로 들어 목록과의 연결을 즉시 보여준다. */
+.strip-block:hover, .strip-block.hot { background: var(--acid); color: var(--acid-ink); }
 .strip-note {
   margin-top: 6px;
   color: var(--ink-3);
@@ -1134,7 +1206,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .seq-list {
   min-height: 72px;
   overflow-y: auto;
-  border: 1px dashed var(--rule-2);
+  border: 1px dashed var(--ink-3);
   border-radius: var(--radius);
   background: var(--paper-2);
   padding: 6px;
@@ -1247,15 +1319,17 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   padding: 8px 11px;
   border-radius: var(--radius);
   background: var(--paper-2);
-  border: 1px solid var(--rule);
+  border: 1px dashed var(--rule-2);
   font-size: 12.5px;
   color: var(--ink-3);
   line-height: 1.5;
 }
 .ready-bar.go {
-  background: var(--action-tint);
-  border-color: var(--action-line);
-  color: var(--action);
+  background: rgba(202,255,88,0.28);
+  border-color: var(--ink);
+  border-style: solid;
+  color: var(--acid-ink);
+  box-shadow: 3px 3px 0 var(--action);
 }
 .ready-bar .ico { width: 15px; height: 15px; flex-shrink: 0; }
 .ready-bar strong {
@@ -1264,7 +1338,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-family: var(--font-mono);
   overflow-wrap: anywhere;
 }
-.ready-bar.go strong { color: var(--action); }
+.ready-bar.go strong { color: var(--acid-ink); }
 
 /* ──── Split ──────────────────────────────────────────────────────── */
 .split-file-row {
@@ -1441,7 +1515,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border: 1px solid var(--rule-2);
+  border: 1px solid rgba(24,20,31,0.44);
   border-radius: var(--radius);
   color: var(--ink-2);
   cursor: pointer;
@@ -1462,6 +1536,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   color: var(--ink-2);
   font-size: 12px;
   line-height: 1.5;
+  box-shadow: 3px 3px 0 rgba(143,84,6,0.12);
 }
 .job-row.youtube-upload-job-row {
   grid-template-columns: 78px minmax(0, 1fr) 132px 92px auto;
@@ -1489,7 +1564,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .job-row > div { min-width: 0; overflow-wrap: anywhere; }
 .job-row:last-child { border-bottom: 0; }
 .job-row.head {
-  background: var(--paper-2);
+  background: linear-gradient(90deg, var(--paper-2), rgba(202,255,88,0.12));
   color: var(--ink-3);
 }
 .job-id {
@@ -1522,7 +1597,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .job-progress > div {
   height: 100%;
   border-radius: inherit;
-  background: var(--action);
+  background: linear-gradient(90deg, var(--action), var(--action-2));
   transition: width var(--t-2) var(--ease-soft);
 }
 .job-progress.indeterminate > div {
@@ -1551,6 +1626,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   border-radius: var(--radius);
   border: 1px solid var(--rule);
   background: var(--paper-2);
+  box-shadow: 4px 4px 0 var(--action-tint);
 }
 .dl-info-title {
   font-size: 19px;
@@ -1627,6 +1703,8 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 @keyframes veil { from { opacity: 0; } to { opacity: 1; } }
 .modal {
   background: var(--paper);
+  border: 1px solid var(--ink);
+  border-top: 4px solid var(--acid);
   border-radius: var(--radius-lg);
   width: 100%;
   max-width: 460px;
@@ -1666,7 +1744,8 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   right: 24px;
   background: var(--rack);
   color: var(--rack-ink);
-  border-left: 3px solid var(--action-2);
+  border: 1px solid var(--rack-line);
+  border-left: 4px solid var(--acid);
   padding: 13px 18px;
   border-radius: var(--radius);
   min-width: 280px;
@@ -1680,7 +1759,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 }
 .notif.active { transform: translateY(0); opacity: 1; pointer-events: auto; }
 .notif.ok { border-left-color: #34c785; }
-.notif.err { border-left-color: var(--rec); }
+.notif.err { border-left-color: var(--hot); }
 .notif-title {
   color: var(--rack-ink-2);
   margin-bottom: 4px;
@@ -1693,7 +1772,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .footer-note {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid var(--rule);
+  border-top: 1px solid rgba(24,20,31,0.22);
   color: var(--ink-3);
   font-size: 12px;
   display: flex;
@@ -1766,6 +1845,13 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   .job-row.youtube-upload-job-row { grid-template-columns: minmax(0, 1fr); }
   .job-row.head { display: none; }
   .job-row .actions { justify-content: flex-start; }
+}
+
+/* 실제 hover가 있는 포인터에서만 요소가 살짝 떠오른다. 터치의 sticky hover는
+   위치를 움직이지 않아 작은 화면에서 레이아웃이 흔들리지 않는다. */
+@media (hover: hover) and (pointer: fine) {
+  .nav-btn:hover:not(.active) { transform: translateX(2px); }
+  .btn:hover:not(:disabled) { transform: translate(-1px, -1px); }
 }
 
 /* 모션 민감 사용자에게는 위치 변화만 없애고 색 전환은 남긴다. */
