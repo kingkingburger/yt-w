@@ -89,6 +89,7 @@ def test_split_file_list_reuses_merge_part_group_ui():
 def test_file_selection_controls_use_custom_visual_marks():
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     css = Path("web/app.css").read_text(encoding="utf-8")
+    selection_styles = css[css.index(".selection-mark {") : css.index(".tree-toggle {")]
 
     assert app_js.count('class="selection-control selection-checkbox"') == 2
     assert 'class="selection-control selection-radio"' in app_js
@@ -96,9 +97,10 @@ def test_file_selection_controls_use_custom_visual_marks():
     assert ".selection-control input:focus-visible + .selection-mark" in css
     assert ".selection-checkbox input:indeterminate + .selection-mark::after" in css
     assert ".selection-radio input:checked + .selection-mark::after" in css
-    assert "--studio-check-shape: polygon(" in css
-    assert "clip-path: var(--studio-check-shape);" in css
-    assert "box-shadow: 3px 3px 0 var(--acid);" in css
+    assert "border-width: 0 2px 2px 0;" in selection_styles
+    assert "box-shadow: inset 0 -2px 0 rgba(24,20,31,0.18);" in selection_styles
+    assert "clip-path:" not in selection_styles
+    assert "rotate(-" not in selection_styles
 
 
 def test_split_frontend_javascript_is_valid():
