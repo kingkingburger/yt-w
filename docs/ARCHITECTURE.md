@@ -264,17 +264,19 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다. P
 
 `web/index.html`은 의미와 입력 요소, `web/app.js`는 화면 상태, `web/app.css`는 시각
 표현을 소유한다. 콘솔은 방송 장비 랙의 정보 구조에 인디 스튜디오 포스터의 색과
-오프셋 인쇄 질감을 결합한다. `--action`은 선택·포커스, `--acid`는 실행과 체크의
-강조, `--hot`은 녹화·경고에만 사용해 장식 색이 상태 의미를 덮지 않게 한다.
+오프셋 인쇄 질감을 결합한다. `--action`은 선택·포커스, `--acid`는 실행,
+`--hot`은 녹화·경고에만 사용해 장식 색이 상태 의미를 덮지 않게 한다.
 
 선택 컨트롤은 다음 계약을 지킨다.
 
 - `.selection-control` 안의 실제 checkbox/radio `input`을 투명하게 남겨 클릭, 키보드,
   `checked`/`indeterminate`, 접근성 트리 동작을 브라우저 표준에 맡긴다.
-- 시각 표시는 형제 `.selection-mark`가 담당한다. 체크박스는
-  `--studio-check-shape`의 굵은 실루엣과 비대칭 외곽, 라디오는 원형 마크를 사용한다.
+- 시각 표시는 형제 `.selection-mark`가 담당한다. 체크박스는 `--action` 채움과
+  고대비 체크, 라디오는 같은 색 역할의 원형 마크를 사용하고 회전이나 polygon으로
+  작은 컨트롤의 판독성을 해치지 않는다.
 - 병합 파일·그룹 선택, YouTube 업로드 source, 아동용 설정이 같은 컨트롤 계열을
-  공유한다. 완료 화면의 큰 체크는 장식 요소이므로 `aria-hidden="true"`로 둔다.
+  공유한다. 완료 화면과 source 소진 상태는 선택색 대신 `--ok-*` 성공색을 사용하며,
+  장식 체크는 `aria-hidden="true"`로 둔다.
 - `:focus-visible`은 선택 여부와 관계없이 외곽 포커스 링을 남기고,
   `prefers-reduced-motion: reduce`에서는 체크를 포함한 위치 애니메이션을 사실상 끈다.
 
