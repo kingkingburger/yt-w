@@ -354,7 +354,7 @@ function renderFileList() {
     state.sourceGroups = [];
     host.innerHTML = `
       <div class="empty">
-        <div class="empty-icon">✓</div>
+        <div class="empty-icon empty-icon-check" aria-hidden="true"></div>
         <div class="empty-title">고를 영상이 더 없어요</div>
         <div class="empty-sub">받아둔 영상을 모두 오른쪽 순서에 넣었습니다</div>
       </div>`;

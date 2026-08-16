@@ -96,6 +96,9 @@ def test_file_selection_controls_use_custom_visual_marks():
     assert ".selection-control input:focus-visible + .selection-mark" in css
     assert ".selection-checkbox input:indeterminate + .selection-mark::after" in css
     assert ".selection-radio input:checked + .selection-mark::after" in css
+    assert "--studio-check-shape: polygon(" in css
+    assert "clip-path: var(--studio-check-shape);" in css
+    assert "box-shadow: 3px 3px 0 var(--acid);" in css
 
 
 def test_split_frontend_javascript_is_valid():

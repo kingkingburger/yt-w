@@ -2,7 +2,7 @@
 
    방송 장비 랙의 정보 구조에 인디 스튜디오 포스터의 색과 인쇄 질감을 섞는다.
    짙은 사이드바는 장비 패널, 연보라 작업면은 편집 데스크, 크림색 카드는
-   종이 작업표다. 전기 보라는 선택, 애시드 라임은 실행, 핫 핑크는 녹화와
+   종이 작업표다. 전기 보라는 선택, 애시드 라임은 실행과 체크, 핫 핑크는 녹화와
    경고에만 써서 개성은 올리되 상태 의미는 흐리지 않는다. */
 :root {
   /* 작업면과 시트. 차가운 보라와 따뜻한 종이를 나눠 층위를 만든다. */
@@ -20,7 +20,7 @@
   --rule-2:    #a99db7;
   --card-line: #c9bfd3;
 
-  /* 전기 보라는 선택과 포커스, 애시드 라임은 실행 버튼에만 쓴다. */
+  /* 전기 보라는 선택과 포커스, 애시드 라임은 실행 버튼과 체크에 쓴다. */
   --action:      #6847ed;
   --action-2:    #5e3ee6;
   --action-3:    #4326b9;
@@ -61,6 +61,9 @@
   --radius-lg: 14px;
   --radius:    9px;
   --radius-sm: 6px;
+
+  /* 체크는 얇은 OS 기본 선 대신 포스터처럼 굵고 살짝 비틀린 실루엣을 쓴다. */
+  --studio-check-shape: polygon(0 45%, 18% 27%, 42% 51%, 81% 4%, 100% 20%, 43% 100%);
 
   --shadow-sm: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1);
   --shadow:    0 8px 22px -15px rgba(36,24,54,0.42), 6px 7px 0 rgba(104,71,237,0.12);
@@ -712,6 +715,21 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   color: var(--ink-3);
   font-size: 17px;
 }
+.empty-icon-check {
+  background: var(--acid);
+  border-style: solid;
+  border-color: var(--ink);
+  box-shadow: 3px 3px 0 var(--action);
+  transform: rotate(-3deg);
+}
+.empty-icon-check::after {
+  content: '';
+  display: block;
+  width: 19px;
+  height: 15px;
+  background: var(--action);
+  clip-path: var(--studio-check-shape);
+}
 .empty-title {
   font-size: 15px;
   font-weight: 700;
@@ -971,14 +989,20 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   opacity: 0;
   cursor: pointer;
 }
+.selection-control input:focus-visible { outline: 0; }
 .selection-mark {
   position: relative;
-  width: 17px;
-  height: 17px;
-  border: 1.5px solid var(--ink-3);
-  border-radius: var(--radius-sm);
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--ink-3);
+  border-radius: 4px 7px 4px 5px;
   background: var(--paper);
-  transition: border-color var(--t-1) var(--ease-soft), background var(--t-1) var(--ease-soft);
+  box-shadow: 2px 2px 0 var(--action-line);
+  transform: rotate(-2deg);
+  transition: border-color var(--t-1) var(--ease-soft),
+              background var(--t-1) var(--ease-soft),
+              box-shadow var(--t-2) var(--ease),
+              transform var(--t-2) var(--spring);
 }
 .selection-mark::after {
   content: '';
@@ -986,43 +1010,56 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   left: 50%;
   top: 50%;
   opacity: 0;
+  transform: translate(-50%, -50%) rotate(-12deg) scale(0.45);
   transition: opacity var(--t-1) var(--ease-soft), transform var(--t-2) var(--spring);
 }
-.selection-control:hover .selection-mark { border-color: var(--action); }
-.selection-control input:focus-visible + .selection-mark {
+.selection-control:hover .selection-mark {
   border-color: var(--action);
-  box-shadow: 0 0 0 3px var(--action-tint), 2px 2px 0 var(--action);
+  box-shadow: 3px 3px 0 var(--acid);
+  transform: translateY(-1px) rotate(2deg);
 }
 .selection-control input:checked + .selection-mark,
 .selection-control input:indeterminate + .selection-mark {
-  border-color: var(--action);
+  border-color: var(--ink);
   background: var(--action);
+  box-shadow: 3px 3px 0 var(--acid);
+  transform: rotate(-3deg) scale(1.04);
 }
 .selection-checkbox input:checked + .selection-mark::after {
-  width: 4px;
-  height: 8px;
-  border: solid #fff;
-  border-width: 0 2px 2px 0;
+  width: 12px;
+  height: 10px;
+  border: 0;
+  background: var(--acid);
+  clip-path: var(--studio-check-shape);
+  filter: drop-shadow(1px 1px 0 rgba(24,20,31,0.35));
   opacity: 1;
-  transform: translate(-50%, -60%) rotate(45deg);
+  transform: translate(-50%, -52%) rotate(-4deg) scale(1);
 }
 .selection-checkbox input:indeterminate + .selection-mark::after {
-  width: 9px;
-  height: 2px;
+  width: 10px;
+  height: 3px;
   border: 0;
-  border-radius: 1px;
-  background: #fff;
+  border-radius: 999px;
+  background: var(--acid);
+  clip-path: none;
+  filter: none;
   opacity: 1;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) rotate(-6deg) scale(1);
 }
-.selection-radio .selection-mark { border-radius: 50%; }
+.selection-radio .selection-mark { border-radius: 50%; transform: none; }
+.selection-radio input:checked + .selection-mark { transform: scale(1.04); }
 .selection-radio input:checked + .selection-mark::after {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--acid);
+  box-shadow: 0 0 0 1px #fff;
   opacity: 1;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) scale(1);
+}
+.selection-control input:focus-visible + .selection-mark {
+  border-color: var(--action);
+  box-shadow: 0 0 0 3px var(--action-tint), 3px 3px 0 var(--acid);
 }
 .tree-toggle {
   color: var(--ink-3);
@@ -1519,11 +1556,19 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   border-radius: var(--radius);
   color: var(--ink-2);
   cursor: pointer;
+  transition: border-color var(--t-1) var(--ease-soft),
+              background var(--t-1) var(--ease-soft),
+              box-shadow var(--t-2) var(--ease);
 }
-.youtube-kids-control input {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--action);
+.youtube-kids-control:hover {
+  border-color: var(--action);
+  background: var(--action-tint);
+}
+.youtube-kids-control:has(input:checked) {
+  border-color: var(--ink);
+  background: var(--action-tint);
+  box-shadow: 3px 3px 0 var(--acid);
+  color: var(--ink);
 }
 .youtube-privacy-fixed {
   display: flex;
@@ -1664,19 +1709,27 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .dl-finished-mark {
   width: 52px; height: 52px;
   margin: 0 auto 18px;
-  border-radius: 50%;
-  background: var(--ok-tint);
-  border: 1px solid var(--ok-line);
-  color: var(--ok);
+  border-radius: 11px 18px 10px 15px;
+  background: var(--acid);
+  border: 2px solid var(--ink);
+  box-shadow: 7px 7px 0 var(--action);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 25px;
   animation: mark-in var(--t-3) var(--spring) backwards;
 }
+.dl-finished-mark::after {
+  content: '';
+  display: block;
+  width: 29px;
+  height: 23px;
+  background: var(--action);
+  clip-path: var(--studio-check-shape);
+  transform: rotate(-4deg);
+}
 @keyframes mark-in {
-  from { opacity: 0; transform: scale(0.6); }
-  to   { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: rotate(-13deg) scale(0.6); }
+  to   { opacity: 1; transform: rotate(-4deg) scale(1); }
 }
 .dl-finished-title { font-size: 17px; font-weight: 700; margin-bottom: 5px; color: var(--ink); }
 .dl-finished-file {

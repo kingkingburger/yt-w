@@ -228,7 +228,7 @@
 
         <section id="dl-step-finished" class="card" style="display:none">
           <div class="dl-finished">
-            <div class="dl-finished-mark">✓</div>
+            <div class="dl-finished-mark" aria-hidden="true"></div>
             <div class="dl-finished-title">다운로드 완료</div>
             <div class="dl-finished-file" id="finish-message"></div>
             <button class="btn" onclick="closeResult()">다른 영상 받기</button>
@@ -318,7 +318,10 @@
                   <div>
                     <label class="label">아동용 콘텐츠</label>
                     <label class="youtube-kids-control">
-                      <input type="checkbox" id="youtube-upload-made-for-kids" />
+                      <span class="selection-control selection-checkbox youtube-kids-checkbox">
+                        <input type="checkbox" id="youtube-upload-made-for-kids" />
+                        <span class="selection-mark" aria-hidden="true"></span>
+                      </span>
                       <span>아동용으로 설정</span>
                     </label>
                   </div>

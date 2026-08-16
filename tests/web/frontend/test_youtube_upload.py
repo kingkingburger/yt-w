@@ -50,9 +50,19 @@ def test_youtube_upload_tab_contains_single_account_controls() -> None:
     assert 'id="youtube-upload-category"' in panel
     assert '<option value="22" selected>' in panel
     assert 'id="youtube-upload-made-for-kids"' in panel
+    assert 'class="selection-control selection-checkbox youtube-kids-checkbox"' in panel
+    assert 'class="selection-mark" aria-hidden="true"' in panel
     assert "비공개 · 고정" in panel
     assert 'id="youtube-upload-jobs"' in panel
     assert 'type="file"' not in panel
+
+
+def test_youtube_kids_checkbox_uses_studio_selection_mark() -> None:
+    css = Path("web/app.css").read_text(encoding="utf-8")
+
+    assert ".youtube-kids-control:has(input:checked)" in css
+    assert ".selection-checkbox input:checked + .selection-mark::after" in css
+    assert ".youtube-kids-control input {" not in css
 
 
 def test_youtube_upload_javascript_targets_backend_contract() -> None:
