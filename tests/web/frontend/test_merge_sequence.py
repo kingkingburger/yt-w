@@ -60,6 +60,41 @@ console.log(JSON.stringify(state.sequence));
     ]
 
 
+def test_frontend_merge_source_badges_distinguish_split_and_merged_paths():
+    """Merge candidates and staged rows should keep their source-folder badge."""
+    node = shutil.which("node")
+    if node is None:
+        pytest.fail("node is required for the frontend source badge regression test")
+
+    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_css = Path("web/app.css").read_text(encoding="utf-8")
+    badge_function = extract_js_function(app_js, "mergeSourceBadge")
+    script = f"""
+{badge_function}
+console.log(JSON.stringify([
+  mergeSourceBadge('split/show_part001.mp4'),
+  mergeSourceBadge('merged/show.mp4'),
+  mergeSourceBadge('live/channel/show.mp4')
+]));
+"""
+    result = subprocess.run(
+        [node, "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(result.stdout) == [
+        '<span class="source-chip split">split</span>',
+        '<span class="source-chip merged">merge</span>',
+        "",
+    ]
+    assert app_js.count("mergeSourceBadge(group.paths[0])") == 1
+    assert app_js.count("mergeSourceBadge(row.paths[0])") == 1
+    assert ".source-chip.split" in app_css
+    assert ".source-chip.merged" in app_css
+
+
 def test_frontend_detects_contiguous_part_runs_for_file_drag():
     """Dragging a part clip should carry the contiguous part run with it."""
     node = shutil.which("node")

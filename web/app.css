@@ -1126,7 +1126,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   line-height: 1.45;
 }
 .file-name .dir { color: var(--ink-3); }
-.part-chip, .seq-badge {
+.part-chip, .seq-badge, .source-chip {
   display: inline-flex;
   align-items: center;
   padding: 1px 7px;
@@ -1138,6 +1138,20 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 10.5px;
   font-weight: 500;
   white-space: nowrap;
+}
+.source-chip {
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.source-chip.split {
+  color: var(--action);
+  background: var(--action-tint);
+  border-color: var(--action-line);
+}
+.source-chip.merged {
+  color: var(--ok);
+  background: var(--ok-tint);
+  border-color: var(--ok-line);
 }
 .file-meta {
   color: var(--ink-3);
@@ -1307,7 +1321,13 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   line-height: 1.45;
   color: var(--ink-2);
 }
-.seq-item .seq-badge { margin-top: 4px; }
+.seq-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
 .seq-item .btn.sm { padding: 2px 6px; align-self: start; }
 
 .merge-download-path {

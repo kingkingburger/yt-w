@@ -366,6 +366,7 @@ function renderFileList() {
     const selectedCount = group.paths.filter(path => state.selectedPaths.has(path)).length;
     const allSelected = selectedCount === group.paths.length;
     const someSelected = selectedCount > 0 && !allSelected;
+    const sourceBadge = mergeSourceBadge(group.paths[0]);
     const partBadge = group.partLabel ? `<span class="part-chip">${escapeHtml(group.partLabel)}</span>` : '';
     return `
       <div class="file-group ${open ? 'open' : ''} ${allSelected ? 'selected' : ''}">
@@ -386,6 +387,7 @@ function renderFileList() {
           </span>
           <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
           <div class="file-group-tools">
+            ${sourceBadge}
             ${partBadge}
             <div class="file-meta nowrap">${group.paths.length}개 · ${fmtBytes(group.paths.reduce((sum, path) => sum + sizeOfPath(path), 0))}</div>
             <button type="button" class="btn danger sm file-delete-btn" draggable="false"
@@ -522,6 +524,12 @@ function splitMergePath(path) {
 }
 function mergeFileName(path) {
   return splitMergePath(path).name;
+}
+function mergeSourceBadge(path) {
+  const source = String(path || '').split('/')[0].toLowerCase();
+  if (source !== 'split' && source !== 'merged') return '';
+  const label = source === 'merged' ? 'merge' : 'split';
+  return `<span class="source-chip ${source}">${label}</span>`;
 }
 function availableSourceFiles(files = state.files, sequence = state.sequence) {
   const inSequence = new Set(sequence);
@@ -761,6 +769,10 @@ function renderSequence() {
     const blockSize = row.end - row.start + 1;
     const blockLabel = blockSize > 1 ? getPartRunLabel(row.paths[0], row.paths) : '';
     const blockBadge = blockLabel ? `<span class="seq-badge">${escapeHtml(blockLabel)}</span>` : '';
+    const sourceBadge = mergeSourceBadge(row.paths[0]);
+    const badges = sourceBadge || blockBadge
+      ? `<div class="seq-badges">${sourceBadge}${blockBadge}</div>`
+      : '';
     const idxLabel = blockSize > 1
       ? `${String(row.start + 1).padStart(2, '0')}-${String(row.end + 1).padStart(2, '0')}`
       : String(row.start + 1).padStart(2, '0');
@@ -777,7 +789,7 @@ function renderSequence() {
            ondragend="seqDragEnd(event)">
         <div class="grip">⋮⋮</div>
         <div class="idx">${idxLabel}</div>
-        <div class="name" title="${escapeHtml(title)}">${escapeHtml(fname)}${blockBadge}</div>
+        <div class="name" title="${escapeHtml(title)}">${escapeHtml(fname)}${badges}</div>
         <button class="btn sm danger" aria-label="${escapeHtml(fname)} 목록에서 빼기"
                 onclick="${removeAction}">✕</button>
       </div>`;
