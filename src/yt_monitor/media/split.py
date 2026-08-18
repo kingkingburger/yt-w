@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Set
 
+from ..paths import PathOutsideRootError, resolve_within_root
 from .merge import VideoExtensions
 
 
@@ -245,10 +246,9 @@ class SplitJobManager:
         with self._lock:
             root = self._root
         root_resolved = root.resolve()
-        input_path = (root / input_relative_path).resolve()
         try:
-            input_path.relative_to(root_resolved)
-        except ValueError as error:
+            input_path = resolve_within_root(root_resolved, input_relative_path)
+        except PathOutsideRootError as error:
             raise ValueError(f"잘못된 입력 경로: {input_relative_path}") from error
         if not input_path.is_file():
             raise ValueError(f"파일이 존재하지 않습니다: {input_relative_path}")

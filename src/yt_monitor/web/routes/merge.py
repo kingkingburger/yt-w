@@ -11,6 +11,7 @@ from fastapi.responses import FileResponse
 from ...channels.repository import ChannelManager
 from ...logging import Logger
 from ...media.merge import MergeJobManager, VideoExtensions, list_video_files
+from ...paths import PathOutsideRootError, resolve_within_root
 from ..schemas import FileDeleteRequest, MergeRequest
 
 FILE_LIST_CACHE_TTL_SECONDS = 5.0
@@ -72,14 +73,13 @@ def register_merge_routes(
             ):
                 raise HTTPException(status_code=400, detail="잘못된 영상 파일 경로입니다")
 
-            target = (root_resolved / relative_path).resolve()
             try:
-                target.relative_to(root_resolved)
-            except ValueError:
+                target = resolve_within_root(root_resolved, relative_path)
+            except PathOutsideRootError:
                 raise HTTPException(
                     status_code=400,
                     detail=f"다운로드 폴더 밖의 파일은 삭제할 수 없습니다: {relative_path}",
-                )
+                ) from None
             if not target.is_file():
                 raise HTTPException(
                     status_code=404,

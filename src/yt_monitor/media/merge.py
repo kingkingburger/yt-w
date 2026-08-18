@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
+from ..paths import PathOutsideRootError, resolve_within_root
+
 VideoExtensions = frozenset(
     {".mp4", ".mkv", ".webm", ".m4a", ".mp3", ".aac", ".ts", ".mov"}
 )
@@ -160,13 +162,13 @@ def merge_completed_stream_files(
     root_resolved = download_root.resolve()
     ordered_inputs: List[Path] = []
     for input_file in input_files:
-        resolved = input_file.resolve()
         try:
-            relative_input = resolved.relative_to(root_resolved)
-        except ValueError:
+            resolved = resolve_within_root(root_resolved, input_file)
+        except PathOutsideRootError:
             raise ValueError(
                 f"잘못된 자동 병합 입력 경로: {input_file}"
             ) from None
+        relative_input = resolved.relative_to(root_resolved)
         if not relative_input.parts or relative_input.parts[0].casefold() != "live":
             raise ValueError(f"자동 병합 입력은 live 폴더 안에 있어야 합니다: {input_file}")
         if not resolved.is_file():
@@ -273,11 +275,10 @@ class MergeJobManager:
         root_resolved = root.resolve()
         absolute_inputs: List[Path] = []
         for relative_path in input_relative_paths:
-            full_path = (root / relative_path).resolve()
             try:
-                full_path.relative_to(root_resolved)
-            except ValueError:
-                raise ValueError(f"잘못된 입력 경로: {relative_path}")
+                full_path = resolve_within_root(root_resolved, relative_path)
+            except PathOutsideRootError:
+                raise ValueError(f"잘못된 입력 경로: {relative_path}") from None
             if not full_path.is_file():
                 raise ValueError(f"파일이 존재하지 않습니다: {relative_path}")
             absolute_inputs.append(full_path)

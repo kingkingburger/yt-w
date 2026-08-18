@@ -24,6 +24,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
+from ..paths import PathOutsideRootError, resolve_within_root
+
 YOUTUBE_UPLOAD_SCOPE: str = "https://www.googleapis.com/auth/youtube.upload"
 DEFAULT_YOUTUBE_REDIRECT_URI: str = "http://localhost:8088/api/youtube/oauth/callback"
 DEFAULT_YOUTUBE_CLIENT_SECRETS_FILE: str = "/run/secrets/youtube-client.json"
@@ -463,16 +465,14 @@ def resolve_upload_source(root: Path, relative_path: str) -> Path:
     ):
         raise ValueError("업로드할 수 없는 영상 경로입니다")
 
-    root_resolved = root.resolve()
     try:
-        source_path = (root_resolved / Path(*pure_path.parts)).resolve(strict=True)
-        source_path.relative_to(root_resolved)
-    except (FileNotFoundError, OSError, ValueError):
+        source_path = resolve_within_root(root, Path(*pure_path.parts))
+    except (PathOutsideRootError, OSError):
         raise ValueError(
             "업로드 영상이 존재하지 않거나 허용 범위 밖에 있습니다"
         ) from None
     if not source_path.is_file():
-        raise ValueError("업로드 영상이 파일이 아닙니다")
+        raise ValueError("업로드 영상이 존재하지 않거나 파일이 아닙니다")
     return source_path
 
 

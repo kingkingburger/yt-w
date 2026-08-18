@@ -54,7 +54,8 @@ yt-w/
 │   │   ├── converters.py                # ChannelDTO → API dict 변환
 │   │   └── routes/                      # 채널/상태/미디어/OAuth/upload 라우트
 │   ├── entrypoint.py                    # 모니터 데몬 실행 진입점
-│   └── logging.py                       # TimedRotatingFileHandler 로거
+│   ├── logging.py                       # TimedRotatingFileHandler 로거
+│   └── paths.py                         # root 경계 안으로만 경로를 해석하는 공용 검증
 ├── tests/                               # src 소유 경계를 따르는 pytest 테스트
 │   ├── channels/                        # DTO, channels.json 저장소
 │   ├── maintenance/                     # retention scheduler
@@ -65,7 +66,8 @@ yt-w/
 │   │   ├── routes/                      # FastAPI 라우트별 계약
 │   │   └── frontend/                    # 정적 UI와 Node 실행 회귀
 │   ├── youtube/                         # 라이브 감지, cookie, 실제 응답 fixture
-│   └── test_logging.py                  # 일별 회전 로거
+│   ├── test_logging.py                  # 일별 회전 로거
+│   └── test_paths.py                    # root 경계 밖 경로·symlink 탈출 차단
 ├── web/
 │   ├── index.html                       # Operator console markup
 │   ├── app.css                          # Operator console styles

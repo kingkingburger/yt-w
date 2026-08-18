@@ -10,6 +10,7 @@ from fastapi.responses import FileResponse
 from ...channels.repository import ChannelManager
 from ...logging import Logger
 from ...media.video_download import VideoDownloader
+from ...paths import PathOutsideRootError, resolve_within_root
 from ...youtube.url import sanitize_youtube_url
 from ..schemas import VideoDownloadRequest
 
@@ -104,12 +105,12 @@ def register_video_routes(
             download_dir = (
                 Path(settings.download_directory) / "web_downloads"
             ).resolve()
-            file_path = (download_dir / filename).resolve()
-
             try:
-                file_path.relative_to(download_dir)
-            except ValueError:
-                raise HTTPException(status_code=404, detail="File not found")
+                file_path = resolve_within_root(download_dir, filename)
+            except PathOutsideRootError:
+                raise HTTPException(
+                    status_code=404, detail="File not found"
+                ) from None
 
             if not file_path.exists():
                 raise HTTPException(status_code=404, detail="File not found")
