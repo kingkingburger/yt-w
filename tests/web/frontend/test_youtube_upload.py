@@ -57,6 +57,15 @@ def test_youtube_upload_tab_contains_single_account_controls() -> None:
     assert 'type="file"' not in panel
 
 
+def test_youtube_upload_is_first_sidebar_item() -> None:
+    html = Path("web/index.html").read_text(encoding="utf-8")
+    nav_start = html.index('<nav class="nav">')
+    first_button_start = html.index('<button class="nav-btn', nav_start)
+    first_button_end = html.index("</button>", first_button_start)
+
+    assert 'data-tab="youtube-upload"' in html[first_button_start:first_button_end]
+
+
 def test_youtube_kids_checkbox_uses_studio_selection_mark() -> None:
     css = Path("web/app.css").read_text(encoding="utf-8")
 
