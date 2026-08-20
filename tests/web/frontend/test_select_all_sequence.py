@@ -21,12 +21,18 @@ def extract_js_function(source: str, name: str) -> str:
     raise AssertionError(f"Function {name} not found")
 
 
-def test_merge_page_exposes_select_all_and_deselect_all_controls() -> None:
+def test_merge_page_exposes_select_send_delete_and_clear_controls() -> None:
     index_html = Path("web/index.html").read_text(encoding="utf-8")
 
     source_title = index_html.index('<div class="card-title">합칠 영상 고르기</div>')
     select_all = index_html.index(
         'id="btn-select-all" onclick="selectAllFiles()"'
+    )
+    delete_selected = index_html.index(
+        'id="btn-delete-selected" onclick="deleteSelectedSourceFiles()"'
+    )
+    send_selected = index_html.index(
+        'id="btn-send-selected" onclick="sendSelectedFilesToSequence()"'
     )
     sequence_title = index_html.index('<div class="card-title">순서 정하고 합치기</div>')
     deselect_all = index_html.index(
@@ -34,11 +40,11 @@ def test_merge_page_exposes_select_all_and_deselect_all_controls() -> None:
     )
     sequence_body = index_html.index('<div class="card-body stack">', sequence_title)
 
-    assert source_title < select_all < sequence_title
+    assert source_title < select_all < delete_selected < send_selected < sequence_title
     assert sequence_title < deselect_all < sequence_body
 
 
-def test_frontend_select_all_keeps_part_files_compact_and_deselect_all_clears() -> None:
+def test_frontend_selection_waits_for_send_and_keeps_part_files_compact() -> None:
     node = shutil.which("node")
     if node is None:
         pytest.fail("node is required for the frontend select-all regression test")
@@ -54,8 +60,11 @@ def test_frontend_select_all_keeps_part_files_compact_and_deselect_all_clears() 
             "getPartInfo",
             "getPartRangeLabel",
             "buildFileGroups",
+            "selectedSourcePaths",
             "selectAllFiles",
+            "sendSelectedFilesToSequence",
             "deselectAllFiles",
+            "addPathsToSequence",
             "getSequencePartBlock",
             "buildSequenceRows",
             "formatPartRangeName",
@@ -80,14 +89,21 @@ function renderFileList() {{}}
 function renderSequence() {{}}
 {helpers}
 selectAllFiles();
-const rows = buildSequenceRows();
-const selected = {{
+const checked = {{
   sequence: [...state.sequence],
+  selectedPaths: [...state.selectedPaths]
+}};
+sendSelectedFilesToSequence();
+const rows = buildSequenceRows();
+const sent = {{
+  sequence: [...state.sequence],
+  selectedPaths: [...state.selectedPaths],
   rows: rows.map(row => [row.start, row.end, sequenceRowName(row)])
 }};
 deselectAllFiles();
 console.log(JSON.stringify({{
-  selected,
+  checked,
+  sent,
   cleared: {{
     sequence: state.sequence,
     selectedPaths: [...state.selectedPaths]
@@ -102,13 +118,23 @@ console.log(JSON.stringify({{
     )
 
     assert json.loads(result.stdout) == {
-        "selected": {
+        "checked": {
+            "sequence": [],
+            "selectedPaths": [
+                "live/channel/channel_20260514_025824_part000.mp4",
+                "live/channel/channel_20260514_025824_part001.mp4",
+                "live/channel/channel_20260514_025824_part002.mp4",
+                "live/channel/loose_video.mp4",
+            ],
+        },
+        "sent": {
             "sequence": [
                 "live/channel/channel_20260514_025824_part000.mp4",
                 "live/channel/channel_20260514_025824_part001.mp4",
                 "live/channel/channel_20260514_025824_part002.mp4",
                 "live/channel/loose_video.mp4",
             ],
+            "selectedPaths": [],
             "rows": [
                 [0, 2, "channel_20260514_025824 · part 000-002.mp4"],
                 [3, 3, "loose_video.mp4"],

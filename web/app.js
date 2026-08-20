@@ -335,10 +335,20 @@ async function loadFiles(refresh = false) {
 function renderFileList() {
   const host = $('merge-file-list');
   const sourceFiles = availableSourceFiles();
-  $('merge-file-count').textContent = `${sourceFiles.length}개`;
+  const selectedCount = sourceFiles.filter(file => state.selectedPaths.has(file.path)).length;
+  $('merge-file-count').textContent = selectedCount
+    ? `${sourceFiles.length}개 · ${selectedCount}개 선택`
+    : `${sourceFiles.length}개`;
   const selectAllBtn = $('btn-select-all');
+  const sendSelectedBtn = $('btn-send-selected');
+  const deleteSelectedBtn = $('btn-delete-selected');
   const deselectAllBtn = $('btn-deselect-all');
   if (selectAllBtn) selectAllBtn.disabled = sourceFiles.length === 0;
+  if (selectAllBtn) selectAllBtn.textContent = selectedCount === sourceFiles.length && selectedCount > 0
+    ? '전체 해제'
+    : '전체 선택';
+  if (sendSelectedBtn) sendSelectedBtn.disabled = selectedCount === 0;
+  if (deleteSelectedBtn) deleteSelectedBtn.disabled = selectedCount === 0;
   if (deselectAllBtn) deselectAllBtn.disabled = state.sequence.length === 0;
   if (!state.files.length) {
     host.innerHTML = `
@@ -464,6 +474,14 @@ function deleteSourceGroup(groupIdx, event) {
   const group = state.sourceGroups[groupIdx];
   if (group) deleteSourceFiles(group.paths, group.name);
 }
+function selectedSourcePaths() {
+  return buildFileGroups(availableSourceFiles())
+    .flatMap(group => group.paths)
+    .filter(path => state.selectedPaths.has(path));
+}
+function deleteSelectedSourceFiles() {
+  return deleteSourceFiles(selectedSourcePaths(), '선택한 영상');
+}
 function toggleSourceGroup(groupIdx) {
   const group = state.sourceGroups[groupIdx];
   if (!group) return;
@@ -475,41 +493,33 @@ function toggleSourceGroupSelect(groupIdx, on) {
   const group = state.sourceGroups[groupIdx];
   if (!group) return;
   if (on) {
-    addPathsToSequence(group.paths);
+    group.paths.forEach(path => state.selectedPaths.add(path));
   } else {
     group.paths.forEach(path => state.selectedPaths.delete(path));
-    state.sequence = state.sequence.filter(path => !group.paths.includes(path));
-    refreshDefaultMergeOutputName();
-    renderFileList();
-    renderSequence();
   }
+  renderFileList();
 }
 function toggleFileSelect(path, on) {
-  if (on) {
-    state.selectedPaths.add(path);
-    if (!state.sequence.includes(path)) state.sequence.push(path);
-  } else {
-    state.selectedPaths.delete(path);
-    state.sequence = state.sequence.filter(p => p !== path);
-  }
-  refreshDefaultMergeOutputName();
-  renderFileList(); renderSequence();
+  if (on) state.selectedPaths.add(path);
+  else state.selectedPaths.delete(path);
+  renderFileList();
 }
 function selectAllFiles() {
   const sourceFiles = availableSourceFiles();
   if (!sourceFiles.length) return;
-  buildFileGroups(sourceFiles).flatMap(group => group.paths).forEach(path => {
-    if (!state.selectedPaths.has(path)) {
-      state.selectedPaths.add(path);
-      if (!state.sequence.includes(path)) state.sequence.push(path);
-    }
+  const paths = buildFileGroups(sourceFiles).flatMap(group => group.paths);
+  const allSelected = paths.every(path => state.selectedPaths.has(path));
+  paths.forEach(path => {
+    if (allSelected) state.selectedPaths.delete(path);
+    else state.selectedPaths.add(path);
   });
-  refreshDefaultMergeOutputName();
-  renderFileList(); renderSequence();
+  renderFileList();
+}
+function sendSelectedFilesToSequence() {
+  return addPathsToSequence(selectedSourcePaths());
 }
 function deselectAllFiles() {
   state.sequence = [];
-  state.selectedPaths.clear();
   refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
@@ -671,7 +681,7 @@ function addPathsToSequence(paths, insertAt = state.sequence.length) {
 
   const target = Math.max(0, Math.min(insertAt, state.sequence.length));
   state.sequence.splice(target, 0, ...uniquePaths);
-  uniquePaths.forEach(path => state.selectedPaths.add(path));
+  uniquePaths.forEach(path => state.selectedPaths.delete(path));
   refreshDefaultMergeOutputName();
   renderFileList();
   renderSequence();
@@ -849,7 +859,7 @@ function renderMergeReady() {
   const modeLabel = state.mergeMode === 'concat' ? '빠르게' : '재인코딩';
 
   let blockedReason = '';
-  if (state.sequence.length === 0) blockedReason = '합치려면 왼쪽에서 영상을 2개 이상 골라 주세요.';
+  if (state.sequence.length === 0) blockedReason = '체크한 영상을 보내기로 2개 이상 넣어 주세요.';
   else if (state.sequence.length === 1) blockedReason = '영상이 1개뿐입니다. 하나 더 고르면 합칠 수 있어요.';
   else if (!outputName) blockedReason = '저장할 파일 이름을 입력해 주세요.';
 
@@ -868,8 +878,7 @@ function removeSeqItem(idx) {
 }
 function removeSeqBlock(start, end) {
   const count = end - start + 1;
-  const removed = state.sequence.splice(start, count);
-  removed.forEach(path => state.selectedPaths.delete(path));
+  state.sequence.splice(start, count);
   refreshDefaultMergeOutputName();
   renderFileList(); renderSequence();
 }
