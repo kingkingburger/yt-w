@@ -15,6 +15,7 @@ docs/
 !README.md
 downloads/
 *.log
+logs/
 secrets/
 **/client_secret*.json
 **/youtube-client*.json
