@@ -25,7 +25,7 @@
       <nav class="nav">
         <div class="nav-label">메뉴</div>
 
-        <button class="nav-btn" data-tab="youtube-upload" onclick="switchTab('youtube-upload')">
+        <button class="nav-btn active" data-tab="youtube-upload" onclick="switchTab('youtube-upload')">
           <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M16 16l-4-4-4 4" />
             <line x1="12" y1="12" x2="12" y2="21" />
@@ -35,7 +35,7 @@
           <span class="arrow">→</span>
         </button>
 
-        <button class="nav-btn active" data-tab="merge" onclick="switchTab('merge')">
+        <button class="nav-btn" data-tab="merge" onclick="switchTab('merge')">
           <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="6 3 18 3 18 9" />
             <polyline points="6 21 18 21 18 15" />
@@ -237,7 +237,7 @@
       </main>
 
       <!-- YouTube upload -->
-      <main id="panel-youtube-upload" class="panel">
+      <main id="panel-youtube-upload" class="panel active">
         <section class="card">
           <div class="card-head">
             <div class="card-title-group">
@@ -401,7 +401,7 @@
       </main>
 
       <!-- ╔══════════════════════════════ MERGE ══════════════════════╗ -->
-      <main id="panel-merge" class="panel active">
+      <main id="panel-merge" class="panel">
         <div class="merge-grid">
           <section class="card">
             <div class="card-head">

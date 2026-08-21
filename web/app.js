@@ -1,7 +1,7 @@
 /* yt-w operator console client. */
 const API = '';
 const state = {
-  activeTab: 'merge',
+  activeTab: 'youtube-upload',
   files: [],
   selectedPaths: new Set(),
   sequence: [],
