@@ -12,6 +12,7 @@ wheels/
 # Downloads and logs
 downloads/
 *.log
+logs/
 
 # Test coverage
 .coverage
@@ -30,7 +31,6 @@ htmlcov/
 Thumbs.db
 
 .env
-logs
 
 cookie.txt
 cookies.txt
@@ -44,5 +44,4 @@ secrets/*
 
 # Claude Code
 .omc/
-# Claude Code
 .claude/
