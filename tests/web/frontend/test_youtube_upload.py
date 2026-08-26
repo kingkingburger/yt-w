@@ -40,6 +40,9 @@ def test_youtube_upload_tab_contains_single_account_controls() -> None:
 
     assert 'data-tab="youtube-upload"' in html
     assert 'id="panel-youtube-upload"' in panel
+    assert 'href="https://studio.youtube.com/"' in panel
+    assert 'target="_blank" rel="noopener noreferrer"' in panel
+    assert "YouTube 계정 바로가기" in panel
     assert 'id="btn-youtube-connect"' in panel
     assert 'id="btn-youtube-disconnect"' in panel
     assert 'id="youtube-oauth-message" role="status" aria-live="polite"' in panel
