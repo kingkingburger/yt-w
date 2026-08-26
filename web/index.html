@@ -647,25 +647,49 @@
 
   <!-- ▌ ADD CHANNEL MODAL ─────────────────────────────────────────────── -->
   <div id="add-channel-overlay" class="overlay" onclick="if(event.target===this) closeAddChannelModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true"
+         aria-labelledby="add-channel-title" aria-describedby="add-channel-description">
       <div class="modal-head">
-        <span class="modal-title">새 채널 추가</span>
-        <button class="btn ghost sm" onclick="closeAddChannelModal()">✕</button>
+        <div class="modal-heading">
+          <span class="modal-icon" aria-hidden="true">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="9" />
+              <circle cx="12" cy="12" r="3" fill="currentColor" />
+            </svg>
+          </span>
+          <div>
+            <span class="modal-kicker">LIVE MONITOR</span>
+            <h2 class="modal-title" id="add-channel-title">새 채널 추가</h2>
+            <p class="modal-description" id="add-channel-description">
+              자동 녹화할 YouTube 채널 정보를 등록해 주세요.
+            </p>
+          </div>
+        </div>
+        <button type="button" class="modal-close" aria-label="채널 추가 창 닫기"
+                onclick="closeAddChannelModal()"><span aria-hidden="true">×</span></button>
       </div>
       <form onsubmit="addChannel(event)">
-        <div class="modal-body stack">
-          <div>
-            <label class="label">채널 이름</label>
-            <input class="input" type="text" id="channel-name" placeholder="예: 침착맨" required />
+        <div class="modal-body">
+          <div class="modal-fields">
+            <div>
+              <label class="label" for="channel-name">채널 이름</label>
+              <input class="input" type="text" id="channel-name" placeholder="예: 침착맨" required />
+            </div>
+            <div>
+              <label class="label" for="channel-url">채널 URL</label>
+              <input class="input" type="url" id="channel-url"
+                     placeholder="https://www.youtube.com/@..." required />
+            </div>
           </div>
-          <div>
-            <label class="label">채널 URL</label>
-            <input class="input" type="url" id="channel-url" placeholder="https://www.youtube.com/@..." required />
+          <div class="modal-note">
+            <span class="modal-note-dot" aria-hidden="true"></span>
+            <span>등록과 동시에 채널 감시를 시작합니다.</span>
           </div>
         </div>
         <div class="modal-foot">
           <button type="button" class="btn ghost" onclick="closeAddChannelModal()">취소</button>
-          <button type="submit" class="btn primary">추가하기</button>
+          <button type="submit" class="btn primary">채널 추가</button>
         </div>
       </form>
     </div>
