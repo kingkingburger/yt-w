@@ -1575,8 +1575,14 @@ function renderYouTubeUploadFileList() {
 }
 
 function selectYouTubeUploadFile(path) {
-  const allowed = filterYouTubeUploadFiles(state.files).some(file => file.path === path);
-  state.youtubeUploadSelectedPath = allowed ? path : null;
+  const selectedFile = filterYouTubeUploadFiles(state.files).find(file => file.path === path);
+  state.youtubeUploadSelectedPath = selectedFile?.path || null;
+  const titleInput = $('youtube-upload-title');
+  if (titleInput) {
+    const fileName = selectedFile ? selectedFile.name || mergeFileName(selectedFile.path) : '';
+    const maxLength = titleInput.maxLength > 0 ? titleInput.maxLength : 100;
+    titleInput.value = String(fileName).slice(0, maxLength);
+  }
   renderYouTubeUploadFileList();
   renderYouTubeUploadReady();
 }

@@ -170,6 +170,51 @@ console.log(escapeHtmlAttribute(`merged/\" onfocus=\"alert(1).mp4`));
     assert "const safeNameAttribute = escapeHtmlAttribute(fileName);" in app_js
 
 
+def test_youtube_upload_file_selection_fills_title_from_file_name() -> None:
+    node = require_node()
+    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    filter_function = extract_js_function(app_js, "filterYouTubeUploadFiles")
+    select_function = extract_js_function(app_js, "selectYouTubeUploadFile")
+    script = f"""
+const state = {{
+  files: [{{
+    path: 'merged/show.final.mp4',
+    name: 'show.final.mp4',
+  }}],
+  youtubeUploadSelectedPath: null,
+}};
+const elements = {{
+  'youtube-upload-title': {{ value: '기존 제목', maxLength: 100 }},
+}};
+const events = [];
+function $(id) {{ return elements[id]; }}
+function mergeFileName(path) {{ return path.split('/').pop(); }}
+function renderYouTubeUploadFileList() {{ events.push('render-list'); }}
+function renderYouTubeUploadReady() {{ events.push('render-ready'); }}
+{filter_function}
+{select_function}
+selectYouTubeUploadFile('merged/show.final.mp4');
+console.log(JSON.stringify({{
+  selectedPath: state.youtubeUploadSelectedPath,
+  title: elements['youtube-upload-title'].value,
+  events,
+}}));
+"""
+    result = subprocess.run(
+        [node, "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+
+    assert json.loads(result.stdout) == {
+        "selectedPath": "merged/show.final.mp4",
+        "title": "show.final.mp4",
+        "events": ["render-list", "render-ready"],
+    }
+
+
 def test_youtube_upload_submit_sends_metadata_and_write_marker() -> None:
     node = require_node()
     app_js = Path("web/app.js").read_text(encoding="utf-8")
