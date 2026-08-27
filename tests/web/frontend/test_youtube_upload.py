@@ -178,8 +178,8 @@ def test_youtube_upload_file_selection_fills_title_from_file_name() -> None:
     script = f"""
 const state = {{
   files: [{{
-    path: 'merged/show.final.mp4',
-    name: 'show.final.mp4',
+    path: 'merged/침착맨_라이브_20260826_053736.mp4',
+    name: '침착맨_라이브_20260826_053736.mp4',
   }}],
   youtubeUploadSelectedPath: null,
 }};
@@ -193,7 +193,7 @@ function renderYouTubeUploadFileList() {{ events.push('render-list'); }}
 function renderYouTubeUploadReady() {{ events.push('render-ready'); }}
 {filter_function}
 {select_function}
-selectYouTubeUploadFile('merged/show.final.mp4');
+selectYouTubeUploadFile('merged/침착맨_라이브_20260826_053736.mp4');
 console.log(JSON.stringify({{
   selectedPath: state.youtubeUploadSelectedPath,
   title: elements['youtube-upload-title'].value,
@@ -209,8 +209,8 @@ console.log(JSON.stringify({{
     )
 
     assert json.loads(result.stdout) == {
-        "selectedPath": "merged/show.final.mp4",
-        "title": "show.final.mp4",
+        "selectedPath": "merged/침착맨_라이브_20260826_053736.mp4",
+        "title": "침착맨_라이브_20260826",
         "events": ["render-list", "render-ready"],
     }
 

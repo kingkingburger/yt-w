@@ -1581,7 +1581,10 @@ function selectYouTubeUploadFile(path) {
   if (titleInput) {
     const fileName = selectedFile ? selectedFile.name || mergeFileName(selectedFile.path) : '';
     const maxLength = titleInput.maxLength > 0 ? titleInput.maxLength : 100;
-    titleInput.value = String(fileName).slice(0, maxLength);
+    const uploadTitle = String(fileName)
+      .replace(/\.[^.]+$/, '')
+      .replace(/_([01]\d|2[0-3])[0-5]\d[0-5]\d$/, '');
+    titleInput.value = uploadTitle.slice(0, maxLength);
   }
   renderYouTubeUploadFileList();
   renderYouTubeUploadReady();
