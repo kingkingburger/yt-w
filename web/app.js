@@ -83,6 +83,17 @@ const jobStateChip = (status) => {
   const [label, kind] = JOB_STATE_LABELS[status] || [status, 'dim'];
   return `<span class="chip ${kind}">${label}</span>`;
 };
+const emptyState = ({ icon, title, sub, action = '' }) => `<div class="empty">
+  <div class="empty-icon">${icon}</div>
+  <div class="empty-title">${title}</div>
+  <div class="empty-sub">${sub}</div>
+  ${action}
+</div>`;
+const throwIfResponseFailed = async (response, fallbackMessage = '요청을 처리하지 못했습니다') => {
+  if (response.ok) return;
+  const payload = await response.json().catch(() => ({}));
+  throw new Error(payload.detail || fallbackMessage);
+};
 
 /* ── tabs ──────────────────────────────────────────────────────────── */
 function switchTab(tab) {
@@ -195,13 +206,12 @@ async function loadChannels() {
 function renderChannelTable(channels) {
   const host = $('channel-table');
   if (!channels.length) {
-    host.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">+</div>
-        <div class="empty-title">아직 등록된 채널이 없어요</div>
-        <div class="empty-sub">유튜브 채널을 추가하면 라이브 시작 시 자동으로 녹화돼요</div>
-        <button class="btn primary" onclick="openAddChannelModal()">+ 첫 채널 추가하기</button>
-      </div>`;
+    host.innerHTML = emptyState({
+      icon: '+',
+      title: '아직 등록된 채널이 없어요',
+      sub: '유튜브 채널을 추가하면 라이브 시작 시 자동으로 녹화돼요',
+      action: '<button class="btn primary" onclick="openAddChannelModal()">+ 첫 채널 추가하기</button>',
+    });
     return;
   }
   host.innerHTML = `
@@ -235,13 +245,12 @@ function renderChannelTable(channels) {
 function renderMonitorChannelList(channels) {
   const host = $('monitor-channel-list');
   if (!channels.length) {
-    host.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">+</div>
-        <div class="empty-title">감시할 채널이 없어요</div>
-        <div class="empty-sub">먼저 유튜브 채널을 등록해야 자동 녹화를 시작할 수 있어요</div>
-        <button class="btn primary" onclick="openAddChannelModal()">+ 채널 추가하기</button>
-      </div>`;
+    host.innerHTML = emptyState({
+      icon: '+',
+      title: '감시할 채널이 없어요',
+      sub: '먼저 유튜브 채널을 등록해야 자동 녹화를 시작할 수 있어요',
+      action: '<button class="btn primary" onclick="openAddChannelModal()">+ 채널 추가하기</button>',
+    });
     return;
   }
   host.innerHTML = `
@@ -274,7 +283,7 @@ async function addChannel(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, url, enabled: true }),
     });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+    await throwIfResponseFailed(r);
     notify('완료', `'${name}' 채널을 추가했어요`, 'ok');
     closeAddChannelModal(); loadChannels(); systemRefresh();
   } catch (e) { notify('오류', e.message, 'err'); }
@@ -286,7 +295,7 @@ async function toggleChannel(id, enabled) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enabled }),
     });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+    await throwIfResponseFailed(r);
     notify('완료', `채널을 ${enabled ? '활성화' : '비활성화'}했어요`, 'ok');
     loadChannels(); systemRefresh();
   } catch (e) { notify('오류', e.message, 'err'); }
@@ -295,7 +304,7 @@ async function deleteChannel(id, name) {
   if (!confirm(`'${name}' 채널을 삭제할까요?`)) return;
   try {
     const r = await fetch(`${API}/api/channels/${id}`, { method: 'DELETE' });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+    await throwIfResponseFailed(r);
     notify('완료', `'${name}' 채널을 삭제했어요`, 'ok');
     loadChannels(); systemRefresh();
   } catch (e) { notify('오류', e.message, 'err'); }
@@ -351,13 +360,12 @@ function renderFileList() {
   if (deleteSelectedBtn) deleteSelectedBtn.disabled = selectedCount === 0;
   if (deselectAllBtn) deselectAllBtn.disabled = state.sequence.length === 0;
   if (!state.files.length) {
-    host.innerHTML = `
-      <div class="empty">
-        <div class="empty-icon">⌘</div>
-        <div class="empty-title">아직 받아둔 영상이 없어요</div>
-        <div class="empty-sub">다운로드 탭에서 영상을 받거나, 라이브 녹화가 채널을 녹화하면 여기에 쌓입니다</div>
-        <button class="btn primary" type="button" onclick="switchTab('download')">다운로드 탭으로 가기</button>
-      </div>`;
+    host.innerHTML = emptyState({
+      icon: '⌘',
+      title: '아직 받아둔 영상이 없어요',
+      sub: '다운로드 탭에서 영상을 받거나, 라이브 녹화가 채널을 녹화하면 여기에 쌓입니다',
+      action: `<button class="btn primary" type="button" onclick="switchTab('download')">다운로드 탭으로 가기</button>`,
+    });
     return;
   }
   if (!sourceFiles.length) {
@@ -1097,11 +1105,11 @@ async function loadJobs() {
 function renderJobs(jobs) {
   const host = $('merge-jobs');
   if (!jobs.length) {
-    host.innerHTML = `<div class="empty">
-      <div class="empty-icon">▦</div>
-      <div class="empty-title">아직 합치기 작업이 없어요</div>
-      <div class="empty-sub">위에서 영상을 골라 합치기를 실행하면 진행 상황이 여기에 표시됩니다</div>
-    </div>`;
+    host.innerHTML = emptyState({
+      icon: '▦',
+      title: '아직 합치기 작업이 없어요',
+      sub: '위에서 영상을 골라 합치기를 실행하면 진행 상황이 여기에 표시됩니다',
+    });
     return;
   }
   host.innerHTML = `
@@ -1163,7 +1171,7 @@ async function saveMergedJob(jobId) {
 async function cancelJob(id) {
   try {
     const r = await fetch(`${API}/api/merge/jobs/${id}/cancel`, { method: 'POST' });
-    if (!r.ok) { const e = await r.json(); throw new Error(e.detail); }
+    await throwIfResponseFailed(r);
     notify('완료', `작업 ${id.slice(0,8)}을 취소했어요`, 'ok');
     loadJobs();
   } catch (e) { notify('오류', e.message, 'err'); }
@@ -1178,20 +1186,20 @@ function renderSplitFileList() {
     ? `${filteredFiles.length}/${state.files.length}개`
     : `${state.files.length}개`;
   if (!state.files.length) {
-    host.innerHTML = `<div class="empty">
-      <div class="empty-icon">⌘</div>
-      <div class="empty-title">나눌 영상이 없어요</div>
-      <div class="empty-sub">다운로드하거나 합친 영상이 여기에 표시됩니다. PC에 있는 영상은 위의 'PC 영상 올리기'로 가져올 수 있어요.</div>
-      <button class="btn primary" type="button" onclick="chooseSplitUpload()">PC 영상 올리기</button>
-    </div>`;
+    host.innerHTML = emptyState({
+      icon: '⌘',
+      title: '나눌 영상이 없어요',
+      sub: `다운로드하거나 합친 영상이 여기에 표시됩니다. PC에 있는 영상은 위의 'PC 영상 올리기'로 가져올 수 있어요.`,
+      action: '<button class="btn primary" type="button" onclick="chooseSplitUpload()">PC 영상 올리기</button>',
+    });
     return;
   }
   if (!filteredFiles.length) {
-    host.innerHTML = `<div class="empty">
-      <div class="empty-icon">⌕</div>
-      <div class="empty-title">검색 결과가 없어요</div>
-      <div class="empty-sub">다른 파일명이나 경로로 검색해 주세요</div>
-    </div>`;
+    host.innerHTML = emptyState({
+      icon: '⌕',
+      title: '검색 결과가 없어요',
+      sub: '다른 파일명이나 경로로 검색해 주세요',
+    });
     return;
   }
   state.splitGroups = buildFileGroups(filteredFiles);
@@ -1463,11 +1471,11 @@ function renderSplitJobs(jobs) {
   const host = $('split-jobs');
   if (!host) return;
   if (!jobs.length) {
-    host.innerHTML = `<div class="empty">
-      <div class="empty-icon">✂</div>
-      <div class="empty-title">아직 나누기 작업이 없어요</div>
-      <div class="empty-sub">위에서 영상과 나누는 기준을 골라 실행하면 진행 상황이 여기에 표시됩니다</div>
-    </div>`;
+    host.innerHTML = emptyState({
+      icon: '✂',
+      title: '아직 나누기 작업이 없어요',
+      sub: '위에서 영상과 나누는 기준을 골라 실행하면 진행 상황이 여기에 표시됩니다',
+    });
     return;
   }
   host.innerHTML = `
@@ -1508,7 +1516,7 @@ function renderSplitJobs(jobs) {
 async function cancelSplitJob(jobId) {
   try {
     const response = await fetch(`${API}/api/split/jobs/${jobId}/cancel`, { method: 'POST' });
-    if (!response.ok) { const error = await response.json(); throw new Error(error.detail); }
+    await throwIfResponseFailed(response);
     notify('완료', `작업 ${jobId.slice(0,8)}을 취소했어요`, 'ok');
     loadSplitJobs();
   } catch (error) {
@@ -1542,11 +1550,11 @@ function renderYouTubeUploadFileList() {
   $('youtube-upload-file-count').textContent = `${files.length}개`;
 
   if (!files.length) {
-    host.innerHTML = `<div class="empty">
-      <div class="empty-icon">⇧</div>
-      <div class="empty-title">업로드할 서버 영상이 없어요</div>
-      <div class="empty-sub">merged, split, uploads, web_downloads 폴더의 영상 파일만 표시됩니다. PC에서 바로 올리는 기능은 제공하지 않습니다.</div>
-    </div>`;
+    host.innerHTML = emptyState({
+      icon: '⇧',
+      title: '업로드할 서버 영상이 없어요',
+      sub: 'merged, split, uploads, web_downloads 폴더의 영상 파일만 표시됩니다. PC에서 바로 올리는 기능은 제공하지 않습니다.',
+    });
     return;
   }
 
@@ -1798,11 +1806,11 @@ function renderYouTubeUploadJobs(jobs) {
   const host = $('youtube-upload-jobs');
   if (!host) return;
   if (!jobs.length) {
-    host.innerHTML = `<div class="empty">
-      <div class="empty-icon">⇧</div>
-      <div class="empty-title">아직 YouTube 업로드 작업이 없어요</div>
-      <div class="empty-sub">영상과 정보를 고른 뒤 업로드하면 진행 상황이 여기에 표시됩니다.</div>
-    </div>`;
+    host.innerHTML = emptyState({
+      icon: '⇧',
+      title: '아직 YouTube 업로드 작업이 없어요',
+      sub: '영상과 정보를 고른 뒤 업로드하면 진행 상황이 여기에 표시됩니다.',
+    });
     return;
   }
 
@@ -1846,8 +1854,7 @@ async function cancelYouTubeUpload(jobId) {
       method: 'POST',
       headers: YOUTUBE_MUTATION_HEADERS,
     });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.detail || 'YouTube 업로드 취소를 요청하지 못했습니다.');
+    await throwIfResponseFailed(response, 'YouTube 업로드 취소를 요청하지 못했습니다.');
     notify('취소 요청', `작업 ${jobId.slice(0, 8)}의 취소를 요청했습니다.`, 'ok');
     loadYouTubeUploadJobs();
   } catch (error) {
