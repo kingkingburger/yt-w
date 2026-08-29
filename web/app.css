@@ -135,10 +135,8 @@ a {
 a:hover { color: var(--action-2); text-decoration: underline; text-underline-offset: 3px; }
 
 /* 실크스크린 라벨. 장비 패널에 각인된 작은 대문자 글씨를 흉내낸다. */
-.eyebrow,
 .nav-label,
 .syspanel-title,
-.stat-card .lbl,
 .table th,
 .job-row.head,
 .notif-title {
