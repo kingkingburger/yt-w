@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Literal, Optional, Set
 
+from ..jobs import stamp_job_finished
 from ..paths import PathOutsideRootError, resolve_within_root
 from .merge import VideoExtensions
 
@@ -216,8 +217,8 @@ class SplitJobManager:
             if job is None or job.status not in {"queued", "running"}:
                 return False
             job.status = "cancelled"
-            job.finished_at = time.time()
             job.message = "사용자가 취소함"
+            stamp_job_finished(job)
         if process is not None and process.poll() is None:
             try:
                 process.terminate()
@@ -397,17 +398,13 @@ class SplitJobManager:
                 else:
                     final.status = "done"
                     final.message = f"{final.total_parts}개 파일 분할 완료"
-                    final.finished_at = time.time()
-                if final.finished_at is None:
-                    final.finished_at = time.time()
-                final.elapsed_seconds = final.finished_at - final.started_at
+                stamp_job_finished(final)
         except Exception as error:
             with self._lock:
                 failed = self._jobs[job_id]
                 failed.status = "failed"
                 failed.message = f"오류: {error}"
-                failed.finished_at = time.time()
-                failed.elapsed_seconds = failed.finished_at - failed.started_at
+                stamp_job_finished(failed)
         finally:
             with self._lock:
                 self._processes.pop(job_id, None)

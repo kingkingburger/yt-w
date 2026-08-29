@@ -24,6 +24,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
+from ..jobs import stamp_job_finished
 from ..paths import PathOutsideRootError, resolve_within_root
 
 YOUTUBE_UPLOAD_SCOPE: str = "https://www.googleapis.com/auth/youtube.upload"
@@ -584,9 +585,8 @@ class YouTubeUploadJobManager:
             cancel_event.set()
             if job.status == "queued":
                 job.status = "cancelled"
-                job.finished_at = time.time()
-                job.elapsed_seconds = job.finished_at - job.started_at
                 job.message = "사용자가 취소함"
+                stamp_job_finished(job)
             else:
                 job.message = "현재 전송 조각 완료 후 취소합니다"
             return "accepted"
@@ -668,8 +668,7 @@ class YouTubeUploadJobManager:
                     failed = self._jobs[job_id]
                     failed.status = "failed"
                     failed.message = _safe_upload_error_message(error)
-                    failed.finished_at = time.time()
-                    failed.elapsed_seconds = failed.finished_at - failed.started_at
+                    stamp_job_finished(failed)
 
     def _finish_done(self, job_id: str, video_id: str) -> None:
         with self._lock:
@@ -680,8 +679,7 @@ class YouTubeUploadJobManager:
             completed.message = "비공개 업로드 완료"
             completed.video_id = video_id
             completed.video_url = f"https://www.youtube.com/watch?v={video_id}"
-            completed.finished_at = time.time()
-            completed.elapsed_seconds = completed.finished_at - completed.started_at
+            stamp_job_finished(completed)
 
     def _finish_cancelled(self, job_id: str) -> None:
         with self._lock:
@@ -690,8 +688,7 @@ class YouTubeUploadJobManager:
                 return
             cancelled.status = "cancelled"
             cancelled.message = "사용자가 취소함"
-            cancelled.finished_at = time.time()
-            cancelled.elapsed_seconds = cancelled.finished_at - cancelled.started_at
+            stamp_job_finished(cancelled)
 
     def _evict_history_locked(self) -> None:
         if len(self._jobs) <= self._history_limit:

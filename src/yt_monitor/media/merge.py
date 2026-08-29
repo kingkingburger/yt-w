@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Literal, Optional
 
+from ..jobs import stamp_job_finished
 from ..paths import PathOutsideRootError, resolve_within_root
 
 VideoExtensions = frozenset(
@@ -250,8 +251,8 @@ class MergeJobManager:
             if job.status not in {"queued", "running"}:
                 return False
             job.status = "cancelled"
-            job.finished_at = time.time()
             job.message = "사용자가 취소함"
+            stamp_job_finished(job)
         if proc is not None and proc.poll() is None:
             try:
                 proc.terminate()
@@ -386,15 +387,13 @@ class MergeJobManager:
                 else:
                     final.status = "failed"
                     final.message = "\n".join(stderr_tail[-5:]) or "ffmpeg 실패"
-                final.finished_at = time.time()
-                final.elapsed_seconds = final.finished_at - final.started_at
+                stamp_job_finished(final)
         except Exception as error:
             with self._lock:
                 failed = self._jobs[job_id]
                 failed.status = "failed"
                 failed.message = f"오류: {error}"
-                failed.finished_at = time.time()
-                failed.elapsed_seconds = failed.finished_at - failed.started_at
+                stamp_job_finished(failed)
         finally:
             with self._lock:
                 self._processes.pop(job_id, None)
