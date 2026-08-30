@@ -54,6 +54,7 @@ yt-w/
 │   │   ├── converters.py                # ChannelDTO → API dict 변환
 │   │   └── routes/                      # 채널/상태/미디어/OAuth/upload 라우트
 │   ├── entrypoint.py                    # 모니터 데몬 실행 진입점
+│   ├── jobs.py                          # 작업 DTO의 종료 시각·경과 시간 확정
 │   ├── logging.py                       # TimedRotatingFileHandler 로거
 │   └── paths.py                         # root 경계 안으로만 경로를 해석하는 공용 검증
 ├── tests/                               # src 소유 경계를 따르는 pytest 테스트
@@ -223,6 +224,10 @@ Upload route 계약:
 submit/cancel 같은 쓰기 route는 `X-YT-Monitor-Request: 1`을 요구하고, callback은
 10분 TTL의 one-time state와 `HttpOnly; SameSite=Lax` cookie를 함께 검증한다.
 
+업로드 제목의 기본값은 고른 파일명에서 확장자와 끝의 `_HHMMSS` 녹화 시각 접미사를 뺀
+값이다. 녹화 파일명이 그대로 공개 제목이 되지 않게 하려는 것이며, 입력란을 고치면 그 값이
+그대로 API payload가 된다.
+
 MVP의 `privacyStatus`는 `private`로 고정한다. resumable upload는 프로세스가 살아 있는
 동안 chunk 진행률과 네트워크 재시도를 제공하지만 resumable session과 job 목록은
 영속화하지 않는다. 따라서 `yt-web` 컨테이너가 재시작되면 queued/running job을 자동
@@ -265,9 +270,10 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다. P
 ## 운영 콘솔 시각·접근성 계약
 
 `web/index.html`은 의미와 입력 요소, `web/app.js`는 화면 상태, `web/app.css`는 시각
-표현을 소유한다. 콘솔은 방송 장비 랙의 정보 구조에 인디 스튜디오 포스터의 색과
-오프셋 인쇄 질감을 결합한다. `--action`은 선택·포커스, `--acid`는 실행,
-`--hot`은 녹화·경고에만 사용해 장식 색이 상태 의미를 덮지 않게 한다.
+표현을 소유한다. 콘솔을 열면 YouTube 업로드 탭이 먼저 보인다. 콘솔은 방송 장비 랙의
+정보 구조에 인디 스튜디오 포스터의 색과 오프셋 인쇄 질감을 결합한다. `--action`은
+선택·포커스, `--acid`는 실행, `--hot`은 녹화·경고에만 사용해 장식 색이 상태 의미를
+덮지 않게 한다.
 
 선택 컨트롤은 다음 계약을 지킨다.
 
@@ -281,6 +287,14 @@ PO Token Provider URL이 설정돼 있으면 `extractor_args`에 추가된다. P
   장식 체크는 `aria-hidden="true"`로 둔다.
 - `:focus-visible`은 선택 여부와 관계없이 외곽 포커스 링을 남기고,
   `prefers-reduced-motion: reduce`에서는 체크를 포함한 위치 애니메이션을 사실상 끈다.
+
+목록과 작업 패널은 두 공용 헬퍼를 공유한다.
+
+- `emptyState({icon, title, sub, action})`이 빈 상태 마크업을 만든다. 아이콘, 제목,
+  설명은 항상 같은 클래스로 나오고 action 버튼은 넘길 때만 붙는다.
+- `throwIfResponseFailed(response, fallbackMessage)`가 실패 응답을 처리한다. 서버가 준
+  `detail`을 먼저 쓰고, 없거나 JSON 파싱이 실패하면 기본 메시지를 던져 알림이 비지 않게
+  한다.
 
 `tests/web/frontend/test_split.py`가 checkbox/radio/indeterminate 스타일 계약을,
 `tests/web/frontend/test_youtube_upload.py`가 아동용 checkbox의 커스텀 마크와 실제
@@ -307,6 +321,10 @@ input 보존을 검증한다. 외부 이미지나 JavaScript UI 의존성은 추
 `os.replace()`로 교체해 reader가 중간 JSON을 보지 않도록 한다. 실행 중인 worker 수는
 `monitor_status.json`의 `active_channels`가 운영 화면의 기준이다.
 
+세 작업 매니저는 `jobs.stamp_job_finished`로 종료 시각을 확정한다. 먼저 기록된 시각을
+유지하므로 취소 시각이 프로세스 종료 시각으로 덮이지 않고, 경과 시간은 항상 그 시각을
+기준으로 맞춰진다.
+
 ## 테스트 전략
 
 테스트는 파일 수나 assertion 수가 아니라 실제 회귀 경계를 기준으로 유지한다. 생성자
@@ -326,6 +344,7 @@ input 보존을 검증한다. 외부 이미지나 JavaScript UI 의존성은 추
 | heartbeat 신뢰성과 operator 상태 | `tests/monitoring/test_status.py`, `tests/web/routes/test_monitor.py`, `tests/web/routes/test_system.py` | stale 경계, 손상된 JSON, 잘못된 field type, 설정 기반 fallback과 disk/download 집계를 분리해 검증한다. |
 | monitor thread 동시성·종료 | `tests/monitoring/test_service.py`, `tests/monitoring/test_worker.py` | 웹 요청과 감시 loop가 같은 thread map을 다루며, Docker SIGTERM과 background start도 별도 런타임 경계다. |
 | 사용자 화면의 병합·분할 동작 | `tests/web/frontend/` | 별도 frontend test runner가 없으므로 Node로 실제 함수를 실행하고, markup-only 계약은 필요한 DOM selector만 확인한다. |
+| 화면 공용 헬퍼의 빈 상태·오류 계약 | `tests/web/frontend/test_shared_helpers.py` | 헬퍼를 쓰는 렌더 함수는 추출 대상이 아니어서, 헬퍼가 조용히 바뀌면 모든 목록의 빈 상태와 오류 메시지가 함께 무너진다. |
 | OAuth token 경계와 비공개 upload job | `tests/youtube/`, `tests/web/routes/`, `tests/web/frontend/` | OAuth 연결 상태·callback, token 저장, source path 검증, private metadata, progress/cancel과 재시작 비영속 계약을 분리해 고정한다. |
 
 Node는 production image의 필수 runtime이므로 frontend 테스트에서 찾을 수 없으면 skip하지 않고 실패한다. FastAPI route 테스트는 실제 cleanup daemon을 시작하지 않아 HTTP test harness와 background thread의 생명주기를 분리한다.
