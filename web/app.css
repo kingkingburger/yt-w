@@ -24,14 +24,18 @@
   --action:      #6847ed;
   --action-2:    #5e3ee6;
   --action-3:    #4326b9;
+  --action-rgb:  104, 71, 237;
   --action-tint: #eee9ff;
   --action-line: #c4b7ff;
   --acid:        #caff58;
+  --acid-rgb:    202, 255, 88;
   --acid-ink:    #1d260c;
   --hot:         #d91e63;
+  --hot-rgb:     217, 30, 99;
 
   /* 랙 패널. 사이드바·모니터 히어로·타임라인 트랙이 같은 재질을 공유한다. */
   --rack:      #15111e;
+  --rack-rgb:  21, 17, 30;
   --rack-2:    #211a30;
   --rack-3:    #302442;
   --rack-line: #4b3a61;
@@ -53,7 +57,10 @@
   --warn-line:  #e6c58c;
   --danger:     #b02a20;
 
-  --scrim: rgba(21,17,30,0.72);
+  --ink-rgb:    24, 20, 31;
+  --grid-rgb:   41, 27, 65;
+  --shadow-rgb: 36, 24, 54;
+  --scrim: rgba(var(--rack-rgb),0.72);
 
   --sidebar-w: 264px;
 
@@ -62,9 +69,9 @@
   --radius:    9px;
   --radius-sm: 6px;
 
-  --shadow-sm: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1);
-  --shadow:    0 8px 22px -15px rgba(36,24,54,0.42), 6px 7px 0 rgba(104,71,237,0.12);
-  --shadow-lg: 0 18px 36px -18px rgba(24,20,31,0.46), 9px 10px 0 rgba(217,30,99,0.16);
+  --shadow-sm: 0 2px 2px rgba(var(--shadow-rgb),0.06), 4px 5px 0 rgba(var(--action-rgb),0.1);
+  --shadow:    0 8px 22px -15px rgba(var(--shadow-rgb),0.42), 6px 7px 0 rgba(var(--action-rgb),0.12);
+  --shadow-lg: 0 18px 36px -18px rgba(var(--ink-rgb),0.46), 9px 10px 0 rgba(var(--hot-rgb),0.16);
 
   --ease:      cubic-bezier(0.22, 1, 0.36, 1);
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
@@ -87,10 +94,10 @@
 html, body {
   background-color: var(--bench);
   background-image:
-    radial-gradient(circle at 86% -8%, rgba(202,255,88,0.62), transparent 30rem),
-    radial-gradient(circle at 4% 105%, rgba(217,30,99,0.22), transparent 34rem),
-    linear-gradient(rgba(41,27,65,0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(41,27,65,0.07) 1px, transparent 1px);
+    radial-gradient(circle at 86% -8%, rgba(var(--acid-rgb),0.62), transparent 30rem),
+    radial-gradient(circle at 4% 105%, rgba(var(--hot-rgb),0.22), transparent 34rem),
+    linear-gradient(rgba(var(--grid-rgb),0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--grid-rgb),0.07) 1px, transparent 1px);
   background-size: auto, auto, 24px 24px, 24px 24px;
   background-attachment: fixed;
   color: var(--ink);
@@ -171,7 +178,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   z-index: 2;
   border-top: 4px solid var(--acid);
   border-right: 1px solid var(--rack-line);
-  box-shadow: 8px 0 0 rgba(24,20,31,0.08);
+  box-shadow: 8px 0 0 rgba(var(--ink-rgb),0.08);
 }
 
 .brand {
@@ -196,7 +203,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   border-radius: 0;
   background: none;
   color: var(--hot);
-  text-shadow: 2px 0 0 rgba(202,255,88,0.75);
+  text-shadow: 2px 0 0 rgba(var(--acid-rgb),0.75);
   animation: none;
 }
 .brand-tag {
@@ -408,7 +415,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   background:
     linear-gradient(145deg, rgba(255,255,255,0.68), transparent 48%),
     var(--paper);
-  border: 1px solid rgba(24,20,31,0.32);
+  border: 1px solid rgba(var(--ink-rgb),0.32);
   border-top: 3px solid var(--ink);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -499,7 +506,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .btn {
   background: var(--paper);
   color: var(--ink-2);
-  border: 1px solid rgba(24,20,31,0.48);
+  border: 1px solid rgba(var(--ink-rgb),0.48);
   padding: 7px 13px;
   border-radius: var(--radius);
   font-family: inherit;
@@ -520,11 +527,11 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   background: var(--paper-2);
   border-color: var(--ink);
   color: var(--ink);
-  box-shadow: 3px 3px 0 rgba(104,71,237,0.2);
+  box-shadow: 3px 3px 0 rgba(var(--action-rgb),0.2);
 }
 .btn:active:not(:disabled) {
   background: var(--paper-3);
-  box-shadow: 1px 1px 0 rgba(104,71,237,0.16);
+  box-shadow: 1px 1px 0 rgba(var(--action-rgb),0.16);
   transform: translate(1px, 1px);
 }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -598,7 +605,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .input, .select {
   background: rgba(255,253,247,0.92);
   color: var(--ink);
-  border: 1px solid rgba(24,20,31,0.5);
+  border: 1px solid rgba(var(--ink-rgb),0.5);
   padding: 8px 11px;
   border-radius: var(--radius);
   font-family: inherit;
@@ -640,7 +647,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 /* ──── Toggle group ───────────────────────────────────────────────── */
 .toggle-group {
   display: inline-flex;
-  border: 1px solid rgba(24,20,31,0.5);
+  border: 1px solid rgba(var(--ink-rgb),0.5);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--paper);
@@ -663,7 +670,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   background: var(--action);
   color: #fff;
   font-weight: 600;
-  box-shadow: inset 0 -3px 0 rgba(24,20,31,0.22);
+  box-shadow: inset 0 -3px 0 rgba(var(--ink-rgb),0.22);
 }
 .seq-view-toggle button { padding: 5px 11px; font-size: 12.5px; }
 
@@ -678,7 +685,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   padding: 8px 14px;
   color: var(--ink-3);
   border-bottom: 1px solid var(--rule);
-  background: linear-gradient(90deg, var(--paper-2), rgba(202,255,88,0.12));
+  background: linear-gradient(90deg, var(--paper-2), rgba(var(--acid-rgb),0.12));
 }
 .table td {
   padding: 10px 14px;
@@ -702,7 +709,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   width: 34px; height: 34px;
   margin: 0 auto 10px;
   border-radius: var(--radius);
-  background: rgba(202,255,88,0.25);
+  background: rgba(var(--acid-rgb),0.25);
   border: 1px dashed var(--ink-3);
   display: flex;
   align-items: center;
@@ -748,7 +755,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 11.5px;
   font-weight: 600;
   border-radius: 999px;
-  border: 1px solid rgba(24,20,31,0.32);
+  border: 1px solid rgba(var(--ink-rgb),0.32);
   background: var(--paper);
   color: var(--ink-2);
   white-space: nowrap;
@@ -774,7 +781,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 /* 히어로만 랙 패널 재질이다. 탤리 램프는 어두운 면 위에서만 진짜로 빛난다. */
 .monitor-hero {
   background:
-    radial-gradient(circle at 90% 0%, rgba(217,30,99,0.22), transparent 320px),
+    radial-gradient(circle at 90% 0%, rgba(var(--hot-rgb),0.22), transparent 320px),
     linear-gradient(135deg, rgba(123,92,255,0.22), transparent 48%),
     var(--rack);
   border: 1px solid var(--rack-line);
@@ -790,7 +797,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   overflow: hidden;
   color: var(--rack-ink);
   flex-shrink: 0;
-  box-shadow: 6px 7px 0 rgba(104,71,237,0.18);
+  box-shadow: 6px 7px 0 rgba(var(--action-rgb),0.18);
 }
 .monitor-hero::before {
   content: '';
@@ -798,7 +805,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   inset: 0;
   background:
     repeating-linear-gradient(112deg, transparent 0 22px, rgba(255,255,255,0.025) 22px 23px),
-    radial-gradient(420px 220px at 100% 0%, rgba(217,30,99,0.18), transparent 65%);
+    radial-gradient(420px 220px at 100% 0%, rgba(var(--hot-rgb),0.18), transparent 65%);
   pointer-events: none;
   transition: background var(--t-3) var(--ease-soft);
 }
@@ -860,7 +867,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   background: #3b2e50;
   border-color: #5d4775;
   color: #fff;
-  box-shadow: 3px 3px 0 rgba(202,255,88,0.25);
+  box-shadow: 3px 3px 0 rgba(var(--acid-rgb),0.25);
 }
 
 /* ──── Channel rows ───────────────────────────────────────────────── */
@@ -963,7 +970,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   cursor: pointer;
   transition: background var(--t-1) var(--ease-soft);
 }
-.file-group-head:hover { background: rgba(104,71,237,0.065); }
+.file-group-head:hover { background: rgba(var(--action-rgb),0.065); }
 .selection-control {
   position: relative;
   display: inline-grid;
@@ -1012,7 +1019,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .selection-control input:indeterminate + .selection-mark {
   border-color: var(--action);
   background: var(--action);
-  box-shadow: inset 0 -2px 0 rgba(24,20,31,0.18);
+  box-shadow: inset 0 -2px 0 rgba(var(--ink-rgb),0.18);
 }
 .selection-checkbox input:checked + .selection-mark::after {
   width: 5px;
@@ -1366,7 +1373,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   line-height: 1.5;
 }
 .ready-bar.go {
-  background: rgba(202,255,88,0.28);
+  background: rgba(var(--acid-rgb),0.28);
   border-color: var(--ink);
   border-style: solid;
   color: var(--acid-ink);
@@ -1556,7 +1563,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border: 1px solid rgba(24,20,31,0.44);
+  border: 1px solid rgba(var(--ink-rgb),0.44);
   border-radius: var(--radius);
   color: var(--ink-2);
   cursor: pointer;
@@ -1613,7 +1620,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .job-row > div { min-width: 0; overflow-wrap: anywhere; }
 .job-row:last-child { border-bottom: 0; }
 .job-row.head {
-  background: linear-gradient(90deg, var(--paper-2), rgba(202,255,88,0.12));
+  background: linear-gradient(90deg, var(--paper-2), rgba(var(--acid-rgb),0.12));
   color: var(--ink-3);
 }
 .job-id {
@@ -1748,7 +1755,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 50% 12%, rgba(104,71,237,0.3), transparent 34rem),
+    radial-gradient(circle at 50% 12%, rgba(var(--action-rgb),0.3), transparent 34rem),
     var(--scrim);
   backdrop-filter: blur(9px) saturate(0.82);
   display: none;
@@ -1769,7 +1776,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   max-height: calc(100dvh - 48px);
   box-shadow:
     0 30px 80px -30px rgba(15,10,24,0.72),
-    10px 12px 0 rgba(104,71,237,0.22);
+    10px 12px 0 rgba(var(--action-rgb),0.22);
   overflow-x: hidden;
   overflow-y: auto;
   position: relative;
@@ -1794,7 +1801,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   align-items: flex-start;
   gap: 18px;
   background:
-    radial-gradient(circle at 0 0, rgba(202,255,88,0.22), transparent 230px),
+    radial-gradient(circle at 0 0, rgba(var(--acid-rgb),0.22), transparent 230px),
     linear-gradient(135deg, var(--paper), var(--paper-2));
 }
 .modal-heading {
@@ -1843,7 +1850,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   flex: 0 0 auto;
   border: 1px solid transparent;
   border-radius: 50%;
-  background: rgba(24,20,31,0.06);
+  background: rgba(var(--ink-rgb),0.06);
   color: var(--ink-3);
   display: grid;
   place-items: center;
@@ -1963,7 +1970,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .footer-note {
   margin-top: 12px;
   padding-top: 10px;
-  border-top: 1px solid rgba(24,20,31,0.22);
+  border-top: 1px solid rgba(var(--ink-rgb),0.22);
   color: var(--ink-3);
   font-size: 12px;
   display: flex;

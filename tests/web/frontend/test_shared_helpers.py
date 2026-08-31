@@ -8,6 +8,25 @@ from pathlib import Path
 
 import pytest
 
+FRONTEND_JS_FILES = (
+    "app_core.js",
+    "channels.js",
+    "merge_files.js",
+    "merge_sequence.js",
+    "merge_jobs.js",
+    "split.js",
+    "youtube_upload.js",
+    "download.js",
+    "app.js",
+)
+
+
+def read_frontend_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in FRONTEND_JS_FILES
+    )
+
 
 def extract_js_arrow_constant(source: str, name: str, terminator: str) -> str:
     """`const 이름 = ...` 화살표 선언을 종료 표시까지 잘라낸다."""
@@ -39,7 +58,7 @@ def run_node_script(script: str) -> object:
 
 
 def test_empty_state_renders_icon_title_and_optional_action() -> None:
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_frontend_javascript()
     empty_state = extract_js_arrow_constant(app_js, "emptyState", "</div>`;")
 
     script = f"""
@@ -78,7 +97,7 @@ console.log(JSON.stringify({{
 
 
 def test_throw_if_response_failed_prefers_server_detail() -> None:
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_frontend_javascript()
     guard = extract_js_arrow_constant(app_js, "throwIfResponseFailed", "};")
 
     script = f"""
@@ -107,7 +126,7 @@ Promise.all([
 
 
 def test_list_panels_share_the_empty_state_helper() -> None:
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_frontend_javascript()
 
     assert app_js.count("host.innerHTML = emptyState({") == 9
     assert app_js.count("await throwIfResponseFailed(") == 6

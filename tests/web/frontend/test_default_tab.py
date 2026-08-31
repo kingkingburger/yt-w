@@ -5,12 +5,13 @@ from pathlib import Path
 
 def test_frontend_opens_youtube_upload_tab_by_default():
     """The site should land directly on the YouTube upload workspace."""
+    app_core_js = Path("web/app_core.js").read_text(encoding="utf-8")
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     index_html = Path("web/index.html").read_text(encoding="utf-8")
 
-    assert "activeTab: 'youtube-upload'," in app_js
+    assert "activeTab: 'youtube-upload'," in app_core_js
     assert "switchTab(state.activeTab);" in app_js
-    assert "setTimeout(() => $('url-input')?.focus(), 100);" not in app_js
+    assert "setTimeout(() => $('url-input')?.focus(), 100);" not in app_core_js
 
     assert index_html.count('class="nav-btn active"') == 1
     assert '<button class="nav-btn active" data-tab="youtube-upload"' in index_html

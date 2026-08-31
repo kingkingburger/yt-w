@@ -7,6 +7,15 @@ from pathlib import Path
 
 import pytest
 
+YOUTUBE_UPLOAD_JS_FILES = ("app_core.js", "youtube_upload.js", "app.js")
+
+
+def read_youtube_upload_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in YOUTUBE_UPLOAD_JS_FILES
+    )
+
 
 def extract_js_function(source: str, name: str) -> str:
     async_marker = f"async function {name}("
@@ -78,7 +87,7 @@ def test_youtube_kids_checkbox_uses_studio_selection_mark() -> None:
 
 
 def test_youtube_upload_javascript_targets_backend_contract() -> None:
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
 
     assert "if (tab === 'youtube-upload')" in app_js
     assert "`${API}/api/youtube/oauth/status`" in app_js
@@ -103,7 +112,7 @@ def test_youtube_upload_javascript_targets_backend_contract() -> None:
 
 def test_youtube_upload_file_filter_allows_only_server_video_directories() -> None:
     node = require_node()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
     filter_function = extract_js_function(app_js, "filterYouTubeUploadFiles")
     script = f"""
 {filter_function}
@@ -146,7 +155,7 @@ console.log(JSON.stringify(filterYouTubeUploadFiles(files).map(file => file.path
 
 def test_youtube_upload_file_attributes_escape_quotes() -> None:
     node = require_node()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
     marker = "const escapeHtmlAttribute ="
     start = app_js.index(marker)
     end = app_js.index(";\n", start) + 1
@@ -172,7 +181,7 @@ console.log(escapeHtmlAttribute(`merged/\" onfocus=\"alert(1).mp4`));
 
 def test_youtube_upload_file_selection_fills_title_from_file_name() -> None:
     node = require_node()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
     filter_function = extract_js_function(app_js, "filterYouTubeUploadFiles")
     select_function = extract_js_function(app_js, "selectYouTubeUploadFile")
     script = f"""
@@ -217,7 +226,7 @@ console.log(JSON.stringify({{
 
 def test_youtube_upload_submit_sends_metadata_and_write_marker() -> None:
     node = require_node()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
     submit_function = extract_js_function(app_js, "submitYouTubeUpload")
     script = f"""
 const API = '';
@@ -290,7 +299,7 @@ def test_youtube_oauth_callback_notifies_and_cleans_query(
     expected_kind: str,
 ) -> None:
     node = require_node()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
     callback_function = extract_js_function(app_js, "handleYouTubeOAuthCallback")
     script = f"""
 const events = [];
@@ -325,7 +334,7 @@ console.log(JSON.stringify({{ handled, activeTab: state.activeTab, events }}));
 
 def test_unknown_youtube_oauth_query_is_left_untouched() -> None:
     node = require_node()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_youtube_upload_javascript()
     callback_function = extract_js_function(app_js, "handleYouTubeOAuthCallback")
     script = f"""
 const events = [];
@@ -357,13 +366,14 @@ console.log(JSON.stringify({{
 
 def test_youtube_upload_frontend_javascript_is_valid() -> None:
     node = require_node()
-    result = subprocess.run(
-        [node, "--check", "web/app.js"],
-        check=True,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-    )
+    for filename in YOUTUBE_UPLOAD_JS_FILES:
+        result = subprocess.run(
+            [node, "--check", str(Path("web", filename))],
+            check=True,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
 
-    assert result.returncode == 0
-    assert result.stderr == ""
+        assert result.returncode == 0
+        assert result.stderr == ""

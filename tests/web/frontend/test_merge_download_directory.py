@@ -29,14 +29,15 @@ def run_node(script: str) -> dict:
 
 def test_merge_page_exposes_saved_pc_directory_picker() -> None:
     index_html = Path("web/index.html").read_text(encoding="utf-8")
+    merge_js = Path("web/merge_jobs.js").read_text(encoding="utf-8")
     app_js = Path("web/app.js").read_text(encoding="utf-8")
 
     assert 'id="merge-download-directory"' in index_html
     assert 'id="btn-merge-download-directory"' in index_html
     assert index_html.index("merge_download_directory.js") < index_html.index("app.js")
     assert "restoreMergeDownloadDirectory();" in app_js
-    assert "saveMergedJob('${j.id}')" in app_js
-    assert "window.isSecureContext" in app_js
+    assert "saveMergedJob('${j.id}')" in merge_js
+    assert "window.isSecureContext" in merge_js
 
 
 def test_merge_directory_handle_round_trips_through_indexed_db() -> None:

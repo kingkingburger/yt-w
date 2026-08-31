@@ -9,6 +9,19 @@ from pathlib import Path
 import pytest
 
 
+def read_split_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in (
+            "app_core.js",
+            "merge_files.js",
+            "merge_sequence.js",
+            "merge_jobs.js",
+            "split.js",
+        )
+    )
+
+
 def test_split_tab_contains_interval_and_equal_part_controls():
     html = Path("web/index.html").read_text(encoding="utf-8")
 
@@ -44,7 +57,7 @@ def test_split_file_search_matches_name_and_path():
     if node is None:
         pytest.fail("node is required for the frontend search test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_split_javascript()
     match = re.search(
         r"function filterSplitFiles\([^)]*\) \{.*?^\}",
         app_js,
@@ -78,7 +91,7 @@ console.log(JSON.stringify({{
 
 
 def test_split_file_list_reuses_merge_part_group_ui():
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_split_javascript()
 
     assert "splitGroupOpen: new Set()" in app_js
     assert "buildFileGroups(filteredFiles)" in app_js
@@ -87,7 +100,7 @@ def test_split_file_list_reuses_merge_part_group_ui():
 
 
 def test_file_selection_controls_use_custom_visual_marks():
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_split_javascript()
     css = Path("web/app.css").read_text(encoding="utf-8")
     selection_styles = css[css.index(".selection-mark {") : css.index(".tree-toggle {")]
 
@@ -98,7 +111,7 @@ def test_file_selection_controls_use_custom_visual_marks():
     assert ".selection-checkbox input:indeterminate + .selection-mark::after" in css
     assert ".selection-radio input:checked + .selection-mark::after" in css
     assert "border-width: 0 2px 2px 0;" in selection_styles
-    assert "box-shadow: inset 0 -2px 0 rgba(24,20,31,0.18);" in selection_styles
+    assert "box-shadow: inset 0 -2px 0 rgba(var(--ink-rgb),0.18);" in selection_styles
     assert "clip-path:" not in selection_styles
     assert "rotate(-" not in selection_styles
 
@@ -109,7 +122,7 @@ def test_split_frontend_javascript_is_valid():
         pytest.fail("node is required for the frontend syntax test")
 
     result = subprocess.run(
-        [node, "--check", "web/app.js"],
+        [node, "--check", "web/split.js"],
         check=True,
         capture_output=True,
         text=True,

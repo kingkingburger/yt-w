@@ -8,6 +8,13 @@ from pathlib import Path
 import pytest
 
 
+def read_merge_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in ("merge_files.js", "merge_sequence.js", "merge_jobs.js")
+    )
+
+
 def extract_js_function(source: str, name: str) -> str:
     async_marker = f"async function {name}("
     marker = async_marker if async_marker in source else f"function {name}("
@@ -26,7 +33,7 @@ def extract_js_function(source: str, name: str) -> str:
 
 
 def test_source_list_renders_file_and_group_delete_actions() -> None:
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     index_html = Path("web/index.html").read_text(encoding="utf-8")
 
     assert "deleteSourceGroup(${groupIdx}, event)" in app_js
@@ -41,7 +48,7 @@ def test_source_file_delete_calls_api_and_refreshes_list() -> None:
     if node is None:
         pytest.fail("node is required for the source file delete frontend test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     delete_function = extract_js_function(app_js, "deleteSourceFiles")
     script = f"""
 const API = '';

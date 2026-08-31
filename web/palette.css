@@ -1,0 +1,588 @@
+/* Video-inspired palette presets and picker UI. */
+
+html[data-palette='sage-blush'] {
+  --bench: #e5dadd;
+  --bench-2: #d6c7cc;
+  --paper-2: #f6edef;
+  --paper-3: #eadde0;
+  --action: #526b52;
+  --action-2: #435b45;
+  --action-3: #304334;
+  --action-rgb: 82, 107, 82;
+  --action-tint: #e1e9df;
+  --action-line: #afc0aa;
+  --acid: #e0b3b6;
+  --acid-rgb: 224, 179, 182;
+  --acid-ink: #3b2027;
+  --rack: #1d291f;
+  --rack-rgb: 29, 41, 31;
+  --rack-2: #29372b;
+  --rack-3: #3b4c3e;
+  --rack-line: #5a6f5d;
+  --grid-rgb: 62, 83, 65;
+  --shadow-rgb: 52, 67, 54;
+}
+
+html[data-palette='ivory-sky'] {
+  --bench: #dceef2;
+  --bench-2: #c7e1e7;
+  --paper-2: #faf7df;
+  --paper-3: #e9e4c9;
+  --action: #34758f;
+  --action-2: #28647b;
+  --action-3: #1c4c60;
+  --action-rgb: 52, 117, 143;
+  --action-tint: #e0f0f4;
+  --action-line: #a7d4e4;
+  --acid: #f5ecc2;
+  --acid-rgb: 245, 236, 194;
+  --acid-ink: #302d1c;
+  --rack: #183642;
+  --rack-rgb: 24, 54, 66;
+  --rack-2: #214653;
+  --rack-3: #315d69;
+  --rack-line: #527b85;
+  --grid-rgb: 48, 96, 113;
+  --shadow-rgb: 35, 74, 88;
+}
+
+html[data-palette='orange-teal'] {
+  --bench: #c9e6e8;
+  --bench-2: #afd5d8;
+  --paper-2: #f9eee5;
+  --paper-3: #ead9cc;
+  --action: #007888;
+  --action-2: #006675;
+  --action-3: #004d59;
+  --action-rgb: 0, 120, 136;
+  --action-tint: #d9f0f1;
+  --action-line: #85c6cc;
+  --acid: #e47b3e;
+  --acid-rgb: 228, 123, 62;
+  --acid-ink: #261006;
+  --rack: #0c353a;
+  --rack-rgb: 12, 53, 58;
+  --rack-2: #13464c;
+  --rack-3: #205c62;
+  --rack-line: #36787e;
+  --grid-rgb: 0, 103, 116;
+  --shadow-rgb: 20, 70, 77;
+}
+
+html[data-palette='rose-mint'] {
+  --bench: #eed0d7;
+  --bench-2: #dfbbc4;
+  --paper-2: #ecfbf5;
+  --paper-3: #d9eee6;
+  --action: #a22e47;
+  --action-2: #8b253b;
+  --action-3: #6c1a2d;
+  --action-rgb: 162, 46, 71;
+  --action-tint: #fae3e8;
+  --action-line: #e1a7b4;
+  --acid: #6ce0be;
+  --acid-rgb: 108, 224, 190;
+  --acid-ink: #08291f;
+  --rack: #12362f;
+  --rack-rgb: 18, 54, 47;
+  --rack-2: #1b493f;
+  --rack-3: #2d6154;
+  --rack-line: #477f70;
+  --grid-rgb: 122, 42, 62;
+  --shadow-rgb: 74, 43, 49;
+}
+
+html[data-palette='coffee-olive'] {
+  --bench: #d9d5c5;
+  --bench-2: #c8c2ae;
+  --paper-2: #f3eee3;
+  --paper-3: #e5dccb;
+  --action: #604022;
+  --action-2: #50351d;
+  --action-3: #3d2816;
+  --action-rgb: 96, 64, 34;
+  --action-tint: #eee5d9;
+  --action-line: #c8b69f;
+  --acid: #a8b989;
+  --acid-rgb: 168, 185, 137;
+  --acid-ink: #202616;
+  --rack: #241d15;
+  --rack-rgb: 36, 29, 21;
+  --rack-2: #342a1f;
+  --rack-3: #493b2c;
+  --rack-line: #675642;
+  --grid-rgb: 83, 79, 54;
+  --shadow-rgb: 59, 48, 33;
+}
+
+html[data-palette='magenta-blue'] {
+  --bench: #d8d5e8;
+  --bench-2: #c4c0dc;
+  --paper-2: #f6eaf1;
+  --paper-3: #e8d9e2;
+  --action: #005b8d;
+  --action-2: #004d78;
+  --action-3: #003957;
+  --action-rgb: 0, 91, 141;
+  --action-tint: #ddecf4;
+  --action-line: #9fc4d7;
+  --acid: #dc79a7;
+  --acid-rgb: 220, 121, 167;
+  --acid-ink: #321422;
+  --rack: #071e32;
+  --rack-rgb: 7, 30, 50;
+  --rack-2: #102b43;
+  --rack-3: #1e3e58;
+  --rack-line: #365a74;
+  --grid-rgb: 75, 42, 108;
+  --shadow-rgb: 38, 34, 71;
+}
+
+html[data-palette='lime-purple'] {
+  --bench: #e0d1df;
+  --bench-2: #cfbdd0;
+  --paper-2: #f1f5dc;
+  --paper-3: #e2e8c7;
+  --action: #501345;
+  --action-2: #421039;
+  --action-3: #310b2a;
+  --action-rgb: 80, 19, 69;
+  --action-tint: #f0e0ed;
+  --action-line: #c7a5c0;
+  --acid: #d5e25a;
+  --acid-rgb: 213, 226, 90;
+  --acid-ink: #222707;
+  --rack: #21071e;
+  --rack-rgb: 33, 7, 30;
+  --rack-2: #32102e;
+  --rack-3: #461a41;
+  --rack-line: #63305d;
+  --grid-rgb: 77, 34, 71;
+  --shadow-rgb: 51, 24, 47;
+}
+
+html[data-palette='pale-yellow-dark-olive'] {
+  --bench: #e8e4c7;
+  --bench-2: #d7d1ae;
+  --paper-2: #fff9dc;
+  --paper-3: #eee7c9;
+  --action: #42533e;
+  --action-2: #354431;
+  --action-3: #273326;
+  --action-rgb: 66, 83, 62;
+  --action-tint: #e4e9df;
+  --action-line: #b0bda8;
+  --acid: #ffefae;
+  --acid-rgb: 255, 239, 174;
+  --acid-ink: #332d12;
+  --rack: #1b261c;
+  --rack-rgb: 27, 38, 28;
+  --rack-2: #28372a;
+  --rack-3: #394c3b;
+  --rack-line: #546957;
+  --grid-rgb: 76, 84, 55;
+  --shadow-rgb: 51, 57, 39;
+}
+
+html[data-palette='amber-coffee'] {
+  --bench: #e7d2bd;
+  --bench-2: #d6bea5;
+  --paper-2: #fcf0e2;
+  --paper-3: #ebdccb;
+  --action: #6d4f2d;
+  --action-2: #5b4125;
+  --action-3: #44301b;
+  --action-rgb: 109, 79, 45;
+  --action-tint: #f2e5d6;
+  --action-line: #d0b494;
+  --acid: #f2b874;
+  --acid-rgb: 242, 184, 116;
+  --acid-ink: #321c08;
+  --rack: #291c11;
+  --rack-rgb: 41, 28, 17;
+  --rack-2: #3a2919;
+  --rack-3: #503a25;
+  --rack-line: #6c5338;
+  --grid-rgb: 106, 74, 40;
+  --shadow-rgb: 67, 48, 28;
+}
+
+html[data-palette='apricot-blue'] {
+  --bench: #d5e5f0;
+  --bench-2: #bfd3e1;
+  --paper-2: #fff0e8;
+  --paper-3: #f0ded5;
+  --action: #006eb8;
+  --action-2: #005d9c;
+  --action-3: #004675;
+  --action-rgb: 0, 110, 184;
+  --action-tint: #dcecf7;
+  --action-line: #9cc6e2;
+  --acid: #fdd4bd;
+  --acid-rgb: 253, 212, 189;
+  --acid-ink: #351d12;
+  --rack: #092c45;
+  --rack-rgb: 9, 44, 69;
+  --rack-2: #123d58;
+  --rack-3: #22536e;
+  --rack-line: #3e718a;
+  --grid-rgb: 38, 89, 126;
+  --shadow-rgb: 31, 63, 84;
+}
+
+html[data-palette='ochre-lavender'] {
+  --bench: #dcd4e5;
+  --bench-2: #c9bfd5;
+  --paper-2: #f5e9df;
+  --paper-3: #e5d7ca;
+  --action: #73442c;
+  --action-2: #603824;
+  --action-3: #482a1b;
+  --action-rgb: 115, 68, 44;
+  --action-tint: #f0e4dc;
+  --action-line: #d0af99;
+  --acid: #d7d3f2;
+  --acid-rgb: 215, 211, 242;
+  --acid-ink: #252039;
+  --rack: #2d2336;
+  --rack-rgb: 45, 35, 54;
+  --rack-2: #3d3148;
+  --rack-3: #54445f;
+  --rack-line: #705d7b;
+  --grid-rgb: 101, 72, 94;
+  --shadow-rgb: 66, 49, 68;
+}
+
+html[data-palette='terracotta-dusty-rose'] {
+  --bench: #e5d5d8;
+  --bench-2: #d3c0c4;
+  --paper-2: #f7ece9;
+  --paper-3: #e8d9d5;
+  --action: #984239;
+  --action-2: #81372f;
+  --action-3: #622820;
+  --action-rgb: 152, 66, 57;
+  --action-tint: #f4e2de;
+  --action-line: #d9aaa4;
+  --acid: #d8bcc4;
+  --acid-rgb: 216, 188, 196;
+  --acid-ink: #352127;
+  --rack: #38201e;
+  --rack-rgb: 56, 32, 30;
+  --rack-2: #4a2d2a;
+  --rack-3: #613f3b;
+  --rack-line: #7d5954;
+  --grid-rgb: 111, 69, 69;
+  --shadow-rgb: 75, 45, 43;
+}
+
+html[data-palette='pine-navy'] {
+  --bench: #c6d8d0;
+  --bench-2: #afc6bc;
+  --paper-2: #e8f0e9;
+  --paper-3: #d5e2d8;
+  --action: #064f6e;
+  --action-2: #043f59;
+  --action-3: #022e42;
+  --action-rgb: 6, 79, 110;
+  --action-tint: #d9e8ed;
+  --action-line: #9abdc9;
+  --acid: #88aa7c;
+  --acid-rgb: 136, 170, 124;
+  --acid-ink: #172515;
+  --rack: #071e23;
+  --rack-rgb: 7, 30, 35;
+  --rack-2: #102e34;
+  --rack-3: #1d4248;
+  --rack-line: #365f64;
+  --grid-rgb: 42, 84, 76;
+  --shadow-rgb: 29, 57, 55;
+}
+
+html[data-palette='jade-lavender'] {
+  --bench: #d3e5e2;
+  --bench-2: #bed3cf;
+  --paper-2: #f0edf8;
+  --paper-3: #e1ddea;
+  --action: #147963;
+  --action-2: #106653;
+  --action-3: #0b4c3e;
+  --action-rgb: 20, 121, 99;
+  --action-tint: #dcf0eb;
+  --action-line: #9bcdbf;
+  --acid: #d1c9f1;
+  --acid-rgb: 209, 201, 241;
+  --acid-ink: #28213e;
+  --rack: #0b302b;
+  --rack-rgb: 11, 48, 43;
+  --rack-2: #15423b;
+  --rack-3: #255950;
+  --rack-line: #40756b;
+  --grid-rgb: 47, 101, 91;
+  --shadow-rgb: 35, 68, 66;
+}
+
+html[data-palette='red-black-green'] {
+  --bench: #d6d1cf;
+  --bench-2: #c0b9b7;
+  --paper-2: #f5e8ea;
+  --paper-3: #e5d5d7;
+  --action: #24452d;
+  --action-2: #1a3722;
+  --action-3: #102817;
+  --action-rgb: 36, 69, 45;
+  --action-tint: #dfe8e1;
+  --action-line: #a7b9aa;
+  --acid: #bf0836;
+  --acid-rgb: 191, 8, 54;
+  --acid-ink: #fff7f8;
+  --rack: #0e1c0f;
+  --rack-rgb: 14, 28, 15;
+  --rack-2: #172b19;
+  --rack-3: #243d27;
+  --rack-line: #3c583f;
+  --grid-rgb: 68, 50, 47;
+  --shadow-rgb: 45, 38, 35;
+}
+
+html[data-palette='coral-midnight'] {
+  --bench: #d9d9e7;
+  --bench-2: #c3c4d8;
+  --paper-2: #fbe8e5;
+  --paper-3: #ead7d5;
+  --action: #1d2e5b;
+  --action-2: #162449;
+  --action-3: #0e1935;
+  --action-rgb: 29, 46, 91;
+  --action-tint: #e2e6f1;
+  --action-line: #aab3cd;
+  --acid: #ec7766;
+  --acid-rgb: 236, 119, 102;
+  --acid-ink: #2b1110;
+  --rack: #05102c;
+  --rack-rgb: 5, 16, 44;
+  --rack-2: #0d1b3d;
+  --rack-3: #192a50;
+  --rack-line: #31436c;
+  --grid-rgb: 54, 55, 91;
+  --shadow-rgb: 35, 35, 65;
+}
+
+.palette-trigger {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  margin-bottom: 10px;
+  border: 1px solid var(--rack-line);
+  border-radius: var(--radius);
+  background: var(--rack-2);
+  color: var(--rack-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--t-1) var(--ease-soft),
+              background var(--t-1) var(--ease-soft),
+              transform var(--t-1) var(--ease);
+}
+
+.palette-trigger:hover {
+  border-color: var(--acid);
+  background: var(--rack-3);
+  transform: translateY(-1px);
+}
+
+.palette-trigger-icon {
+  width: 29px;
+  height: 29px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-sm);
+  background: var(--action);
+  color: var(--rack-ink);
+  box-shadow: 2px 2px 0 var(--acid);
+}
+
+.palette-trigger-icon .ico { width: 17px; height: 17px; }
+.palette-trigger-copy { min-width: 0; display: grid; line-height: 1.2; }
+.palette-trigger-kicker {
+  color: var(--rack-ink-3);
+  font: 600 9px/1.2 var(--font-mono);
+  letter-spacing: 0.1em;
+}
+.palette-trigger-name {
+  overflow: hidden;
+  color: var(--rack-ink);
+  font: 600 12.5px/1.35 var(--font-panel);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.palette-trigger-swatches {
+  display: grid;
+  grid-template-columns: repeat(2, 13px);
+  overflow: hidden;
+  border: 1px solid var(--rack-line);
+  border-radius: 999px;
+}
+
+.palette-trigger-swatches span { width: 13px; height: 26px; background: var(--palette-swatch); }
+
+body.palette-picker-open { overflow: hidden; }
+
+.palette-overlay { align-items: center; }
+
+.palette-dialog {
+  width: min(980px, calc(100vw - 32px));
+  max-height: min(820px, calc(100vh - 32px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  box-shadow: var(--shadow-lg);
+  animation: modal-in var(--t-3) var(--ease) backwards;
+}
+
+.palette-dialog::before {
+  content: '';
+  height: 7px;
+  flex: 0 0 auto;
+  background: linear-gradient(90deg, var(--acid) 0 33%, var(--action) 33% 78%, var(--hot) 78%);
+}
+
+.palette-body { min-height: 0; padding: 16px; overflow-y: auto; }
+
+.palette-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.palette-filter {
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid var(--rule-2);
+  border-radius: 999px;
+  background: var(--paper);
+  color: var(--ink-2);
+  font: 600 12px/1 var(--font-ui);
+  cursor: pointer;
+  transition: background var(--t-1) var(--ease-soft),
+              border-color var(--t-1) var(--ease-soft),
+              color var(--t-1) var(--ease-soft);
+}
+
+.palette-filter:hover { border-color: var(--action); color: var(--ink); }
+.palette-filter.active { border-color: var(--action); background: var(--action); color: #fff; }
+
+.palette-source {
+  margin-left: auto;
+  color: var(--ink-3);
+  font: 500 11px/1.2 var(--font-mono);
+}
+
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.palette-card {
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 3px 4px 0 rgba(var(--action-rgb),0.08);
+  transition: border-color var(--t-1) var(--ease-soft),
+              box-shadow var(--t-1) var(--ease-soft),
+              transform var(--t-1) var(--ease);
+}
+
+.palette-card:hover {
+  border-color: var(--action);
+  transform: translateY(-2px);
+  box-shadow: 4px 6px 0 rgba(var(--action-rgb),0.16);
+}
+
+.palette-card.selected {
+  border-color: var(--ink);
+  outline: 3px solid var(--action);
+  outline-offset: 1px;
+}
+
+.palette-card-swatches { display: grid; grid-template-columns: 1fr 1fr; height: 58px; }
+.palette-card-swatches span { background: var(--palette-swatch); }
+.palette-card-copy { display: grid; gap: 2px; padding: 10px 11px 11px; }
+.palette-card-copy strong { font: 700 14px/1.25 var(--font-panel); }
+.palette-card-copy span { color: var(--ink-2); font-size: 11.5px; }
+.palette-card-copy small { color: var(--ink-3); font: 500 10.5px/1.3 var(--font-mono); }
+
+.palette-card-check {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  background: var(--acid);
+  color: var(--acid-ink);
+  font-weight: 800;
+  opacity: 0;
+  transform: scale(0.75);
+  transition: opacity var(--t-1) var(--ease-soft), transform var(--t-2) var(--spring);
+}
+
+.palette-card.selected .palette-card-check { opacity: 1; transform: scale(1); }
+
+.palette-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--card-line);
+  background: var(--paper-2);
+}
+
+.palette-preview-status { flex: 1; min-width: 0; color: var(--ink-2); font-size: 12.5px; }
+.palette-actions { display: flex; gap: 7px; flex-wrap: wrap; justify-content: flex-end; }
+
+@media (max-width: 820px) {
+  .palette-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .palette-source { width: 100%; margin-left: 0; padding-top: 4px; }
+}
+
+@media (max-width: 560px) {
+  .palette-overlay { padding: 0; align-items: flex-end; }
+  .palette-dialog {
+    width: 100%;
+    max-height: 94vh;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+  }
+  .palette-grid { grid-template-columns: 1fr; }
+  .palette-foot { align-items: stretch; flex-direction: column; }
+  .palette-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .palette-actions .btn.primary { grid-column: 1 / -1; grid-row: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .palette-trigger,
+  .palette-card,
+  .palette-card-check,
+  .palette-dialog { animation: none; transition: none; }
+}

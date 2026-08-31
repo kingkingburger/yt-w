@@ -27,11 +27,18 @@ def require_node() -> str:
     return node
 
 
+def read_merge_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in ("merge_files.js", "merge_sequence.js", "merge_jobs.js")
+    )
+
+
 def read_merge_output_name_source() -> str:
     output_name_js = Path("web/merge_output_name.js")
     if output_name_js.exists():
         return output_name_js.read_text(encoding="utf-8")
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     return extract_js_function(app_js, "defaultMergeOutputName")
 
 
@@ -91,7 +98,7 @@ def test_frontend_merge_output_name_uses_earliest_source_date() -> None:
 def test_frontend_add_paths_updates_default_merge_output_name() -> None:
     # Given
     helpers = read_merge_output_name_source()
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     add_paths = extract_js_function(app_js, "addPathsToSequence")
     script = "\n".join(
         [

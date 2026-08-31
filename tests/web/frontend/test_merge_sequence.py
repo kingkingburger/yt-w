@@ -7,6 +7,14 @@ from pathlib import Path
 
 import pytest
 
+
+def read_merge_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in ("merge_files.js", "merge_sequence.js", "merge_jobs.js")
+    )
+
+
 def extract_js_function(source: str, name: str) -> str:
     start = source.index(f"function {name}(")
     brace = source.index("{", start)
@@ -28,7 +36,7 @@ def test_frontend_name_sort_uses_natural_filename_order():
     if node is None:
         pytest.fail("node is required for the frontend sort regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     sort_function = extract_js_function(app_js, "sortSequenceByName")
 
     script = f"""
@@ -66,7 +74,7 @@ def test_frontend_merge_source_badges_distinguish_split_and_merged_paths():
     if node is None:
         pytest.fail("node is required for the frontend source badge regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     app_css = Path("web/app.css").read_text(encoding="utf-8")
     badge_function = extract_js_function(app_js, "mergeSourceBadge")
     script = f"""
@@ -101,7 +109,7 @@ def test_frontend_detects_contiguous_part_runs_for_file_drag():
     if node is None:
         pytest.fail("node is required for the frontend drag regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     helpers = "\n".join(
         extract_js_function(app_js, name)
         for name in [
@@ -145,7 +153,7 @@ def test_frontend_groups_part_runs_by_hash_like_token():
     if node is None:
         pytest.fail("node is required for the frontend drag regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     helpers = "\n".join(
         extract_js_function(app_js, name)
         for name in [
@@ -214,7 +222,7 @@ def test_frontend_source_tree_groups_by_hash_token():
     if node is None:
         pytest.fail("node is required for the frontend source tree regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     helpers = "\n".join(
         extract_js_function(app_js, name)
         for name in [
@@ -275,7 +283,7 @@ def test_frontend_source_tree_hides_files_already_in_sequence():
     if node is None:
         pytest.fail("node is required for the frontend source tree regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     helpers = "\n".join(
         extract_js_function(app_js, name)
         for name in [
@@ -329,7 +337,7 @@ def test_frontend_moves_contiguous_sequence_part_block_together():
     if node is None:
         pytest.fail("node is required for the frontend drag regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     helpers = "\n".join(
         extract_js_function(app_js, name)
         for name in [

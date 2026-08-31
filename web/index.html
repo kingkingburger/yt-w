@@ -9,7 +9,9 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+<script src="/static/palette_boot.js"></script>
 <link rel="stylesheet" href="/static/app.css">
+<link rel="stylesheet" href="/static/palette.css">
 </head>
 
 <body>
@@ -88,6 +90,24 @@
       </nav>
 
       <div class="sidebar-spacer"></div>
+
+      <button type="button" class="palette-trigger" id="palette-trigger"
+              aria-haspopup="dialog" aria-controls="palette-overlay"
+              onclick="openPalettePicker()">
+        <span class="palette-trigger-icon" aria-hidden="true">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="8" cy="8" r="4" />
+            <circle cx="16" cy="8" r="4" />
+            <circle cx="12" cy="15.5" r="4" />
+          </svg>
+        </span>
+        <span class="palette-trigger-copy">
+          <span class="palette-trigger-kicker">COLOR DECK</span>
+          <span class="palette-trigger-name" id="palette-trigger-name">Studio 기본</span>
+        </span>
+        <span class="palette-trigger-swatches" id="palette-trigger-swatches" aria-hidden="true"></span>
+      </button>
 
       <div class="syspanel">
         <div class="syspanel-title">
@@ -695,14 +715,80 @@
     </div>
   </div>
 
+  <!-- ▌ COLOR PALETTE PICKER ──────────────────────────────────────────── -->
+  <div id="palette-overlay" class="overlay palette-overlay"
+       onclick="if(event.target===this) cancelPalettePreview()">
+    <section class="palette-dialog" role="dialog" aria-modal="true"
+             aria-labelledby="palette-title" aria-describedby="palette-description">
+      <div class="modal-head">
+        <div class="modal-heading">
+          <span class="modal-icon" aria-hidden="true">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="8" cy="8" r="4" />
+              <circle cx="16" cy="8" r="4" />
+              <circle cx="12" cy="15.5" r="4" />
+            </svg>
+          </span>
+          <div>
+            <span class="modal-kicker">COLOR DECK · 16 PRESETS</span>
+            <h2 class="modal-title" id="palette-title">작업실 색 조합</h2>
+            <p class="modal-description" id="palette-description">
+              색 조합을 눌러 화면에서 미리 보고, 마음에 들면 적용하세요.
+            </p>
+          </div>
+        </div>
+        <button type="button" class="modal-close" aria-label="색 조합 창 닫기"
+                onclick="cancelPalettePreview()"><span aria-hidden="true">×</span></button>
+      </div>
+
+      <div class="palette-body">
+        <div class="palette-toolbar" role="group" aria-label="색 조합 분위기 필터">
+          <button type="button" class="palette-filter active" data-palette-category="all"
+                  onclick="setPaletteCategory('all')">전체</button>
+          <button type="button" class="palette-filter" data-palette-category="soft"
+                  onclick="setPaletteCategory('soft')">부드러움</button>
+          <button type="button" class="palette-filter" data-palette-category="earth"
+                  onclick="setPaletteCategory('earth')">자연</button>
+          <button type="button" class="palette-filter" data-palette-category="vivid"
+                  onclick="setPaletteCategory('vivid')">선명함·야간</button>
+          <a class="palette-source" href="https://www.youtube.com/watch?v=23kxFVxYZIY"
+             target="_blank" rel="noopener noreferrer">영상 원본 ↗</a>
+        </div>
+        <div class="palette-grid" id="palette-grid"></div>
+      </div>
+
+      <div class="palette-foot">
+        <div class="palette-preview-status" id="palette-preview-status" role="status" aria-live="polite">
+          Studio 기본을 사용 중입니다.
+        </div>
+        <div class="palette-actions">
+          <button type="button" class="btn ghost" onclick="resetPalette()">기본값</button>
+          <button type="button" class="btn ghost" onclick="cancelPalettePreview()">취소</button>
+          <button type="button" class="btn primary" id="btn-apply-palette"
+                  onclick="applyPalettePreview()">이 조합 적용</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <!-- ▌ NOTIF ─────────────────────────────────────────────────────────── -->
   <div id="notif" class="notif">
     <div class="notif-title" id="notif-title">알림</div>
     <div class="notif-msg" id="notif-msg"></div>
   </div>
 
+<script src="/static/app_core.js"></script>
 <script src="/static/merge_output_name.js"></script>
 <script src="/static/merge_download_directory.js"></script>
+<script src="/static/channels.js"></script>
+<script src="/static/merge_files.js"></script>
+<script src="/static/merge_sequence.js"></script>
+<script src="/static/merge_jobs.js"></script>
+<script src="/static/split.js"></script>
+<script src="/static/youtube_upload.js"></script>
+<script src="/static/download.js"></script>
+<script src="/static/palette.js"></script>
 <script src="/static/app.js"></script>
 </body>
 </html>

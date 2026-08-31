@@ -6,6 +6,13 @@ from pathlib import Path
 import pytest
 
 
+def read_merge_javascript() -> str:
+    return "\n".join(
+        Path("web", filename).read_text(encoding="utf-8")
+        for filename in ("merge_files.js", "merge_sequence.js", "merge_jobs.js")
+    )
+
+
 def extract_js_function(source: str, name: str) -> str:
     start = source.index(f"function {name}(")
     brace = source.index("{", start)
@@ -49,7 +56,7 @@ def test_frontend_selection_waits_for_send_and_keeps_part_files_compact() -> Non
     if node is None:
         pytest.fail("node is required for the frontend select-all regression test")
 
-    app_js = Path("web/app.js").read_text(encoding="utf-8")
+    app_js = read_merge_javascript()
     helpers = "\n".join(
         extract_js_function(app_js, name)
         for name in [
