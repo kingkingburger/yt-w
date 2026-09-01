@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #ddd7ff;
+      color: #18141f;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #6847ed; }
+    a:hover { color: #4326b9; }
+  </style>
+</helmet>
+
+<div style="padding: 26px 26px 28px; display: flex; flex-direction: column; gap: 18px">
+
+  <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 3px solid #18141f; padding-bottom: 13px">
+    <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #655b70">문제 04</div>
+    <div style="font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; font-size: 27px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.15">버튼의 무게를 위험도에 맞추기</div>
+  </div>
+
+  <!-- 파괴적 액션 -->
+  <div style="display: flex; flex-direction: column; gap: 11px">
+
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: #e72d61"></span>
+      <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; color: #655b70">NOW · 채널 행</div>
+    </div>
+
+    <div style="background: #fffdf7; border: 1px solid rgba(24,20,31,0.32); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1)">
+      <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 82px 150px; gap: 0; align-items: center; padding: 11px 14px">
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; color: #655b70">01</div>
+        <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+          <div style="font-size: 13.5px; font-weight: 600">침착맨</div>
+          <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: #655b70; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">youtube.com/@ChimChakMan_Data</div>
+        </div>
+        <div><span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 11.5px; font-weight: 600; border-radius: 999px; border: 1px solid #a8d8c1; background: #e4f4ec; color: #14724a"><span style="width: 6px; height: 6px; border-radius: 50%; background: #14724a"></span>활성</span></div>
+        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center">
+          <div style="padding: 5px 12px; background: #fffdf7; border: 1px solid rgba(24,20,31,0.48); border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #484052">비활성화</div>
+          <div style="padding: 5px 12px; background: transparent; border: 1px solid transparent; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #655b70">삭제</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+      <div style="background: #fbefdc; border: 1px solid #e6c58c; border-radius: 9px; padding: 10px 13px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 12.5px; font-weight: 700; color: #18141f">비활성화 · 되돌릴 수 있음</div>
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; color: #484052; line-height: 1.6">흰 배경 + 테두리 <span style="color: #655b70">rgba(24,20,31,.48)</span></div>
+      </div>
+      <div style="background: #ffe8f0; border: 1px solid #f4abc2; border-radius: 9px; padding: 10px 13px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 12.5px; font-weight: 700; color: #18141f">삭제 · 되돌릴 수 없음</div>
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; color: #484052; line-height: 1.6">배경·테두리 투명 <span style="color: #655b70">+ 확인 없음</span></div>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 0">
+      <div style="height: 1px; flex-grow: 1; background: #a99db7"></div>
+      <div style="font-size: 12.5px; font-weight: 600; color: #484052">위험한 쪽이 더 약합니다</div>
+      <div style="height: 1px; flex-grow: 1; background: #a99db7"></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: #14724a"></span>
+      <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; color: #655b70">FIXED · 같은 행</div>
+    </div>
+
+    <div style="background: #fffdf7; border: 1px solid rgba(24,20,31,0.32); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1)">
+      <div style="display: grid; grid-template-columns: 44px minmax(0, 1fr) 82px 150px; gap: 0; align-items: center; padding: 11px 14px; border-bottom: 1px solid #ded6e8">
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; color: #655b70">01</div>
+        <div style="display: flex; flex-direction: column; gap: 1px; min-width: 0">
+          <div style="font-size: 13.5px; font-weight: 600">침착맨</div>
+          <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 12.5px; color: #655b70; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">youtube.com/@ChimChakMan_Data</div>
+        </div>
+        <div><span style="display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; font-size: 11.5px; font-weight: 600; border-radius: 999px; border: 1px solid #a8d8c1; background: #e4f4ec; color: #14724a"><span style="width: 6px; height: 6px; border-radius: 50%; background: #14724a"></span>활성</span></div>
+        <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center">
+          <div style="padding: 5px 12px; background: #fffdf7; border: 1px solid rgba(24,20,31,0.48); border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #484052">일시중지</div>
+          <div style="padding: 5px 11px; background: #fffdf7; border: 1px solid #f4abc2; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #b02a20; display: inline-flex; align-items: center; gap: 5px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b02a20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14H6L5 6"></path></svg>
+            삭제
+          </div>
+        </div>
+      </div>
+
+      <!-- 확인 단계 -->
+      <div style="padding: 11px 14px; background: #ffe8f0; display: flex; align-items: center; justify-content: space-between; gap: 14px">
+        <div style="display: flex; align-items: center; gap: 9px; min-width: 0">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#b02a20" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+          <div style="font-size: 13px; color: #18141f; line-height: 1.5"><b>침착맨</b>을 목록에서 지웁니다. 이미 받아둔 영상은 그대로 남습니다.</div>
+        </div>
+        <div style="display: flex; gap: 7px; flex-shrink: 0">
+          <div style="padding: 5px 13px; background: #fffdf7; border: 1px solid rgba(24,20,31,0.48); border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #484052">취소</div>
+          <div style="padding: 5px 13px; background: #b02a20; border: 1px solid #18141f; border-radius: 9px; font-size: 12.5px; font-weight: 600; color: #fffdf7; box-shadow: 3px 3px 0 rgba(24,20,31,0.25)">지우기</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background: #e4f4ec; border: 1px solid #a8d8c1; border-radius: 9px; padding: 11px 13px; display: flex; flex-direction: column; gap: 5px">
+      <div style="font-size: 13px; font-weight: 700; color: #18141f">바뀌는 것</div>
+      <div style="font-size: 12.5px; color: #484052; line-height: 1.6; text-wrap: pretty">
+        삭제에 <b>경고색 테두리</b>를 주되 채우지는 않아 "평상시 중립"이라는 원래 의도는 지킵니다.
+        누르면 같은 행이 열려 <b>무엇이 지워지고 무엇이 남는지</b>를 말한 뒤 한 번 더 확인받습니다. 모달을 띄우지 않아 흐름이 끊기지 않습니다.
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background-color: #ddd7ff;
+      background-image:
+        radial-gradient(circle at 86% -8%, rgba(202,255,88,0.62), transparent 30rem),
+        radial-gradient(circle at 4% 105%, rgba(217,30,99,0.22), transparent 34rem),
+        linear-gradient(rgba(41,27,65,0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(41,27,65,0.07) 1px, transparent 1px);
+      background-size: auto, auto, 24px 24px, 24px 24px;
+      color: #18141f;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #6847ed; }
+    a:hover { color: #4326b9; }
+  </style>
+</helmet>
+
+<div style="display: grid; grid-template-columns: 264px minmax(0, 1fr); height: 640px">
+
+  <!-- 사이드바 -->
+  <div style="background: #15111e; border-top: 4px solid #caff58; border-right: 1px solid #4b3a61; padding: 18px 12px 14px; display: flex; flex-direction: column; gap: 16px; color: #f7f2ff">
+    <div style="display: flex; flex-direction: column; gap: 5px; padding: 0 5px">
+      <div style="font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; font-weight: 700; font-size: 31px; letter-spacing: -0.04em; line-height: 1">YT<span style="color: #caff58">·</span>W</div>
+      <div style="font-size: 12px; color: #8d8099; line-height: 1.4">유튜브 다운로드 &amp;<br>라이브 자동 녹화</div>
+    </div>
+    <div style="height: 1px; background: #302442"></div>
+    <div style="display: flex; flex-direction: column; gap: 3px">
+      <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; font-weight: 600; letter-spacing: 0.14em; color: #caff58; padding: 0 6px 5px">메뉴</div>
+      <div style="padding: 8px 11px; font-size: 14.5px; color: #b9aec6">YouTube 업로드</div>
+      <div style="padding: 8px 11px; font-size: 14.5px; color: #b9aec6">영상 합치기</div>
+      <div style="padding: 8px 11px; font-size: 14.5px; color: #b9aec6">영상 나누기</div>
+      <div style="padding: 8px 11px; font-size: 14.5px; font-weight: 600; color: #f7f2ff; background: #6847ed; border: 1px solid #caff58; border-radius: 9px; display: flex; align-items: center; justify-content: space-between">
+        <span>다운로드</span><span style="color: #caff58">→</span>
+      </div>
+      <div style="padding: 8px 11px; font-size: 14.5px; color: #b9aec6">라이브 녹화</div>
+      <div style="padding: 8px 11px; font-size: 14.5px; color: #b9aec6">채널 관리</div>
+    </div>
+  </div>
+
+  <!-- 콘텐츠 -->
+  <div style="padding: 22px 26px 28px; display: flex; flex-direction: column; gap: 0; position: relative">
+
+    <!-- 라벨 -->
+    <div style="position: absolute; top: 22px; right: 26px; display: inline-flex; align-items: center; gap: 7px; background: #15111e; color: #f7f2ff; padding: 5px 13px; border-radius: 999px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.1em">
+      <span style="width: 7px; height: 7px; border-radius: 50%; background: #e72d61"></span>NOW
+    </div>
+
+    <!-- 실제 카드 -->
+    <div style="background: linear-gradient(145deg, rgba(255,255,255,0.68), transparent 48%), #fffdf7; border: 1px solid rgba(24,20,31,0.32); border-top: 3px solid #18141f; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1); width: 690px">
+      <div style="padding: 11px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #c9bfd3; background: linear-gradient(90deg, #f4f0ff, rgba(255,253,247,0.7))">
+        <div style="width: 20px; height: 20px; border-radius: 6px; background: #6847ed; color: #fff; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center">1</div>
+        <div style="font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; font-size: 16px; font-weight: 700">유튜브 주소 붙여넣기</div>
+      </div>
+      <div style="padding: 14px; display: flex; gap: 10px; align-items: center">
+        <div style="flex-grow: 1; padding: 9px 13px; background: #fffdf7; border: 1px solid #6847ed; border-radius: 9px; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 13.5px; color: #a99db7">https://www.youtube.com/watch?v=...</div>
+        <div style="padding: 8px 15px; background: #caff58; color: #1d260c; border: 1px solid #18141f; border-radius: 9px; font-size: 13.5px; font-weight: 600; box-shadow: 3px 3px 0 #6847ed">영상 정보 보기</div>
+      </div>
+    </div>
+
+    <!-- 빈 영역 표시 -->
+    <div style="flex-grow: 1; margin-top: 18px; border: 2px dashed rgba(217,30,99,0.45); border-radius: 12px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px; background: repeating-linear-gradient(135deg, rgba(217,30,99,0.05) 0 10px, transparent 10px 20px)">
+      <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 34px; font-weight: 600; color: #d91e63; letter-spacing: -0.02em">82%</div>
+      <div style="font-size: 14px; font-weight: 600; color: #18141f">이 영역에 아무것도 없습니다</div>
+      <div style="font-size: 13px; color: #484052; text-align: center; max-width: 400px; line-height: 1.6; text-wrap: pretty">
+        방금 받은 파일도, 어제 받은 파일도 보이지 않습니다.<br>결과를 확인하려면 탐색기를 열어야 합니다.
+      </div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+  <style>
+    body {
+      margin: 0;
+      background: #ddd7ff;
+      color: #18141f;
+      font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', 'Malgun Gothic', sans-serif;
+      font-size: 15px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: #6847ed; }
+    a:hover { color: #4326b9; }
+  </style>
+</helmet>
+
+<div style="padding: 26px 26px 28px; display: flex; flex-direction: column; gap: 18px">
+
+  <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 3px solid #18141f; padding-bottom: 13px">
+    <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: #655b70">문제 01 · 03</div>
+    <div style="font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; font-size: 27px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.15">메뉴를 일하는 순서대로</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start">
+
+    <!-- 현재 -->
+    <div style="display: flex; flex-direction: column; gap: 11px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #e72d61"></span>
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; color: #655b70">NOW · 6개 탭</div>
+      </div>
+
+      <div style="background: #15111e; border-radius: 14px; border-top: 4px solid #caff58; padding: 14px 12px; display: flex; flex-direction: column; gap: 4px">
+        <div style="padding: 9px 11px; font-size: 14px; font-weight: 600; color: #f7f2ff; background: #6847ed; border: 1px solid #caff58; border-radius: 9px; display: flex; align-items: center; justify-content: space-between">
+          <span>YouTube 업로드</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #caff58">첫 화면</span>
+        </div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6">영상 합치기</div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6">영상 나누기</div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6">다운로드</div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6; border: 1px dashed #e72d61; border-radius: 9px; display: flex; align-items: center; justify-content: space-between">
+          <span>라이브 녹화</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #e72d61">채널 목록</span>
+        </div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6; border: 1px dashed #e72d61; border-radius: 9px; display: flex; align-items: center; justify-content: space-between">
+          <span>채널 관리</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #e72d61">채널 목록</span>
+        </div>
+      </div>
+
+      <div style="background: #ffe8f0; border: 1px solid #f4abc2; border-radius: 9px; padding: 11px 13px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 13px; font-weight: 700; color: #18141f">여기서 막힙니다</div>
+        <div style="font-size: 12.5px; color: #484052; line-height: 1.6; text-wrap: pretty">
+          결과물(업로드)이 맨 위, 재료를 만드는 곳(다운로드·녹화)이 아래에 있습니다.
+          첫 화면에서 할 수 있는 일이 없고, 채널은 두 탭에 흩어져 있습니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- 개선 -->
+    <div style="display: flex; flex-direction: column; gap: 11px">
+      <div style="display: flex; align-items: center; gap: 8px">
+        <span style="width: 7px; height: 7px; border-radius: 50%; background: #14724a"></span>
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 600; letter-spacing: 0.1em; color: #655b70">FIXED · 5개 탭</div>
+      </div>
+
+      <div style="background: #15111e; border-radius: 14px; border-top: 4px solid #caff58; padding: 14px 12px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; color: #8d8099; padding: 0 6px 4px">① 재료 만들기</div>
+        <div style="padding: 9px 11px; font-size: 14px; font-weight: 600; color: #f7f2ff; background: #6847ed; border: 1px solid #caff58; border-radius: 9px; display: flex; align-items: center; justify-content: space-between">
+          <span>다운로드</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #caff58">첫 화면</span>
+        </div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6; border: 1px solid #4b3a61; border-radius: 9px; display: flex; align-items: center; justify-content: space-between">
+          <span>라이브 녹화</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 10px; color: #caff58">+ 채널 관리</span>
+        </div>
+
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; color: #8d8099; padding: 9px 6px 4px">② 손질하기</div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6">영상 합치기</div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6">영상 나누기</div>
+
+        <div style="font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 9.5px; font-weight: 600; letter-spacing: 0.14em; color: #8d8099; padding: 9px 6px 4px">③ 내보내기</div>
+        <div style="padding: 9px 11px; font-size: 14px; color: #b9aec6">YouTube 업로드</div>
+      </div>
+
+      <div style="background: #e4f4ec; border: 1px solid #a8d8c1; border-radius: 9px; padding: 11px 13px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-size: 13px; font-weight: 700; color: #18141f">바뀌는 것</div>
+        <div style="font-size: 12.5px; color: #484052; line-height: 1.6; text-wrap: pretty">
+          영상이 <b>생기고 → 손질되고 → 나가는</b> 순서가 메뉴 순서와 같아집니다.
+          채널은 라이브 녹화 한 곳에서만 관리하고, 접속하면 바로 주소를 붙여넣을 수 있습니다.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- 통합 상세 -->
+  <div style="background: #fffdf7; border: 1px solid rgba(24,20,31,0.32); border-top: 3px solid #18141f; border-radius: 14px; padding: 15px 17px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 2px 2px rgba(36,24,54,0.06), 4px 5px 0 rgba(104,71,237,0.1)">
+    <div style="font-family: 'IBM Plex Sans Condensed', system-ui, sans-serif; font-size: 15.5px; font-weight: 700">"라이브 녹화" 탭이 흡수할 것</div>
+    <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px">
+      <div style="background: #f4f0ff; border: 1px solid #ded6e8; border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 12.5px; font-weight: 700">감시 상태</div>
+        <div style="font-size: 12px; color: #484052; line-height: 1.5">지금도 있는 다크 헤더. 그대로 둡니다.</div>
+      </div>
+      <div style="background: #f4f0ff; border: 1px solid #ded6e8; border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 12.5px; font-weight: 700">채널 목록 · 하나로</div>
+        <div style="font-size: 12px; color: #484052; line-height: 1.5">추가·일시중지·삭제가 한 줄에. "비활성화"와 "일시중지" 중 하나만 남깁니다.</div>
+      </div>
+      <div style="background: #f4f0ff; border: 1px solid #ded6e8; border-radius: 9px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px">
+        <div style="font-size: 12.5px; font-weight: 700">최근 녹화</div>
+        <div style="font-size: 12px; color: #484052; line-height: 1.5">비어 있던 73%가 여기로. 문제 02가 같이 해결됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>
