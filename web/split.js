@@ -181,6 +181,7 @@ function renderSplitSelection() {
   const previewHost = $('split-output-preview');
   if (!selectedHost || !previewHost) return;
   selectedHost.textContent = state.splitSelectedPath || '왼쪽 목록에서 영상 하나를 골라 주세요';
+  selectedHost.classList.toggle('mono', Boolean(state.splitSelectedPath));
   const requestedParts = Math.max(2, Number.parseInt($('split-parts')?.value || '2', 10) || 2);
   const previewCount = state.splitStrategy === 'parts' ? Math.min(requestedParts, 3) : 2;
   const names = splitOutputNames(state.splitSelectedPath, previewCount);

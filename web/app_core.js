@@ -1,7 +1,7 @@
 /* yt-w operator console client. */
 const API = '';
 const state = {
-  activeTab: 'youtube-upload',
+  activeTab: 'download',
   files: [],
   selectedPaths: new Set(),
   sequence: [],
@@ -22,6 +22,9 @@ const state = {
   youtubeUploadJobs: [],
   youtubeOAuthStatus: null,
   dlFormat: 'video',
+  pendingChannelDelete: null,
+  recentFiles: [],
+  recentRecordings: [],
   bootTime: null,
 };
 
@@ -98,8 +101,13 @@ const throwIfResponseFailed = async (response, fallbackMessage = '요청을 처�
 /* ── tabs ──────────────────────────────────────────────────────────── */
 function switchTab(tab) {
   state.activeTab = tab;
-  document.querySelectorAll('.nav-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    const isActive = b.dataset.tab === tab;
+    b.classList.toggle('active', isActive);
+    // tablist 안에서는 활성 탭만 Tab 키 순서에 남고, 나머지는 화살표로 옮겨 다닌다.
+    b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    b.tabIndex = isActive ? 0 : -1;
+  });
   document.querySelectorAll('.panel').forEach(p =>
     p.classList.toggle('active', p.id === `panel-${tab}`));
   if (tab === 'merge') { loadFiles(); loadJobs(); }
@@ -109,8 +117,29 @@ function switchTab(tab) {
     loadYouTubeOAuthStatus();
     loadYouTubeUploadJobs();
   }
-  if (tab === 'channels' || tab === 'monitor') { loadChannels(); }
-  if (tab === 'download') { setTimeout(() => $('url-input')?.focus(), 50); }
+  if (tab === 'monitor') { loadChannels(); loadRecentRecordings(); }
+  if (tab === 'download') {
+    loadRecentFiles();
+    setTimeout(() => $('url-input')?.focus(), 50);
+  }
+}
+
+/* 좌우/홈엔드로 탭을 옮긴다. tablist의 기본 키보드 규약. */
+function handleTabKeydown(event) {
+  const keys = ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp', 'Home', 'End'];
+  if (!keys.includes(event.key)) return;
+  const buttons = [...document.querySelectorAll('.nav-btn')];
+  const current = buttons.findIndex(b => b.dataset.tab === state.activeTab);
+  if (current < 0) return;
+  const last = buttons.length - 1;
+  let next = current;
+  if (event.key === 'ArrowRight' || event.key === 'ArrowDown') next = current === last ? 0 : current + 1;
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') next = current === 0 ? last : current - 1;
+  if (event.key === 'Home') next = 0;
+  if (event.key === 'End') next = last;
+  event.preventDefault();
+  switchTab(buttons[next].dataset.tab);
+  buttons[next].focus();
 }
 
 /* ── boot / clock / system status ──────────────────────────────────── */

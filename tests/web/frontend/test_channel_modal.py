@@ -37,3 +37,11 @@ def test_add_channel_modal_uses_dedicated_visual_states() -> None:
     assert "@media (max-width: 520px)" in css
     assert "max-height: calc(100dvh - 24px);" in css
     assert "overflow-y: auto;" in css
+
+
+def test_channel_delete_confirmation_keeps_name_out_of_inline_handler() -> None:
+    channels_js = Path("web/channels.js").read_text(encoding="utf-8")
+
+    assert "function renderDeleteConfirm(idAttr, nameHtml)" in channels_js
+    assert "onclick=\"deleteChannel('${idAttr}')\"" in channels_js
+    assert "onclick=\"deleteChannel('${idAttr}'," not in channels_js

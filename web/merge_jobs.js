@@ -19,6 +19,7 @@ function renderMergeDownloadDirectory() {
   const button = $('btn-merge-download-directory');
   if (!supportsMergeDownloadDirectory()) {
     path.textContent = '지원하지 않는 브라우저';
+    path.classList.remove('mono');
     note.textContent = 'Chrome 또는 Edge의 HTTPS/localhost 환경에서 사용할 수 있습니다.';
     button.disabled = true;
     return;
@@ -26,6 +27,7 @@ function renderMergeDownloadDirectory() {
 
   const handle = state.mergeDownloadDirectory;
   path.textContent = handle ? handle.name : '선택되지 않음';
+  path.classList.toggle('mono', Boolean(handle));
   // 정상 동작 중에는 안내를 띄우지 않는다. 위 분기의 미지원 안내만 남긴다.
   note.textContent = '';
   button.textContent = handle ? '폴더 변경' : '폴더 선택';

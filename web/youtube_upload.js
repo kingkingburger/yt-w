@@ -29,6 +29,7 @@ function renderYouTubeUploadFileList() {
       icon: '⇧',
       title: '업로드할 서버 영상이 없어요',
       sub: 'merged, split, uploads, web_downloads 폴더의 영상 파일만 표시됩니다. PC에서 바로 올리는 기능은 제공하지 않습니다.',
+      action: `<button class="btn primary" onclick="switchTab('download')">먼저 영상 받으러 가기</button>`,
     });
     return;
   }
@@ -84,6 +85,8 @@ function renderYouTubeUploadReady() {
   const title = $('youtube-upload-title').value.trim();
   const selected = state.youtubeUploadSelectedPath;
   selectedSource.textContent = selected || '영상을 먼저 골라 주세요.';
+  // 경로일 때만 고정폭. 안내문에 mono를 씌우면 한글 사이 공백이 벌어진다.
+  selectedSource.classList.toggle('mono', Boolean(selected));
 
   let blockedReason = '';
   if (!status) blockedReason = 'YouTube 계정 상태를 확인하고 있습니다.';

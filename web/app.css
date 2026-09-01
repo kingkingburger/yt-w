@@ -575,17 +575,31 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 }
 .btn.ghost:disabled { color: var(--rule-2); }
 
-/* 목록마다 반복되므로 평상시엔 중립으로 두고 hover에서만 위험색을 켠다. */
+/* 목록마다 반복되므로 평상시엔 채우지 않는다. 다만 되돌릴 수 없는 동작이
+   옆의 되돌릴 수 있는 버튼보다 약해 보이면 안 되므로 윤곽선은 남긴다. */
 .btn.danger {
-  color: var(--ink-3);
-  border-color: transparent;
+  color: var(--danger);
+  border-color: var(--rec-line);
   background: transparent;
-  font-weight: 500;
+  font-weight: 600;
 }
 .btn.danger:hover:not(:disabled) {
   background: var(--rec-tint);
   color: var(--danger);
-  border-color: var(--rec-line);
+  border-color: var(--danger);
+}
+
+/* 확인 단계의 최종 버튼만 채운다. 목록에는 절대 쓰지 않는다. */
+.btn.danger-solid {
+  background: var(--danger);
+  color: var(--paper);
+  border-color: var(--ink);
+  font-weight: 600;
+  box-shadow: 3px 3px 0 rgba(var(--ink-rgb),0.25);
+}
+.btn.danger-solid:hover:not(:disabled) {
+  background: var(--rec);
+  border-color: var(--ink);
 }
 
 .btn.sm {
@@ -643,6 +657,16 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .grow { flex: 1; min-width: 0; }
 .nowrap { white-space: nowrap; }
 .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+/* 눈에는 안 보이지만 스크린리더는 읽는 라벨. */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* ──── Toggle group ───────────────────────────────────────────────── */
 .toggle-group {
@@ -882,6 +906,77 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 }
 .channel-row:hover { background: var(--paper-2); }
 .channel-row:last-child { border-bottom: 0; }
+.channel-row.confirming { background: var(--rec-tint); border-bottom-color: var(--rec-line); }
+
+/* 삭제 확인은 모달 대신 그 행 아래에서 펼친다. 목록의 맥락을 잃지 않는다. */
+.channel-confirm {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 14px;
+  background: var(--rec-tint);
+  border-bottom: 1px solid var(--rec-line);
+}
+.channel-confirm:last-child { border-bottom: 0; }
+.channel-confirm-icon {
+  width: 18px; height: 18px;
+  flex-shrink: 0;
+  color: var(--danger);
+}
+.channel-confirm-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+}
+
+/* ──── Recent lists ───────────────────────────────────────────────── */
+/* 다운로드·녹화 탭이 일한 결과를 남기는 자리. */
+.recent-list { display: flex; flex-direction: column; }
+.recent-row {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--rule);
+  transition: background var(--t-1) var(--ease-soft);
+}
+.recent-row:hover { background: var(--paper-2); }
+.recent-row:last-child { border-bottom: 0; }
+.recent-mark {
+  width: 28px; height: 28px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-line);
+  background: var(--paper-2);
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.recent-mark svg { width: 14px; height: 14px; }
+.recent-mark.ok {
+  background: var(--ok-tint);
+  border-color: var(--ok-line);
+  color: var(--ok);
+}
+.recent-info { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.recent-name {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recent-meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
 .channel-avatar {
   width: 36px; height: 36px;
   border-radius: var(--radius);

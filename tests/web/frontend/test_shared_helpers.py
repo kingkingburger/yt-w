@@ -128,5 +128,5 @@ Promise.all([
 def test_list_panels_share_the_empty_state_helper() -> None:
     app_js = read_frontend_javascript()
 
-    assert app_js.count("host.innerHTML = emptyState({") == 9
+    assert app_js.count("host.innerHTML = emptyState({") == 10
     assert app_js.count("await throwIfResponseFailed(") == 6

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%227%22 fill=%22%2315111e%22/%3E%3Ccircle cx=%2216%22 cy=%2216%22 r=%226%22 fill=%22%23caff58%22/%3E%3C/svg%3E" />
 <script src="/static/palette_boot.js"></script>
 <link rel="stylesheet" href="/static/app.css">
 <link rel="stylesheet" href="/static/palette.css">
@@ -20,25 +21,38 @@
     <!-- ════════════════════════ SIDEBAR ════════════════════════════════ -->
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand-mark">yt<span class="dot">·</span>w</div>
+        <h1 class="brand-mark">yt<span class="dot">·</span>w</h1>
         <div class="brand-tag">유튜브 다운로드 &amp;<br/>라이브 자동 녹화</div>
       </div>
 
-      <nav class="nav">
-        <div class="nav-label">메뉴</div>
+      <!-- 영상이 생기고(①) → 손질되고(②) → 나가는(③) 순서가 메뉴 순서다. -->
+      <nav class="nav" role="tablist" aria-label="작업 메뉴" onkeydown="handleTabKeydown(event)">
+        <div class="nav-label" id="nav-label">메뉴</div>
 
-        <button class="nav-btn active" data-tab="youtube-upload" onclick="switchTab('youtube-upload')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 16l-4-4-4 4" />
-            <line x1="12" y1="12" x2="12" y2="21" />
-            <path d="M20.4 17.5A5 5 0 0 0 18 8.2 7 7 0 0 0 4.3 10.7 4.5 4.5 0 0 0 5.5 19H7" />
+        <button class="nav-btn active" data-tab="download" onclick="switchTab('download')"
+                role="tab" id="tab-download" aria-controls="panel-download" aria-selected="true">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
-          <span>YouTube 업로드</span>
-          <span class="arrow">→</span>
+          <span>다운로드</span>
+          <span class="arrow" aria-hidden="true">→</span>
         </button>
 
-        <button class="nav-btn" data-tab="merge" onclick="switchTab('merge')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-btn" data-tab="monitor" onclick="switchTab('monitor')"
+                role="tab" id="tab-monitor" aria-controls="panel-monitor" aria-selected="false" tabindex="-1">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="3" fill="currentColor" />
+          </svg>
+          <span>라이브 녹화</span>
+          <span class="arrow" aria-hidden="true">→</span>
+        </button>
+
+        <button class="nav-btn" data-tab="merge" onclick="switchTab('merge')"
+                role="tab" id="tab-merge" aria-controls="panel-merge" aria-selected="false" tabindex="-1">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="6 3 18 3 18 9" />
             <polyline points="6 21 18 21 18 15" />
             <line x1="6" y1="3" x2="6" y2="21" />
@@ -46,46 +60,30 @@
             <line x1="18" y1="15" x2="6" y2="12" />
           </svg>
           <span>영상 합치기</span>
-          <span class="arrow">→</span>
+          <span class="arrow" aria-hidden="true">→</span>
         </button>
 
-        <button class="nav-btn" data-tab="split" onclick="switchTab('split')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="nav-btn" data-tab="split" onclick="switchTab('split')"
+                role="tab" id="tab-split" aria-controls="panel-split" aria-selected="false" tabindex="-1">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="6" cy="7" r="3" />
             <circle cx="6" cy="17" r="3" />
             <line x1="8.7" y1="8.3" x2="20" y2="14" />
             <line x1="8.7" y1="15.7" x2="20" y2="10" />
           </svg>
           <span>영상 나누기</span>
-          <span class="arrow">→</span>
+          <span class="arrow" aria-hidden="true">→</span>
         </button>
 
-        <button class="nav-btn" data-tab="download" onclick="switchTab('download')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
+        <button class="nav-btn" data-tab="youtube-upload" onclick="switchTab('youtube-upload')"
+                role="tab" id="tab-youtube-upload" aria-controls="panel-youtube-upload" aria-selected="false" tabindex="-1">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M16 16l-4-4-4 4" />
+            <line x1="12" y1="12" x2="12" y2="21" />
+            <path d="M20.4 17.5A5 5 0 0 0 18 8.2 7 7 0 0 0 4.3 10.7 4.5 4.5 0 0 0 5.5 19H7" />
           </svg>
-          <span>다운로드</span>
-          <span class="arrow">→</span>
-        </button>
-
-        <button class="nav-btn" data-tab="monitor" onclick="switchTab('monitor')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="3" fill="currentColor" />
-          </svg>
-          <span>라이브 녹화</span>
-          <span class="arrow">→</span>
-        </button>
-
-        <button class="nav-btn" data-tab="channels" onclick="switchTab('channels')">
-          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 9a2 2 0 0 1 2-2h2l2-2h6l2 2h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/>
-            <circle cx="12" cy="13" r="3"/>
-          </svg>
-          <span>채널 관리</span>
-          <span class="arrow">→</span>
+          <span>YouTube 업로드</span>
+          <span class="arrow" aria-hidden="true">→</span>
         </button>
       </nav>
 
@@ -159,10 +157,10 @@
     </aside>
 
     <!-- ════════════════════════ CONTENT ════════════════════════════════ -->
-    <div class="content">
+    <main class="content" id="main-content">
 
       <!-- ╔══════════════════════════════ DOWNLOAD ════════════════════╗ -->
-      <main id="panel-download" class="panel">
+      <section id="panel-download" class="panel active" role="tabpanel" aria-labelledby="tab-download" tabindex="0">
         <section class="card">
           <div class="card-head">
             <div class="card-title-group">
@@ -173,6 +171,7 @@
           <div class="card-body lg">
             <form onsubmit="handleAnalyze(event)" id="analyze-form">
               <div class="row-flex">
+                <label class="sr-only" for="url-input">유튜브 주소</label>
                 <input class="input url-hero grow" type="text" id="url-input"
                        placeholder="https://www.youtube.com/watch?v=..." required autofocus />
                 <button class="btn primary lg nowrap" type="submit" id="analyze-btn">영상 정보 보기</button>
@@ -220,7 +219,7 @@
                 </div>
               </div>
               <div id="quality-container">
-                <label class="label">화질</label>
+                <label class="label" for="quality-select">화질</label>
                 <select class="select" id="quality-select">
                   <option value="best">최상 (자동)</option>
                   <option value="2160">2160p · 4K</option>
@@ -254,10 +253,23 @@
             <button class="btn" onclick="closeResult()">다른 영상 받기</button>
           </div>
         </section>
-      </main>
+
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">최근 받은 영상</div>
+              <span class="card-sub" id="recent-file-count">0개</span>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn ghost sm" onclick="loadRecentFiles(true)">새로고침</button>
+            </div>
+          </div>
+          <div id="recent-files" class="card-body tight"></div>
+        </section>
+      </section>
 
       <!-- YouTube upload -->
-      <main id="panel-youtube-upload" class="panel active">
+      <section id="panel-youtube-upload" class="panel" role="tabpanel" aria-labelledby="tab-youtube-upload" tabindex="0">
         <section class="card">
           <div class="card-head">
             <div class="card-title-group">
@@ -306,7 +318,7 @@
               <div class="card-body stack">
                 <div>
                   <label class="label">고른 파일</label>
-                  <div class="youtube-selected-source mono" id="youtube-upload-selected-source">영상을 먼저 골라 주세요.</div>
+                  <div class="youtube-selected-source" id="youtube-upload-selected-source">영상을 먼저 골라 주세요.</div>
                 </div>
                 <div>
                   <label class="label" for="youtube-upload-title">제목</label>
@@ -378,10 +390,10 @@
           </div>
           <div id="youtube-upload-jobs" class="card-body tight"></div>
         </section>
-      </main>
+      </section>
 
       <!-- ╔══════════════════════════════ MONITOR ═════════════════║ -->
-      <main id="panel-monitor" class="panel">
+      <section id="panel-monitor" class="panel" role="tabpanel" aria-labelledby="tab-monitor" tabindex="0">
         <section class="monitor-hero" id="monitor-hero">
           <div class="monitor-hero-left">
             <div class="monitor-pulse"></div>
@@ -416,14 +428,42 @@
             </div>
             <div class="card-head-actions">
               <button class="btn primary sm" onclick="openAddChannelModal()">채널 추가</button>
+              <button class="btn ghost sm" onclick="loadChannels()">새로고침</button>
             </div>
           </div>
-          <div id="monitor-channel-list" class="card-body tight"></div>
+          <div id="channel-list" class="card-body tight"></div>
         </section>
-      </main>
+
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">최근 녹화</div>
+              <span class="card-sub" id="recording-count">0개</span>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn ghost sm" onclick="loadRecentRecordings(true)">새로고침</button>
+            </div>
+          </div>
+          <div id="recent-recordings" class="card-body tight"></div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">디스코드 알림</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="row-flex" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+              <div class="ready-bar grow" id="discord-state-text">상태 확인 중…</div>
+              <button class="btn" onclick="testDiscord()">테스트 메시지 보내기</button>
+            </div>
+          </div>
+        </section>
+      </section>
 
       <!-- ╔══════════════════════════════ MERGE ══════════════════════╗ -->
-      <main id="panel-merge" class="panel">
+      <section id="panel-merge" class="panel" role="tabpanel" aria-labelledby="tab-merge" tabindex="0">
         <div class="merge-grid">
           <section class="card">
             <div class="card-head">
@@ -481,7 +521,7 @@
               <div>
                 <label class="label">PC 저장 폴더</label>
                 <div class="row-flex">
-                  <div class="merge-download-path mono" id="merge-download-directory">불러오는 중…</div>
+                  <div class="merge-download-path" id="merge-download-directory">불러오는 중…</div>
                   <button class="btn" type="button" id="btn-merge-download-directory" onclick="chooseMergeDownloadDirectory()">폴더 선택</button>
                 </div>
                 <div class="merge-download-note" id="merge-download-directory-note"></div>
@@ -523,10 +563,10 @@
           </div>
           <div id="merge-jobs" class="card-body tight"></div>
         </section>
-      </main>
+      </section>
 
       <!-- ╔══════════════════════════════ SPLIT ══════════════════════╗ -->
-      <main id="panel-split" class="panel">
+      <section id="panel-split" class="panel" role="tabpanel" aria-labelledby="tab-split" tabindex="0">
         <div class="merge-grid">
           <section class="card">
             <div class="card-head">
@@ -538,13 +578,14 @@
               <div class="card-head-actions">
                 <button class="btn sm" type="button" id="btn-split-upload" onclick="chooseSplitUpload()">PC 영상 올리기</button>
                 <button class="btn ghost sm" onclick="loadFiles(true)">새로고침</button>
-                <input type="file" id="split-upload-input" hidden
+                <input type="file" id="split-upload-input" hidden aria-label="나눌 PC 영상 파일"
                        accept="video/*,audio/*,.mkv,.webm,.m4a,.mp3,.aac,.ts,.mov"
                        onchange="uploadSplitVideo(this.files?.[0]); this.value=''" />
               </div>
             </div>
             <div class="split-file-tools">
               <input class="input" type="search" id="split-file-search"
+                     aria-label="파일명 또는 경로 검색"
                      placeholder="파일명 또는 경로 검색"
                      oninput="setSplitSearch(this.value)" />
               <div class="split-upload-status" id="split-upload-status" style="display:none">
@@ -565,7 +606,7 @@
             <div class="card-body stack">
               <div>
                 <label class="label">고른 영상</label>
-                <div class="split-selected-file mono" id="split-selected-file">왼쪽 목록에서 영상 하나를 골라 주세요</div>
+                <div class="split-selected-file" id="split-selected-file">왼쪽 목록에서 영상 하나를 골라 주세요</div>
               </div>
 
               <div>
@@ -626,43 +667,14 @@
           </div>
           <div id="split-jobs" class="card-body tight"></div>
         </section>
-      </main>
+      </section>
 
-      <!-- ╔══════════════════════════════ CHANNELS ════════════════════╗ -->
-      <main id="panel-channels" class="panel">
-        <section class="card">
-          <div class="card-head">
-            <div class="card-title-group">
-              <div class="card-title">등록된 채널</div>
-            </div>
-            <div class="card-head-actions">
-              <button class="btn primary sm" onclick="openAddChannelModal()">채널 추가</button>
-              <button class="btn ghost sm" onclick="loadChannels()">새로고침</button>
-            </div>
-          </div>
-          <div id="channel-table" class="card-body tight"></div>
-        </section>
-
-        <section class="card">
-          <div class="card-head">
-            <div class="card-title-group">
-              <div class="card-title">디스코드 알림</div>
-            </div>
-          </div>
-          <div class="card-body">
-            <div class="row-flex" style="justify-content: space-between; flex-wrap: wrap; gap: 12px;">
-              <div class="ready-bar grow" id="discord-state-text">상태 확인 중…</div>
-              <button class="btn" onclick="testDiscord()">테스트 메시지 보내기</button>
-            </div>
-          </div>
-        </section>
-      </main>
 
       <footer class="footer-note">
         <span>yt-w · 셀프호스팅 도구</span>
         <span>개인용 · 저작권을 존중해 주세요</span>
       </footer>
-    </div>
+    </main>
   </div>
 
   <!-- ▌ ADD CHANNEL MODAL ─────────────────────────────────────────────── -->
