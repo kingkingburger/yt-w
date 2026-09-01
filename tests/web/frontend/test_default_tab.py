@@ -3,19 +3,18 @@
 from pathlib import Path
 
 
-def test_frontend_opens_download_tab_by_default():
-    """The site should land directly on the download workspace."""
+def test_frontend_opens_youtube_upload_tab_by_default():
+    """The site should land directly on the YouTube upload workspace."""
     app_core_js = Path("web/app_core.js").read_text(encoding="utf-8")
     app_js = Path("web/app.js").read_text(encoding="utf-8")
     index_html = Path("web/index.html").read_text(encoding="utf-8")
 
-    assert "activeTab: 'download'," in app_core_js
+    assert "activeTab: 'youtube-upload'," in app_core_js
     assert "switchTab(state.activeTab);" in app_js
-    assert "setTimeout(() => $('url-input')?.focus(), 50);" in app_core_js
 
     assert index_html.count('class="nav-btn active"') == 1
-    assert '<button class="nav-btn active" data-tab="download"' in index_html
-    assert '<button class="nav-btn active" data-tab="youtube-upload"' not in index_html
+    assert '<button class="nav-btn active" data-tab="youtube-upload"' in index_html
+    assert '<button class="nav-btn active" data-tab="download"' not in index_html
     assert '<button class="nav-btn active" data-tab="merge"' not in index_html
     assert index_html.index('data-tab="download"') < index_html.index(
         'data-tab="monitor"'
@@ -23,6 +22,6 @@ def test_frontend_opens_download_tab_by_default():
         'data-tab="split"'
     ) < index_html.index('data-tab="youtube-upload"')
     assert index_html.count('class="panel active"') == 1
-    assert '<section id="panel-download" class="panel active"' in index_html
-    assert '<section id="panel-youtube-upload" class="panel active"' not in index_html
+    assert '<section id="panel-youtube-upload" class="panel active"' in index_html
+    assert '<section id="panel-download" class="panel active"' not in index_html
     assert '<section id="panel-merge" class="panel active"' not in index_html
