@@ -99,10 +99,13 @@ async function executeMerge() {
 async function loadJobs() {
   try {
     const r = await fetch(`${API}/api/merge/jobs`);
+    await throwIfResponseFailed(r, '합치기 작업을 불러오지 못했습니다');
     const jobs = await r.json();
     state.mergeJobs = jobs;
     renderJobs(jobs);
-  } catch (e) {}
+  } catch (error) {
+    renderLoadFailure('merge-jobs', '합치기 작업을 불러오지 못했어요', error);
+  }
 }
 function renderJobs(jobs) {
   const host = $('merge-jobs');

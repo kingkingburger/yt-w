@@ -92,6 +92,17 @@ const emptyState = ({ icon, title, sub, action = '' }) => `<div class="empty">
   <div class="empty-sub">${sub}</div>
   ${action}
 </div>`;
+/* 목록을 못 불러온 상태와 목록이 비어 있는 상태는 다르다. 실패를 빈 상태로 그리면
+   화면이 "아직 없어요"라고 거짓말하고, 운영자는 결국 탐색기를 열어 확인하게 된다. */
+const renderLoadFailure = (hostId, title, error) => {
+  const host = $(hostId);
+  if (!host) return;
+  host.innerHTML = `<div class="empty">
+  <div class="empty-icon empty-icon-alert">!</div>
+  <div class="empty-title">${escapeHtml(title)}</div>
+  <div class="empty-sub">${escapeHtml(error?.message || '잠시 후 다시 시도해 주세요')}</div>
+</div>`;
+};
 const throwIfResponseFailed = async (response, fallbackMessage = '요청을 처리하지 못했습니다') => {
   if (response.ok) return;
   const payload = await response.json().catch(() => ({}));

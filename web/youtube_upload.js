@@ -270,13 +270,12 @@ function safeYouTubeVideoUrl(videoUrl, videoId) {
 async function loadYouTubeUploadJobs() {
   try {
     const response = await fetch(`${API}/api/youtube/uploads`);
+    await throwIfResponseFailed(response, 'YouTube 업로드 작업을 불러오지 못했습니다');
     const jobs = await response.json().catch(() => []);
-    if (!response.ok) throw new Error('YouTube 업로드 작업을 불러오지 못했습니다.');
     state.youtubeUploadJobs = Array.isArray(jobs) ? jobs : [];
     renderYouTubeUploadJobs(state.youtubeUploadJobs);
   } catch (error) {
-    const host = $('youtube-upload-jobs');
-    if (host) host.innerHTML = `<div class="empty"><div class="empty-title">작업을 불러오지 못했어요</div><div class="empty-sub">${escapeHtml(error.message)}</div></div>`;
+    renderLoadFailure('youtube-upload-jobs', 'YouTube 업로드 작업을 불러오지 못했어요', error);
   }
 }
 

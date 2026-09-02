@@ -755,6 +755,13 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   border-width: 0 2px 2px 0;
   transform: translate(-1px, -1px) rotate(45deg);
 }
+.empty-icon-alert {
+  background: var(--warn-tint);
+  border-style: solid;
+  border-color: var(--warn-line);
+  color: var(--warn);
+  font-weight: 700;
+}
 .empty-title {
   font-size: 15px;
   font-weight: 700;

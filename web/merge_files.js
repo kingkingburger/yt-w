@@ -1,9 +1,12 @@
 
 /* ── merge :: file list ────────────────────────────────────────────── */
+const FILE_LIST_HOST_IDS = ['merge-file-list', 'split-file-list', 'youtube-upload-file-list'];
+
 async function loadFiles(refresh = false) {
   try {
     const query = refresh ? '?refresh=true' : '';
     const r = await fetch(`${API}/api/files${query}`);
+    await throwIfResponseFailed(r, '서버 영상 목록을 불러오지 못했습니다');
     state.files = await r.json();
     const validPaths = new Set(state.files.map(f => f.path));
     state.selectedPaths = new Set(
@@ -18,7 +21,11 @@ async function loadFiles(refresh = false) {
     renderSplitSelection();
     renderYouTubeUploadFileList();
     renderYouTubeUploadReady();
-  } catch (e) {}
+  } catch (error) {
+    // 같은 목록을 세 화면이 함께 쓰므로 세 곳 모두에 실패를 알린다.
+    FILE_LIST_HOST_IDS.forEach(hostId =>
+      renderLoadFailure(hostId, '서버 영상 목록을 불러오지 못했어요', error));
+  }
 }
 function renderFileList() {
   const host = $('merge-file-list');

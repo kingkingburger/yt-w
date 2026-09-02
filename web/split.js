@@ -284,10 +284,13 @@ async function executeSplit() {
 async function loadSplitJobs() {
   try {
     const response = await fetch(`${API}/api/split/jobs`);
+    await throwIfResponseFailed(response, '나누기 작업을 불러오지 못했습니다');
     const jobs = await response.json();
     state.splitJobs = jobs;
     renderSplitJobs(jobs);
-  } catch (error) {}
+  } catch (error) {
+    renderLoadFailure('split-jobs', '나누기 작업을 불러오지 못했어요', error);
+  }
 }
 
 function renderSplitJobs(jobs) {

@@ -129,4 +129,5 @@ def test_list_panels_share_the_empty_state_helper() -> None:
     app_js = read_frontend_javascript()
 
     assert app_js.count("host.innerHTML = emptyState({") == 10
-    assert app_js.count("await throwIfResponseFailed(") == 6
+    # 목록 로더 7개가 응답 상태 확인을 공용 헬퍼로 넘기면서 6 → 13이 됐다.
+    assert app_js.count("await throwIfResponseFailed(") == 13

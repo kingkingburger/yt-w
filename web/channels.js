@@ -3,9 +3,12 @@
 async function loadChannels() {
   try {
     const r = await fetch(`${API}/api/channels`);
+    await throwIfResponseFailed(r, '채널 목록을 불러오지 못했습니다');
     const channels = await r.json();
     renderChannelList(channels);
-  } catch (e) {}
+  } catch (error) {
+    renderLoadFailure('channel-list', '채널 목록을 불러오지 못했어요', error);
+  }
 }
 
 /* 채널 목록은 라이브 녹화 탭 한 곳에서만 관리한다. 같은 목록을 두 탭에
@@ -89,13 +92,16 @@ async function loadRecentRecordings(refresh = false) {
   if (!host) return;
   try {
     const r = await fetch(`${API}/api/files${refresh ? '?refresh=true' : ''}`);
+    await throwIfResponseFailed(r, '최근 녹화를 불러오지 못했습니다');
     const files = await r.json();
     // 녹화 산출물은 live(원본)와 merged(자동 병합)에 쌓인다. 웹에서 받은 파일과 섞지 않는다.
     state.recentRecordings = files
       .filter(f => RECORDING_DIRECTORY_NAMES.includes(String(f.path).split('/')[0]))
       .slice(0, RECENT_RECORDING_LIMIT);
     renderRecentRecordings();
-  } catch (e) {}
+  } catch (error) {
+    renderLoadFailure('recent-recordings', '최근 녹화를 불러오지 못했어요', error);
+  }
 }
 
 function renderRecentRecordings() {

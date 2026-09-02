@@ -80,12 +80,15 @@ async function loadRecentFiles(refresh = false) {
   if (!host) return;
   try {
     const r = await fetch(`${API}/api/files${refresh ? '?refresh=true' : ''}`);
+    await throwIfResponseFailed(r, '최근 받은 영상을 불러오지 못했습니다');
     const files = await r.json();
     state.recentFiles = files
       .filter(f => String(f.path).split('/')[0] === DOWNLOAD_DIRECTORY_NAME)
       .slice(0, RECENT_FILE_LIMIT);
     renderRecentFiles();
-  } catch (e) {}
+  } catch (error) {
+    renderLoadFailure('recent-files', '최근 받은 영상을 불러오지 못했어요', error);
+  }
 }
 
 function renderRecentFiles() {
