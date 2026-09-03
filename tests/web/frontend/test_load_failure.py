@@ -16,7 +16,12 @@ LIST_LOADERS = (
     (
         "merge_files.js",
         "loadFiles",
-        ("merge-file-list", "split-file-list", "youtube-upload-file-list"),
+        (
+            "merge-file-list",
+            "split-file-list",
+            "youtube-upload-file-list",
+            "library-file-list",
+        ),
     ),
     ("merge_jobs.js", "loadJobs", ("merge-jobs",)),
     ("split.js", "loadSplitJobs", ("split-jobs",)),

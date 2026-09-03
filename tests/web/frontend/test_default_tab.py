@@ -20,7 +20,9 @@ def test_frontend_opens_youtube_upload_tab_by_default():
         'data-tab="monitor"'
     ) < index_html.index('data-tab="merge"') < index_html.index(
         'data-tab="split"'
-    ) < index_html.index('data-tab="youtube-upload"')
+    ) < index_html.index('data-tab="youtube-upload"') < index_html.index(
+        'data-tab="library"'
+    )
     assert index_html.count('class="panel active"') == 1
     assert '<section id="panel-youtube-upload" class="panel active"' in index_html
     assert '<section id="panel-download" class="panel active"' not in index_html

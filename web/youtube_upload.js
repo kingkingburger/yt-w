@@ -16,13 +16,33 @@ function filterYouTubeUploadFiles(files) {
   });
 }
 
+/* 목록 하나가 업로드 대상 고르기와 정리(삭제)를 같이 맡는다. 체크는 "선택"이고,
+   업로드는 선택이 정확히 하나로 좁혀졌을 때만 열린다. */
+function youtubeUploadTargetPath(selectedPaths = state.youtubeUploadSelectedPaths) {
+  return selectedPaths.size === 1 ? [...selectedPaths][0] : null;
+}
+
 function renderYouTubeUploadFileList() {
   const host = $('youtube-upload-file-list');
   if (!host) return;
   const files = filterYouTubeUploadFiles(state.files);
   const allowedPaths = new Set(files.map(file => file.path));
-  if (!allowedPaths.has(state.youtubeUploadSelectedPath)) state.youtubeUploadSelectedPath = null;
-  $('youtube-upload-file-count').textContent = `${files.length}개`;
+  state.youtubeUploadSelectedPaths = new Set(
+    [...state.youtubeUploadSelectedPaths].filter(path => allowedPaths.has(path))
+  );
+  const selectedCount = state.youtubeUploadSelectedPaths.size;
+  $('youtube-upload-file-count').textContent = selectedCount
+    ? `${files.length}개 · ${selectedCount}개 선택`
+    : `${files.length}개`;
+  const selectAllButton = $('btn-youtube-select-all');
+  const deleteSelectedButton = $('btn-youtube-delete-selected');
+  if (selectAllButton) {
+    selectAllButton.disabled = files.length === 0;
+    selectAllButton.textContent = selectedCount === files.length && selectedCount > 0
+      ? '전체 해제'
+      : '전체 선택';
+  }
+  if (deleteSelectedButton) deleteSelectedButton.disabled = selectedCount === 0;
 
   if (!files.length) {
     host.innerHTML = emptyState({
@@ -35,16 +55,16 @@ function renderYouTubeUploadFileList() {
   }
 
   host.innerHTML = files.map(file => {
-    const selected = file.path === state.youtubeUploadSelectedPath;
+    const selected = state.youtubeUploadSelectedPaths.has(file.path);
     const fileName = file.name || mergeFileName(file.path);
     const topDirectory = String(file.path).split('/')[0];
     const safePathAttribute = escapeHtmlAttribute(file.path);
     const safeNameAttribute = escapeHtmlAttribute(fileName);
     return `<label class="youtube-upload-file-row ${selected ? 'selected' : ''}">
-      <span class="selection-control selection-radio">
-        <input type="radio" name="youtube-upload-source" value="${safePathAttribute}"
+      <span class="selection-control selection-checkbox">
+        <input type="checkbox" value="${safePathAttribute}"
                aria-label="${safeNameAttribute} 선택" ${selected ? 'checked' : ''}
-               onchange="selectYouTubeUploadFile(this.value)" />
+               onchange="toggleYouTubeUploadFile(this.value, this.checked)" />
         <span class="selection-mark" aria-hidden="true"></span>
       </span>
       <div class="youtube-upload-file-main">
@@ -54,24 +74,58 @@ function renderYouTubeUploadFileList() {
       <span class="part-chip">${escapeHtml(topDirectory)}</span>
       <span class="file-meta nowrap">${fmtBytes(file.size_bytes)}</span>
       <span class="file-meta nowrap">${fmtAge(file.mtime)}</span>
+      <button type="button" class="btn danger sm file-delete-btn" data-path="${safePathAttribute}"
+              title="${safeNameAttribute} 삭제"
+              aria-label="${safeNameAttribute} 삭제"
+              onclick="deleteYouTubeUploadFile(this.dataset.path, event)">✕</button>
     </label>`;
   }).join('');
 }
 
-function selectYouTubeUploadFile(path) {
-  const selectedFile = filterYouTubeUploadFiles(state.files).find(file => file.path === path);
-  state.youtubeUploadSelectedPath = selectedFile?.path || null;
+/* 파일명에서 확장자와 끝의 HHMMSS를 떼어 제목 칸에 넣는다. */
+function fillYouTubeUploadTitle(path) {
   const titleInput = $('youtube-upload-title');
-  if (titleInput) {
-    const fileName = selectedFile ? selectedFile.name || mergeFileName(selectedFile.path) : '';
-    const maxLength = titleInput.maxLength > 0 ? titleInput.maxLength : 100;
-    const uploadTitle = String(fileName)
-      .replace(/\.[^.]+$/, '')
-      .replace(/_([01]\d|2[0-3])[0-5]\d[0-5]\d$/, '');
-    titleInput.value = uploadTitle.slice(0, maxLength);
-  }
+  if (!titleInput) return;
+  const selectedFile = state.files.find(file => file.path === path);
+  const fileName = selectedFile?.name || mergeFileName(path);
+  const maxLength = titleInput.maxLength > 0 ? titleInput.maxLength : 100;
+  const uploadTitle = String(fileName)
+    .replace(/\.[^.]+$/, '')
+    .replace(/_([01]\d|2[0-3])[0-5]\d[0-5]\d$/, '');
+  titleInput.value = uploadTitle.slice(0, maxLength);
+}
+
+function toggleYouTubeUploadFile(path, on) {
+  if (on) state.youtubeUploadSelectedPaths.add(path);
+  else state.youtubeUploadSelectedPaths.delete(path);
+  // 방금 체크한 파일이 유일한 선택이 될 때만 제목을 채운다. 체크를 풀어 하나로
+  // 돌아온 경우엔 이미 고쳐 둔 제목을 덮어쓰지 않는다.
+  if (on && state.youtubeUploadSelectedPaths.size === 1) fillYouTubeUploadTitle(path);
   renderYouTubeUploadFileList();
   renderYouTubeUploadReady();
+}
+
+function selectAllYouTubeUploadFiles() {
+  const paths = filterYouTubeUploadFiles(state.files).map(file => file.path);
+  if (!paths.length) return;
+  const allSelected = paths.every(path => state.youtubeUploadSelectedPaths.has(path));
+  paths.forEach(path => {
+    if (allSelected) state.youtubeUploadSelectedPaths.delete(path);
+    else state.youtubeUploadSelectedPaths.add(path);
+  });
+  if (!allSelected && paths.length === 1) fillYouTubeUploadTitle(paths[0]);
+  renderYouTubeUploadFileList();
+  renderYouTubeUploadReady();
+}
+
+function deleteYouTubeUploadFile(path, event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  deleteSourceFiles([path], mergeFileName(path));
+}
+
+function deleteSelectedYouTubeUploadFiles() {
+  return deleteSourceFiles([...state.youtubeUploadSelectedPaths], '선택한 영상');
 }
 
 function renderYouTubeUploadReady() {
@@ -83,8 +137,12 @@ function renderYouTubeUploadReady() {
 
   const status = state.youtubeOAuthStatus;
   const title = $('youtube-upload-title').value.trim();
-  const selected = state.youtubeUploadSelectedPath;
-  selectedSource.textContent = selected || '영상을 먼저 골라 주세요.';
+  const selectedCount = state.youtubeUploadSelectedPaths.size;
+  const selected = youtubeUploadTargetPath();
+  selectedSource.textContent = selected
+    || (selectedCount > 1
+      ? `${selectedCount}개를 골랐어요. 업로드는 한 번에 하나만 할 수 있어요.`
+      : '영상을 먼저 골라 주세요.');
   // 경로일 때만 고정폭. 안내문에 mono를 씌우면 한글 사이 공백이 벌어진다.
   selectedSource.classList.toggle('mono', Boolean(selected));
 
@@ -93,6 +151,7 @@ function renderYouTubeUploadReady() {
   else if (status.error) blockedReason = status.error;
   else if (!status.configured) blockedReason = '서버에 YouTube OAuth 설정이 필요합니다.';
   else if (!status.connected) blockedReason = 'YouTube 계정을 연결해 주세요.';
+  else if (selectedCount > 1) blockedReason = `업로드할 영상은 하나만 남겨 주세요. (${selectedCount}개 선택됨)`;
   else if (!selected) blockedReason = '업로드할 서버 영상을 골라 주세요.';
   else if (!title) blockedReason = '영상 제목을 입력해 주세요.';
 
@@ -203,8 +262,9 @@ async function disconnectYouTubeAccount() {
 async function submitYouTubeUpload(event) {
   event.preventDefault();
   const title = $('youtube-upload-title').value.trim();
-  if (!state.youtubeUploadSelectedPath) {
-    notify('알림', '업로드할 서버 영상을 골라 주세요.', 'err'); return;
+  const source = youtubeUploadTargetPath();
+  if (!source) {
+    notify('알림', '업로드할 서버 영상을 하나만 골라 주세요.', 'err'); return;
   }
   if (!title) {
     notify('알림', '영상 제목을 입력해 주세요.', 'err'); return;
@@ -214,7 +274,7 @@ async function submitYouTubeUpload(event) {
   }
 
   const payload = {
-    source: state.youtubeUploadSelectedPath,
+    source,
     title,
     description: $('youtube-upload-description').value,
     tags: $('youtube-upload-tags').value.split(',').map(tag => tag.trim()).filter(Boolean),

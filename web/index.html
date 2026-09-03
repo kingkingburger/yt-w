@@ -25,7 +25,7 @@
         <div class="brand-tag">유튜브 다운로드 &amp;<br/>라이브 자동 녹화</div>
       </div>
 
-      <!-- 영상이 생기고(①) → 손질되고(②) → 나가는(③) 순서가 메뉴 순서다. -->
+      <!-- 영상이 생기고(①) → 손질되고(②) → 나가고(③) → 정리되는(④) 순서가 메뉴 순서다. -->
       <nav class="nav" role="tablist" aria-label="작업 메뉴" onkeydown="handleTabKeydown(event)">
         <div class="nav-label" id="nav-label">메뉴</div>
 
@@ -83,6 +83,16 @@
             <path d="M20.4 17.5A5 5 0 0 0 18 8.2 7 7 0 0 0 4.3 10.7 4.5 4.5 0 0 0 5.5 19H7" />
           </svg>
           <span>YouTube 업로드</span>
+          <span class="arrow" aria-hidden="true">→</span>
+        </button>
+
+        <button class="nav-btn" data-tab="library" onclick="switchTab('library')"
+                role="tab" id="tab-library" aria-controls="panel-library" aria-selected="false" tabindex="-1">
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <path d="M11 11l4 2.5-4 2.5z" fill="currentColor" stroke="none" />
+          </svg>
+          <span>영상 관리</span>
           <span class="arrow" aria-hidden="true">→</span>
         </button>
       </nav>
@@ -301,6 +311,8 @@
                 <div class="card-sub" id="youtube-upload-file-count">0개</div>
               </div>
               <div class="card-head-actions">
+                <button class="btn sm" type="button" id="btn-youtube-select-all" onclick="selectAllYouTubeUploadFiles()">전체 선택</button>
+                <button class="btn danger sm" type="button" id="btn-youtube-delete-selected" onclick="deleteSelectedYouTubeUploadFiles()" disabled>선택 삭제</button>
                 <button class="btn ghost sm" type="button" onclick="loadFiles(true)">새로고침</button>
               </div>
             </div>
@@ -669,6 +681,29 @@
         </section>
       </section>
 
+      <!-- ╔══════════════════════════════ LIBRARY ════════════════════╗ -->
+      <section id="panel-library" class="panel" role="tabpanel" aria-labelledby="tab-library" tabindex="0">
+        <section class="card library-card">
+          <div class="card-head">
+            <div class="card-title-group">
+              <div class="card-title">서버에 있는 영상</div>
+              <div class="card-sub" id="library-file-count">0개</div>
+            </div>
+            <div class="card-head-actions">
+              <button class="btn sm" type="button" id="btn-library-select-all" onclick="selectAllLibraryFiles()">전체 선택</button>
+              <button class="btn danger sm" type="button" id="btn-library-delete-selected" onclick="deleteSelectedLibraryFiles()" disabled>선택 삭제</button>
+              <button class="btn ghost sm" type="button" onclick="loadFiles(true)">새로고침</button>
+            </div>
+          </div>
+          <div class="library-file-tools">
+            <input class="input" type="search" id="library-file-search"
+                   aria-label="파일명 또는 폴더 검색"
+                   placeholder="파일명 또는 폴더 검색"
+                   oninput="setLibrarySearch(this.value)" />
+          </div>
+          <div class="file-list" id="library-file-list"></div>
+        </section>
+      </section>
 
       <footer class="footer-note">
         <span>yt-w · 셀프호스팅 도구</span>
@@ -799,6 +834,7 @@
 <script src="/static/merge_jobs.js"></script>
 <script src="/static/split.js"></script>
 <script src="/static/youtube_upload.js"></script>
+<script src="/static/library.js"></script>
 <script src="/static/download.js"></script>
 <script src="/static/palette.js"></script>
 <script src="/static/app.js"></script>

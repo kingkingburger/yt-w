@@ -16,6 +16,7 @@ RUNTIME_JS_FILES = (
     "merge_jobs.js",
     "split.js",
     "youtube_upload.js",
+    "library.js",
     "download.js",
     "palette.js",
     "app.js",

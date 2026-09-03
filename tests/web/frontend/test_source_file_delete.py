@@ -61,9 +61,11 @@ async function fetch(url, options) {{
 async function loadFiles(refresh) {{ events.push(['loadFiles', refresh]); }}
 function systemRefresh() {{ events.push(['systemRefresh']); }}
 function notify(title, message, kind) {{ events.push(['notify', title, message, kind]); }}
+function mergeFileName(path) {{ return path.split('/').pop(); }}
 {delete_function}
 (async () => {{
   await deleteSourceFiles(['one.mp4', 'two.mp4'], '방송 묶음');
+  await deleteSourceFiles(['merged/solo.mp4'], '선택한 영상');
   console.log(JSON.stringify(events));
 }})();
 """
@@ -80,8 +82,11 @@ function notify(title, message, kind) {{ events.push(['notify', title, message, 
     assert request[0:2] == ["fetch", "/api/files"]
     assert request[2]["method"] == "DELETE"
     assert json.loads(request[2]["body"]) == {"paths": ["one.mp4", "two.mp4"]}
-    assert events[2:] == [
+    assert events[2:5] == [
         ["loadFiles", True],
         ["systemRefresh"],
-        ["notify", "삭제 완료", "소스 파일 2개를 삭제했습니다", "ok"],
+        ["notify", "삭제 완료", "영상 파일 2개를 삭제했습니다", "ok"],
     ]
+    assert events[0] == ["confirm", "방송 묶음 2개를 삭제할까요?\n삭제한 파일은 복구할 수 없습니다."]
+    # 하나만 지울 때는 "선택한 영상" 같은 묶음 라벨이 아니라 파일 이름을 보여 준다.
+    assert events[5] == ["confirm", '"solo.mp4" 파일을 삭제할까요?\n삭제한 파일은 복구할 수 없습니다.']

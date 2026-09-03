@@ -1,6 +1,8 @@
 
 /* ── merge :: file list ────────────────────────────────────────────── */
-const FILE_LIST_HOST_IDS = ['merge-file-list', 'split-file-list', 'youtube-upload-file-list'];
+const FILE_LIST_HOST_IDS = [
+  'merge-file-list', 'split-file-list', 'youtube-upload-file-list', 'library-file-list',
+];
 
 async function loadFiles(refresh = false) {
   try {
@@ -14,15 +16,21 @@ async function loadFiles(refresh = false) {
     );
     state.sequence = state.sequence.filter(path => validPaths.has(path));
     if (!validPaths.has(state.splitSelectedPath)) state.splitSelectedPath = null;
-    if (!validPaths.has(state.youtubeUploadSelectedPath)) state.youtubeUploadSelectedPath = null;
+    state.youtubeUploadSelectedPaths = new Set(
+      [...state.youtubeUploadSelectedPaths].filter(path => validPaths.has(path))
+    );
+    state.librarySelectedPaths = new Set(
+      [...state.librarySelectedPaths].filter(path => validPaths.has(path))
+    );
     renderFileList();
     renderSequence();
     renderSplitFileList();
     renderSplitSelection();
     renderYouTubeUploadFileList();
     renderYouTubeUploadReady();
+    renderLibrary();
   } catch (error) {
-    // 같은 목록을 세 화면이 함께 쓰므로 세 곳 모두에 실패를 알린다.
+    // 같은 목록을 네 화면이 함께 쓰므로 네 곳 모두에 실패를 알린다.
     FILE_LIST_HOST_IDS.forEach(hostId =>
       renderLoadFailure(hostId, '서버 영상 목록을 불러오지 못했어요', error));
   }
@@ -134,13 +142,16 @@ function renderSourceFileRow(f) {
               onclick="deleteSourceFile('${safePath}', event)">✕</button>
     </label>`;
 }
+/* 합치기·YouTube 업로드·영상 관리 화면이 같이 쓰는 삭제 경로. label은 파일이
+   여럿일 때 개수 앞에 붙을 명사구("선택한 영상")다. 하나면 어느 화면에서
+   왔든 파일 이름을 그대로 보여 준다. */
 async function deleteSourceFiles(paths, label) {
   const uniquePaths = [...new Set((paths || []).filter(Boolean))];
   if (!uniquePaths.length) return;
   const target = uniquePaths.length === 1
-    ? `"${label || uniquePaths[0]}" 파일`
-    : `"${label || '선택한 그룹'}"의 소스 파일 ${uniquePaths.length}개`;
-  if (!confirm(`${target}를 삭제할까요?\n삭제한 파일은 복구할 수 없습니다.`)) return;
+    ? `"${mergeFileName(uniquePaths[0])}" 파일을`
+    : `${label || '선택한 영상'} ${uniquePaths.length}개를`;
+  if (!confirm(`${target} 삭제할까요?\n삭제한 파일은 복구할 수 없습니다.`)) return;
 
   try {
     const response = await fetch(`${API}/api/files`, {
@@ -152,7 +163,7 @@ async function deleteSourceFiles(paths, label) {
     if (!response.ok) throw new Error(result.detail || '파일 삭제에 실패했습니다');
     await loadFiles(true);
     systemRefresh();
-    notify('삭제 완료', `소스 파일 ${result.count}개를 삭제했습니다`, 'ok');
+    notify('삭제 완료', `영상 파일 ${result.count}개를 삭제했습니다`, 'ok');
   } catch (error) {
     notify('오류', error.message || '파일 삭제에 실패했습니다', 'err');
   }
@@ -166,7 +177,7 @@ function deleteSourceGroup(groupIdx, event) {
   event?.preventDefault();
   event?.stopPropagation();
   const group = state.sourceGroups[groupIdx];
-  if (group) deleteSourceFiles(group.paths, group.name);
+  if (group) deleteSourceFiles(group.paths, `"${group.name}" 그룹의 영상`);
 }
 function selectedSourcePaths() {
   return buildFileGroups(availableSourceFiles())

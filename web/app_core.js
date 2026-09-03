@@ -18,9 +18,13 @@ const state = {
   splitSearchQuery: '',
   splitGroupOpen: new Set(),
   splitGroups: [],
-  youtubeUploadSelectedPath: null,
+  youtubeUploadSelectedPaths: new Set(),
   youtubeUploadJobs: [],
   youtubeOAuthStatus: null,
+  librarySelectedPaths: new Set(),
+  librarySearchQuery: '',
+  libraryGroupOpen: new Set(),
+  libraryGroups: [],
   dlFormat: 'video',
   pendingChannelDelete: null,
   recentFiles: [],
@@ -128,6 +132,7 @@ function switchTab(tab) {
     loadYouTubeOAuthStatus();
     loadYouTubeUploadJobs();
   }
+  if (tab === 'library') { loadFiles(); }
   if (tab === 'monitor') { loadChannels(); loadRecentRecordings(); }
   if (tab === 'download') {
     loadRecentFiles();
