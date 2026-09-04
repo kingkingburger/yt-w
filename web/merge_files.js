@@ -80,6 +80,7 @@ function renderFileList() {
     const someSelected = selectedCount > 0 && !allSelected;
     const sourceBadge = mergeSourceBadge(group.paths[0]);
     const partBadge = group.partLabel ? `<span class="part-chip">${escapeHtml(group.partLabel)}</span>` : '';
+    const safeNameAttribute = escapeHtmlAttribute(group.name);
     return `
       <div class="file-group ${open ? 'open' : ''} ${allSelected ? 'selected' : ''}">
         <div class="file-group-head"
@@ -90,21 +91,21 @@ function renderFileList() {
           <span class="tree-toggle" aria-hidden="true">▸</span>
           <span class="selection-control selection-checkbox">
             <input type="checkbox"
-                   aria-label="${escapeHtml(group.name)} 전체 선택"
+                   aria-label="${safeNameAttribute} 전체 선택"
                    ${allSelected ? 'checked' : ''}
                    ${someSelected ? 'data-partial="true"' : ''}
                    onclick="event.stopPropagation()"
                    onchange="toggleSourceGroupSelect(${groupIdx}, this.checked)" />
             <span class="selection-mark" aria-hidden="true"></span>
           </span>
-          <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
+          <div class="file-group-title" title="${safeNameAttribute}">${escapeHtml(group.name)}</div>
           <div class="file-group-tools">
             ${sourceBadge}
             ${partBadge}
             <div class="file-meta nowrap">${group.paths.length}개 · ${fmtBytes(group.paths.reduce((sum, path) => sum + sizeOfPath(path), 0))}</div>
             <button type="button" class="btn danger sm file-delete-btn" draggable="false"
-                    title="${escapeHtml(group.name)} 그룹 전체 삭제"
-                    aria-label="${escapeHtml(group.name)} 그룹 전체 삭제"
+                    title="${safeNameAttribute} 그룹 전체 삭제"
+                    aria-label="${safeNameAttribute} 그룹 전체 삭제"
                     onclick="deleteSourceGroup(${groupIdx}, event)">✕</button>
           </div>
         </div>
@@ -120,26 +121,28 @@ function renderFileList() {
 function renderSourceFileRow(f) {
   const fname = mergeFileName(f.path);
   const checked = state.selectedPaths.has(f.path);
-  const safePath = escapeHtml(f.path).replace(/'/g, "\\'");
+  const safePathAttribute = escapeHtmlAttribute(f.path);
+  const safeNameAttribute = escapeHtmlAttribute(fname);
   return `
     <label class="file-row child ${checked ? 'selected' : ''}"
            draggable="true"
-           data-path="${escapeHtml(f.path)}"
-           ondragstart="fileDragStart(event, '${safePath}')"
+           data-path="${safePathAttribute}"
+           ondragstart="fileDragStart(event, this.dataset.path)"
            ondragend="fileDragEnd(event)">
       <span class="selection-control selection-checkbox">
-        <input type="checkbox" aria-label="${escapeHtml(fname)} 선택" ${checked ? 'checked' : ''}
-               onchange="toggleFileSelect('${safePath}', this.checked)" />
+        <input type="checkbox" value="${safePathAttribute}"
+               aria-label="${safeNameAttribute} 선택" ${checked ? 'checked' : ''}
+               onchange="toggleFileSelect(this.value, this.checked)" />
         <span class="selection-mark" aria-hidden="true"></span>
       </span>
       <span class="file-grip" aria-hidden="true">::</span>
-      <div class="file-name" title="${escapeHtml(fname)}">${escapeHtml(fname)}</div>
+      <div class="file-name" title="${safeNameAttribute}">${escapeHtml(fname)}</div>
       <div class="file-meta nowrap">${fmtBytes(f.size_bytes)}</div>
       <div class="file-meta nowrap">${fmtAge(f.mtime)}</div>
-      <button type="button" class="btn danger sm file-delete-btn" draggable="false"
-              title="${escapeHtml(fname)} 삭제"
-              aria-label="${escapeHtml(fname)} 삭제"
-              onclick="deleteSourceFile('${safePath}', event)">✕</button>
+      <button type="button" class="btn danger sm file-delete-btn" draggable="false" data-path="${safePathAttribute}"
+              title="${safeNameAttribute} 삭제"
+              aria-label="${safeNameAttribute} 삭제"
+              onclick="deleteSourceFile(this.dataset.path, event)">✕</button>
     </label>`;
 }
 /* 합치기·YouTube 업로드·영상 관리 화면이 같이 쓰는 삭제 경로. label은 파일이

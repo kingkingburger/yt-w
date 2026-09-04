@@ -265,6 +265,7 @@ function renderSequence() {
     const removeAction = blockSize > 1
       ? `removeSeqBlock(${row.start}, ${row.end})`
       : `removeSeqItem(${row.start})`;
+    const safeNameAttribute = escapeHtmlAttribute(fname);
     return `
       <div class="seq-item ${blockSize > 1 ? 'part-block' : ''}" draggable="true" data-idx="${row.start}"
            ondragstart="seqDragStart(event, ${row.start})"
@@ -274,8 +275,8 @@ function renderSequence() {
            ondragend="seqDragEnd(event)">
         <div class="grip">⋮⋮</div>
         <div class="idx">${idxLabel}</div>
-        <div class="name" title="${escapeHtml(title)}">${escapeHtml(fname)}${badges}</div>
-        <button class="btn sm danger" aria-label="${escapeHtml(fname)} 목록에서 빼기"
+        <div class="name" title="${escapeHtmlAttribute(title)}">${escapeHtml(fname)}${badges}</div>
+        <button class="btn sm danger" aria-label="${safeNameAttribute} 목록에서 빼기"
                 onclick="${removeAction}">✕</button>
       </div>`;
   }).join('');
@@ -308,7 +309,7 @@ function renderMergeStrip() {
     const label = String(index + 1).padStart(2, '0');
     return `
       <div class="strip-block" style="flex: ${Math.max(share, 0.001)} 1 0"
-           title="${escapeHtml(mergeFileName(path))} · ${fmtBytes(bytes)}"
+           title="${escapeHtmlAttribute(mergeFileName(path))} · ${fmtBytes(bytes)}"
            onmouseenter="highlightSeqIndex(${index}, true)"
            onmouseleave="highlightSeqIndex(${index}, false)">${label}</div>`;
   }).join('');

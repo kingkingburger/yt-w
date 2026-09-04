@@ -379,7 +379,7 @@ function renderYouTubeUploadJobs(jobs) {
         <div class="actions">
           ${jobStateChip(job.status)}
           ${cancelControl}
-          ${videoUrl ? `<a class="btn sm" href="${escapeHtml(videoUrl)}" target="_blank" rel="noopener noreferrer">YouTube에서 보기</a>` : ''}
+          ${videoUrl ? `<a class="btn sm" href="${escapeHtmlAttribute(videoUrl)}" target="_blank" rel="noopener noreferrer">YouTube에서 보기</a>` : ''}
         </div>
       </div>`;
     }).join('')}`;

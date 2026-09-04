@@ -31,12 +31,13 @@ function renderSplitFileList() {
     const partBadge = group.partLabel
       ? `<span class="part-chip">${escapeHtml(group.partLabel)}</span>`
       : '';
+    const safeNameAttribute = escapeHtmlAttribute(group.name);
     return `
       <div class="file-group ${open ? 'open' : ''} ${selected ? 'selected' : ''}">
         <div class="file-group-head split-file-group-head"
              onclick="toggleSplitGroup(${groupIdx})">
           <span class="tree-toggle" aria-hidden="true">▸</span>
-          <div class="file-group-title" title="${escapeHtml(group.name)}">${escapeHtml(group.name)}</div>
+          <div class="file-group-title" title="${safeNameAttribute}">${escapeHtml(group.name)}</div>
           ${partBadge}
           <div class="file-meta nowrap">${group.paths.length}개</div>
         </div>
@@ -49,15 +50,17 @@ function renderSplitFileList() {
 
 function renderSplitFileRow(file) {
   const selected = file.path === state.splitSelectedPath;
-  const safePath = escapeHtml(file.path).replace(/'/g, "\\'");
+  const safePathAttribute = escapeHtmlAttribute(file.path);
+  const safeNameAttribute = escapeHtmlAttribute(file.name);
   return `
     <label class="file-row child split-file-row ${selected ? 'selected' : ''}">
       <span class="selection-control selection-radio">
-        <input type="radio" name="split-source" aria-label="${escapeHtml(file.name)} 선택"
-               ${selected ? 'checked' : ''} onchange="selectSplitFile('${safePath}')" />
+        <input type="radio" name="split-source" value="${safePathAttribute}"
+               aria-label="${safeNameAttribute} 선택"
+               ${selected ? 'checked' : ''} onchange="selectSplitFile(this.value)" />
         <span class="selection-mark" aria-hidden="true"></span>
       </span>
-      <div class="file-name" title="${escapeHtml(file.path)}">${escapeHtml(file.name)}</div>
+      <div class="file-name" title="${safePathAttribute}">${escapeHtml(file.name)}</div>
       <div class="file-meta nowrap">${fmtBytes(file.size_bytes)}</div>
       <div class="file-meta nowrap">${fmtAge(file.mtime)}</div>
     </label>`;

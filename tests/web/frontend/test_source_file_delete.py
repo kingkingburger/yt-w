@@ -37,7 +37,7 @@ def test_source_list_renders_file_and_group_delete_actions() -> None:
     index_html = Path("web/index.html").read_text(encoding="utf-8")
 
     assert "deleteSourceGroup(${groupIdx}, event)" in app_js
-    assert "deleteSourceFile('${safePath}', event)" in app_js
+    assert "deleteSourceFile(this.dataset.path, event)" in app_js
     assert "return deleteSourceFiles(selectedSourcePaths(), '선택한 영상');" in app_js
     assert 'id="btn-delete-selected"' in index_html
     assert "삭제한 파일은 복구할 수 없습니다" in app_js
