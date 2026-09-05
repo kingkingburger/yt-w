@@ -1,7 +1,7 @@
 """ffmpeg 기반 영상 병합 — 파일 스캔 + concat 커맨드 빌더 + 잡 매니저.
 
 순수 함수(스캔/커맨드 빌드)와 부수효과(subprocess) 영역을 분리한다.
-잡은 백그라운드 스레드에서 실행되며, _lock으로 _jobs/_processes를 보호한다.
+잡은 백그라운드 스레드에서 실행되며, _lock으로 _jobs/_processes/_reserved_outputs를 보호한다.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ import time
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Literal, Optional
+from typing import Dict, List, Literal, Optional, Set
 
 from ..jobs import stamp_job_finished
 from ..paths import PathOutsideRootError, resolve_within_root
@@ -222,6 +222,7 @@ class MergeJobManager:
         self._jobs: Dict[str, MergeJobDTO] = {}
         self._processes: Dict[str, subprocess.Popen] = {}
         self._output_paths: Dict[str, Path] = {}
+        self._reserved_outputs: Set[Path] = set()
         self._lock: threading.Lock = threading.Lock()
 
     def set_root(self, root: Path) -> None:
@@ -292,6 +293,13 @@ class MergeJobManager:
         output_dir = root / "merged"
         output_dir.mkdir(parents=True, exist_ok=True)
         output_path = (output_dir / output_filename).resolve()
+
+        # 기본 파일명이 날짜라 같은 날 두 번째 병합은 같은 경로가 된다. ffmpeg -y가
+        # 완성본을 덮어쓰지 않도록 존재하거나 진행 중인 출력은 여기서 거절한다.
+        with self._lock:
+            if output_path.exists() or output_path in self._reserved_outputs:
+                raise ValueError(f"출력 파일이 이미 존재합니다: {output_path.name}")
+            self._reserved_outputs.add(output_path)
 
         job_id = uuid.uuid4().hex[:12]
         job = MergeJobDTO(
@@ -397,6 +405,13 @@ class MergeJobManager:
         finally:
             with self._lock:
                 self._processes.pop(job_id, None)
+                final_status = self._jobs[job_id].status
+                self._reserved_outputs.discard(output_path)
+            if final_status in {"failed", "cancelled"}:
+                try:
+                    output_path.unlink(missing_ok=True)
+                except OSError:
+                    pass
             if list_file is not None and list_file.exists():
                 try:
                     list_file.unlink()

@@ -346,3 +346,70 @@ def test_cancelled_queued_merge_never_starts_ffmpeg(tmp_path: Path):
         assert cancelled.status == "cancelled"
         assert cancelled.message == "사용자가 취소함"
         popen.assert_not_called()
+        # 취소로 끝난 잡은 출력 이름 예약도 돌려준다.
+        retry = manager.submit(["one.mp4", "two.mp4"], "out", "concat")
+        assert retry.output == "merged/out.mp4"
+
+
+def test_merge_rejects_output_that_already_exists(tmp_path: Path):
+    """날짜 기본 파일명이 같은 날 두 번째 병합에서 완성본을 덮어쓰면 안 된다."""
+    root = tmp_path / "downloads"
+    (root / "merged").mkdir(parents=True)
+    (root / "one.mp4").write_bytes(b"one")
+    (root / "two.mp4").write_bytes(b"two")
+    finished = root / "merged" / "2026-09-05.mp4"
+    finished.write_bytes(b"finished merge")
+
+    with pytest.raises(ValueError, match="이미 존재합니다: 2026-09-05.mp4"):
+        MergeJobManager(root).submit(["one.mp4", "two.mp4"], "2026-09-05", "concat")
+
+    assert finished.read_bytes() == b"finished merge"
+
+
+def test_merge_rejects_output_reserved_by_unfinished_job(tmp_path: Path):
+    root = tmp_path / "downloads"
+    root.mkdir()
+    (root / "one.mp4").write_bytes(b"one")
+    (root / "two.mp4").write_bytes(b"two")
+    manager = MergeJobManager(root)
+
+    with patch.object(video_merger.threading, "Thread"):
+        first = manager.submit(["one.mp4", "two.mp4"], "same.mp4", "concat")
+        with pytest.raises(ValueError, match="이미 존재합니다: same.mp4"):
+            manager.submit(["two.mp4", "one.mp4"], "same.mp4", "reencode")
+        other = manager.submit(["one.mp4", "two.mp4"], "other.mp4", "concat")
+
+    assert first.status == "queued"
+    assert other.output == "merged/other.mp4"
+
+
+def test_failed_merge_removes_partial_output_and_frees_the_name(tmp_path: Path):
+    process = _FinishedProcess(1, ["Invalid data found when processing input\n"])
+    for root, manager, job, target, args, _popen in _submitted_job(tmp_path, process):
+        partial = root / "merged" / "out.mp4"
+        partial.write_bytes(b"partial")
+
+        target(*args)
+
+        failed = manager.get(job.id)
+        assert failed is not None
+        assert failed.status == "failed"
+        assert not partial.exists()
+        retry = manager.submit(["one.mp4", "two.mp4"], "out", "concat")
+        assert retry.output == "merged/out.mp4"
+
+
+def test_successful_merge_keeps_output_and_blocks_a_second_write(tmp_path: Path):
+    process = _FinishedProcess(0, ["frame=1\n"])
+    for root, manager, job, target, args, _popen in _submitted_job(tmp_path, process):
+        output = root / "merged" / "out.mp4"
+        output.write_bytes(b"merged")
+
+        target(*args)
+
+        done = manager.get(job.id)
+        assert done is not None
+        assert done.status == "done"
+        assert output.read_bytes() == b"merged"
+        with pytest.raises(ValueError, match="이미 존재합니다: out.mp4"):
+            manager.submit(["one.mp4", "two.mp4"], "out", "concat")
