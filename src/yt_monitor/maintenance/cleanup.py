@@ -7,6 +7,14 @@ from typing import List, Tuple
 from ..logging import Logger
 
 
+def _file_size_bytes(file_path: Path) -> int:
+    """스캔과 stat 사이에 사라진 파일은 0 byte로 본다."""
+    try:
+        return file_path.stat().st_size
+    except OSError:
+        return 0
+
+
 class FileCleaner:
     """Clean up old downloaded files based on retention policy."""
 
@@ -80,7 +88,12 @@ class FileCleaner:
             if self._is_in_preserved_directory(file_path):
                 continue
 
-            age_days = self._get_file_age_days(file_path)
+            try:
+                age_days = self._get_file_age_days(file_path)
+            except OSError:
+                # 교체 중인 .part나 concat 목록처럼 스캔 뒤 사라진 파일은 이번 회차에서
+                # 건너뛴다. 여기서 예외가 새면 그날의 retention 정리 전체가 중단된다.
+                continue
             if age_days >= self.retention_days:
                 old_files.append((file_path, age_days))
 
@@ -161,7 +174,7 @@ class FileCleaner:
             Dictionary containing cleanup summary
         """
         old_files = self.find_old_files()
-        total_size = sum(f[0].stat().st_size for f in old_files)
+        total_size = sum(_file_size_bytes(file_path) for file_path, _age in old_files)
 
         live_dir = self.download_directory / "live"
         live_file_count = 0
@@ -171,7 +184,7 @@ class FileCleaner:
             for file_path in live_dir.rglob("*"):
                 if file_path.is_file():
                     live_file_count += 1
-                    live_total_size += file_path.stat().st_size
+                    live_total_size += _file_size_bytes(file_path)
 
         return {
             "files_to_delete": len(old_files),
