@@ -16,12 +16,9 @@ function filterYouTubeUploadFiles(files) {
   });
 }
 
-/* 목록 하나가 업로드 대상 고르기와 정리(삭제)를 같이 맡는다. 체크는 "선택"이고,
-   업로드는 선택이 정확히 하나로 좁혀졌을 때만 열린다. */
-function youtubeUploadTargetPath(selectedPaths = state.youtubeUploadSelectedPaths) {
-  return selectedPaths.size === 1 ? [...selectedPaths][0] : null;
-}
-
+/* 목록 하나가 업로드 대상 고르기와 정리(삭제)를 같이 맡는다. 체크된 파일이 모두
+   업로드 대상이다. 하나면 제목 칸의 값을 쓰고, 여러 개면 파일마다 파일명에서 뽑은
+   제목으로 작업을 하나씩 등록한다. */
 function renderYouTubeUploadFileList() {
   const host = $('youtube-upload-file-list');
   if (!host) return;
@@ -82,17 +79,38 @@ function renderYouTubeUploadFileList() {
   }).join('');
 }
 
-/* 파일명에서 확장자와 끝의 HHMMSS를 떼어 제목 칸에 넣는다. */
+function youtubeUploadFileStem(path) {
+  const selectedFile = state.files.find(file => file.path === path);
+  const fileName = selectedFile?.name || mergeFileName(path);
+  return String(fileName).replace(/\.[^.]+$/, '');
+}
+
+/* 파일명에서 확장자와 끝의 HHMMSS를 뗀 제목. */
+function youtubeUploadTitleFromPath(path, maxLength = 100) {
+  return youtubeUploadFileStem(path)
+    .replace(/_([01]\d|2[0-3])[0-5]\d[0-5]\d$/, '')
+    .slice(0, maxLength);
+}
+
+/* 여러 개를 한꺼번에 올릴 때의 파일별 제목. 기본은 HHMMSS를 뗀 제목이지만, 같은 날
+   녹화처럼 제목이 겹치는 파일은 녹화 시각을 남겨 서로 구분한다. */
+function youtubeUploadBatchTitles(paths, maxLength = 100) {
+  const titleCounts = new Map();
+  paths.forEach(path => {
+    const title = youtubeUploadTitleFromPath(path, maxLength);
+    titleCounts.set(title, (titleCounts.get(title) || 0) + 1);
+  });
+  return new Map(paths.map(path => {
+    const title = youtubeUploadTitleFromPath(path, maxLength);
+    return [path, titleCounts.get(title) > 1 ? youtubeUploadFileStem(path).slice(0, maxLength) : title];
+  }));
+}
+
 function fillYouTubeUploadTitle(path) {
   const titleInput = $('youtube-upload-title');
   if (!titleInput) return;
-  const selectedFile = state.files.find(file => file.path === path);
-  const fileName = selectedFile?.name || mergeFileName(path);
   const maxLength = titleInput.maxLength > 0 ? titleInput.maxLength : 100;
-  const uploadTitle = String(fileName)
-    .replace(/\.[^.]+$/, '')
-    .replace(/_([01]\d|2[0-3])[0-5]\d[0-5]\d$/, '');
-  titleInput.value = uploadTitle.slice(0, maxLength);
+  titleInput.value = youtubeUploadTitleFromPath(path, maxLength);
 }
 
 function toggleYouTubeUploadFile(path, on) {
@@ -133,32 +151,41 @@ function renderYouTubeUploadReady() {
   const bar = $('youtube-upload-ready');
   const text = $('youtube-upload-ready-text');
   const selectedSource = $('youtube-upload-selected-source');
-  if (!button || !bar || !text || !selectedSource) return;
+  const titleInput = $('youtube-upload-title');
+  if (!button || !bar || !text || !selectedSource || !titleInput) return;
 
   const status = state.youtubeOAuthStatus;
-  const title = $('youtube-upload-title').value.trim();
-  const selectedCount = state.youtubeUploadSelectedPaths.size;
-  const selected = youtubeUploadTargetPath();
-  selectedSource.textContent = selected
-    || (selectedCount > 1
-      ? `${selectedCount}개를 골랐어요. 업로드는 한 번에 하나만 할 수 있어요.`
-      : '영상을 먼저 골라 주세요.');
+  const title = titleInput.value.trim();
+  const selectedPaths = [...state.youtubeUploadSelectedPaths];
+  const selectedCount = selectedPaths.length;
+  const single = selectedCount === 1;
+  // 여러 개를 골랐을 때는 제목 칸 대신 파일명이 제목이 되므로 입력을 잠근다.
+  titleInput.disabled = selectedCount > 1;
+  if (single) selectedSource.textContent = selectedPaths[0];
+  else if (selectedCount > 1) {
+    // 파일마다 붙을 제목을 미리 보여 준다. 같은 제목이 되는 파일은 없는지 여기서 확인할 수 있다.
+    const batchTitles = youtubeUploadBatchTitles(selectedPaths);
+    const titleItems = selectedPaths.map(path => `<li>${escapeHtml(batchTitles.get(path))}</li>`).join('');
+    selectedSource.innerHTML = `${selectedCount}개를 골랐어요. 제목은 파일마다 이렇게 붙습니다.`
+      + `<ul class="youtube-selected-source-list">${titleItems}</ul>`;
+  } else selectedSource.textContent = '영상을 먼저 골라 주세요.';
   // 경로일 때만 고정폭. 안내문에 mono를 씌우면 한글 사이 공백이 벌어진다.
-  selectedSource.classList.toggle('mono', Boolean(selected));
+  selectedSource.classList.toggle('mono', single);
 
   let blockedReason = '';
   if (!status) blockedReason = 'YouTube 계정 상태를 확인하고 있습니다.';
   else if (status.error) blockedReason = status.error;
   else if (!status.configured) blockedReason = '서버에 YouTube OAuth 설정이 필요합니다.';
   else if (!status.connected) blockedReason = 'YouTube 계정을 연결해 주세요.';
-  else if (selectedCount > 1) blockedReason = `업로드할 영상은 하나만 남겨 주세요. (${selectedCount}개 선택됨)`;
-  else if (!selected) blockedReason = '업로드할 서버 영상을 골라 주세요.';
-  else if (!title) blockedReason = '영상 제목을 입력해 주세요.';
+  else if (!selectedCount) blockedReason = '업로드할 서버 영상을 골라 주세요.';
+  else if (single && !title) blockedReason = '영상 제목을 입력해 주세요.';
 
   button.disabled = Boolean(blockedReason);
   bar.classList.toggle('go', !blockedReason);
   $('youtube-upload-step-no')?.classList.toggle('done', !blockedReason);
-  text.textContent = blockedReason || `"${title}"을(를) 비공개로 업로드합니다.`;
+  if (blockedReason) text.textContent = blockedReason;
+  else if (single) text.textContent = `"${title}"을(를) 비공개로 업로드합니다.`;
+  else text.textContent = `${selectedCount}개 영상을 파일명 제목으로 비공개 업로드합니다.`;
 }
 
 function renderYouTubeOAuthStatus() {
@@ -259,46 +286,80 @@ async function disconnectYouTubeAccount() {
   }
 }
 
+async function submitYouTubeUploadJob(payload) {
+  const response = await fetch(`${API}/api/youtube/uploads`, {
+    method: 'POST',
+    headers: { ...YOUTUBE_MUTATION_HEADERS, 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.detail || 'YouTube 업로드를 등록하지 못했습니다.');
+  return data;
+}
+
+/* 체크한 파일마다 작업을 하나씩 등록한다. 설명·태그·카테고리·아동용 설정은 공통이고,
+   제목은 하나만 골랐을 때만 입력값을 쓴다. 등록된 파일은 체크를 풀어 같은 파일을
+   한 번 더 올리는 실수를 막는다. */
 async function submitYouTubeUpload(event) {
   event.preventDefault();
+  const sources = [...state.youtubeUploadSelectedPaths];
+  const single = sources.length === 1;
   const title = $('youtube-upload-title').value.trim();
-  const source = youtubeUploadTargetPath();
-  if (!source) {
-    notify('알림', '업로드할 서버 영상을 하나만 골라 주세요.', 'err'); return;
+  if (!sources.length) {
+    notify('알림', '업로드할 서버 영상을 골라 주세요.', 'err'); return;
   }
-  if (!title) {
+  if (single && !title) {
     notify('알림', '영상 제목을 입력해 주세요.', 'err'); return;
   }
   if (!state.youtubeOAuthStatus?.connected) {
     notify('알림', 'YouTube 계정을 먼저 연결해 주세요.', 'err'); return;
   }
 
-  const payload = {
-    source,
-    title,
+  const sharedMetadata = {
     description: $('youtube-upload-description').value,
     tags: $('youtube-upload-tags').value.split(',').map(tag => tag.trim()).filter(Boolean),
     category_id: $('youtube-upload-category').value,
     made_for_kids: $('youtube-upload-made-for-kids').checked,
   };
+  const batchTitles = single ? null : youtubeUploadBatchTitles(sources);
   const button = $('btn-youtube-upload');
   button.disabled = true;
-  button.textContent = '작업 등록 중…';
+  const submittedJobIds = [];
+  const failures = [];
   try {
-    const response = await fetch(`${API}/api/youtube/uploads`, {
-      method: 'POST',
-      headers: { ...YOUTUBE_MUTATION_HEADERS, 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.detail || 'YouTube 업로드를 등록하지 못했습니다.');
-    const jobLabel = data.id ? ` ${String(data.id).slice(0, 8)}` : '';
-    notify('등록됨', `YouTube 업로드 작업${jobLabel}을 등록했습니다.`, 'ok');
-    loadYouTubeUploadJobs();
-  } catch (error) {
-    notify('오류', error.message || 'YouTube 업로드를 등록하지 못했습니다.', 'err');
+    for (const [index, source] of sources.entries()) {
+      button.textContent = single ? '작업 등록 중…' : `작업 등록 중… (${index + 1}/${sources.length})`;
+      try {
+        const job = await submitYouTubeUploadJob({
+          source,
+          title: single ? title : batchTitles.get(source),
+          ...sharedMetadata,
+        });
+        state.youtubeUploadSelectedPaths.delete(source);
+        submittedJobIds.push(String(job.id || ''));
+      } catch (error) {
+        failures.push({
+          fileName: mergeFileName(source),
+          message: error.message || 'YouTube 업로드를 등록하지 못했습니다.',
+        });
+      }
+    }
+    // 토스트는 하나뿐이라 성공·실패를 따로 띄우면 앞 것이 바로 덮인다. 한 줄로 합친다.
+    if (!failures.length) {
+      const jobLabel = single
+        ? (submittedJobIds[0] ? ` ${submittedJobIds[0].slice(0, 8)}` : '')
+        : ` ${submittedJobIds.length}개`;
+      notify('등록됨', `YouTube 업로드 작업${jobLabel}을 등록했습니다.`, 'ok');
+    } else if (single) {
+      notify('오류', failures[0].message, 'err');
+    } else {
+      const registeredNote = submittedJobIds.length ? ` (${submittedJobIds.length}개는 등록됨)` : '';
+      notify('오류', `${failures.length}개 등록 실패${registeredNote} · ${failures[0].fileName}: ${failures[0].message}`, 'err');
+    }
+    if (submittedJobIds.length) loadYouTubeUploadJobs();
   } finally {
     button.textContent = '비공개로 업로드';
+    renderYouTubeUploadFileList();
     renderYouTubeUploadReady();
   }
 }

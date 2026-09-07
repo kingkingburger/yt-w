@@ -104,7 +104,7 @@ def test_youtube_upload_javascript_targets_backend_contract() -> None:
     assert "headers: { ...YOUTUBE_MUTATION_HEADERS, 'Content-Type': 'application/json' }" in app_js
     for field in (
         "source,",
-        "title,",
+        "title:",
         "description:",
         "tags:",
         "category_id:",
@@ -211,7 +211,8 @@ function renderYouTubeUploadReady() { events.push('render-ready'); }
 function deleteSourceFiles(paths, label) { events.push(['delete', paths, label]); }
 """,
             extract_js_function(app_js, "filterYouTubeUploadFiles"),
-            extract_js_function(app_js, "youtubeUploadTargetPath"),
+            extract_js_function(app_js, "youtubeUploadFileStem"),
+            extract_js_function(app_js, "youtubeUploadTitleFromPath"),
             extract_js_function(app_js, "fillYouTubeUploadTitle"),
             extract_js_function(app_js, "toggleYouTubeUploadFile"),
             extract_js_function(app_js, "selectAllYouTubeUploadFiles"),
@@ -229,7 +230,6 @@ const snapshots = [];
 const snapshot = (step) => snapshots.push({{
   step,
   selected: [...state.youtubeUploadSelectedPaths],
-  target: youtubeUploadTargetPath(),
   title: elements['youtube-upload-title'].value,
 }});
 toggleYouTubeUploadFile('merged/침착맨_라이브_20260826_053736.mp4', true);
@@ -254,19 +254,16 @@ console.log(JSON.stringify({{ snapshots, events }}));
         {
             "step": "check-first",
             "selected": ["merged/침착맨_라이브_20260826_053736.mp4"],
-            "target": "merged/침착맨_라이브_20260826_053736.mp4",
             "title": "침착맨_라이브_20260826",
         },
         {
             "step": "check-second",
             "selected": ["merged/침착맨_라이브_20260826_053736.mp4", "split/clip-1.mp4"],
-            "target": None,
             "title": "손으로 고친 제목",
         },
         {
             "step": "uncheck-first",
             "selected": ["split/clip-1.mp4"],
-            "target": "split/clip-1.mp4",
             "title": "손으로 고친 제목",
         },
     ]
@@ -280,12 +277,10 @@ def test_youtube_upload_select_all_toggles_server_videos_and_deletes_selection()
 {youtube_selection_script_prelude(app_js)}
 selectAllYouTubeUploadFiles();
 const afterSelectAll = [...state.youtubeUploadSelectedPaths];
-const targetAfterSelectAll = youtubeUploadTargetPath();
 deleteSelectedYouTubeUploadFiles();
 selectAllYouTubeUploadFiles();
 console.log(JSON.stringify({{
   afterSelectAll,
-  targetAfterSelectAll,
   afterSecondSelectAll: [...state.youtubeUploadSelectedPaths],
   events,
 }}));
@@ -304,7 +299,6 @@ console.log(JSON.stringify({{
         "merged/침착맨_라이브_20260826_053736.mp4",
         "split/clip-1.mp4",
     ]
-    assert output["targetAfterSelectAll"] is None
     assert output["afterSecondSelectAll"] == []
     assert output["events"] == [
         "render-list",
@@ -332,11 +326,14 @@ def test_youtube_upload_file_rows_render_checkbox_and_delete_controls() -> None:
     assert "deleteSourceFiles([path], mergeFileName(path));" in app_js
 
 
-def test_youtube_upload_ready_blocks_when_more_than_one_file_is_checked() -> None:
+def test_youtube_upload_ready_opens_for_multiple_files_with_filename_titles() -> None:
     node = require_node()
     app_js = read_youtube_upload_javascript()
-    target_function = extract_js_function(app_js, "youtubeUploadTargetPath")
     ready_function = extract_js_function(app_js, "renderYouTubeUploadReady")
+    title_functions = "\n".join(
+        extract_js_function(app_js, name)
+        for name in ("youtubeUploadFileStem", "youtubeUploadTitleFromPath", "youtubeUploadBatchTitles")
+    )
     script = f"""
 const makeElement = (extra = {{}}) => ({{
   classes: new Set(),
@@ -353,30 +350,55 @@ for (const id of [
   elements[id] = makeElement({{ disabled: false, textContent: '' }});
   elements[id].classList.owner = elements[id];
 }}
-elements['youtube-upload-title'] = {{ value: '제목' }};
+// 실제 DOM처럼 innerHTML과 textContent가 서로를 덮어쓰게 한다.
+Object.defineProperties(elements['youtube-upload-selected-source'], {{
+  textContent: {{
+    get() {{ return this.text; }},
+    set(value) {{ this.text = value; this.html = null; }},
+  }},
+  innerHTML: {{
+    get() {{ return this.html; }},
+    set(value) {{ this.html = value; this.text = value.replace(/<[^>]+>/g, ''); }},
+  }},
+}});
+elements['youtube-upload-selected-source'].textContent = '';
+elements['youtube-upload-title'] = {{ value: '제목', disabled: false }};
 function $(id) {{ return elements[id] || null; }}
+function mergeFileName(path) {{ return path.split('/').pop(); }}
+function escapeHtml(value) {{ return String(value).replace(/</g, '&lt;'); }}
 const state = {{
+  files: [],
   youtubeOAuthStatus: {{ configured: true, connected: true }},
-  youtubeUploadSelectedPaths: new Set(['merged/a.mp4', 'merged/b.mp4']),
+  youtubeUploadSelectedPaths: new Set(),
 }};
-{target_function}
+{title_functions}
 {ready_function}
-renderYouTubeUploadReady();
-const blocked = {{
-  disabled: elements['btn-youtube-upload'].disabled,
-  reason: elements['youtube-upload-ready-text'].textContent,
-  source: elements['youtube-upload-selected-source'].textContent,
-  mono: elements['youtube-upload-selected-source'].classes.has('mono'),
+const outcomes = {{}};
+const capture = (step) => {{
+  renderYouTubeUploadReady();
+  outcomes[step] = {{
+    disabled: elements['btn-youtube-upload'].disabled,
+    go: elements['youtube-upload-ready'].classes.has('go'),
+    reason: elements['youtube-upload-ready-text'].textContent,
+    source: elements['youtube-upload-selected-source'].textContent,
+    sourceHtml: elements['youtube-upload-selected-source'].innerHTML,
+    mono: elements['youtube-upload-selected-source'].classes.has('mono'),
+    titleDisabled: elements['youtube-upload-title'].disabled,
+  }};
 }};
+state.youtubeUploadSelectedPaths = new Set([
+  'merged/침착맨_라이브_20260903_074555.mp4',
+  'merged/침착맨_라이브_20260903_025459.mp4',
+  'split/clip-1.mp4',
+]);
+capture('multiple');
 state.youtubeUploadSelectedPaths = new Set(['merged/a.mp4']);
-renderYouTubeUploadReady();
-const ready = {{
-  disabled: elements['btn-youtube-upload'].disabled,
-  reason: elements['youtube-upload-ready-text'].textContent,
-  source: elements['youtube-upload-selected-source'].textContent,
-  mono: elements['youtube-upload-selected-source'].classes.has('mono'),
-}};
-console.log(JSON.stringify({{ blocked, ready }}));
+capture('single');
+elements['youtube-upload-title'].value = '  ';
+capture('single-without-title');
+state.youtubeUploadSelectedPaths = new Set();
+capture('none');
+console.log(JSON.stringify(outcomes));
 """
     result = subprocess.run(
         [node, "-e", script],
@@ -386,56 +408,170 @@ console.log(JSON.stringify({{ blocked, ready }}));
         encoding="utf-8",
     )
 
+    # 같은 날 녹화 둘은 시각을 남겨 구분하고, 겹치지 않는 파일은 시각을 뗀다.
     assert json.loads(result.stdout) == {
-        "blocked": {
-            "disabled": True,
-            "reason": "업로드할 영상은 하나만 남겨 주세요. (2개 선택됨)",
-            "source": "2개를 골랐어요. 업로드는 한 번에 하나만 할 수 있어요.",
-            "mono": False,
-        },
-        "ready": {
+        "multiple": {
             "disabled": False,
+            "go": True,
+            "reason": "3개 영상을 파일명 제목으로 비공개 업로드합니다.",
+            "source": (
+                "3개를 골랐어요. 제목은 파일마다 이렇게 붙습니다."
+                "침착맨_라이브_20260903_074555침착맨_라이브_20260903_025459clip-1"
+            ),
+            "sourceHtml": (
+                "3개를 골랐어요. 제목은 파일마다 이렇게 붙습니다."
+                '<ul class="youtube-selected-source-list">'
+                "<li>침착맨_라이브_20260903_074555</li>"
+                "<li>침착맨_라이브_20260903_025459</li>"
+                "<li>clip-1</li></ul>"
+            ),
+            "mono": False,
+            "titleDisabled": True,
+        },
+        "single": {
+            "disabled": False,
+            "go": True,
             "reason": '"제목"을(를) 비공개로 업로드합니다.',
             "source": "merged/a.mp4",
+            "sourceHtml": None,
             "mono": True,
+            "titleDisabled": False,
+        },
+        "single-without-title": {
+            "disabled": True,
+            "go": False,
+            "reason": "영상 제목을 입력해 주세요.",
+            "source": "merged/a.mp4",
+            "sourceHtml": None,
+            "mono": True,
+            "titleDisabled": False,
+        },
+        "none": {
+            "disabled": True,
+            "go": False,
+            "reason": "업로드할 서버 영상을 골라 주세요.",
+            "source": "영상을 먼저 골라 주세요.",
+            "sourceHtml": None,
+            "mono": False,
+            "titleDisabled": False,
         },
     }
+
+
+def test_youtube_upload_batch_titles_keep_recording_time_only_when_titles_collide() -> None:
+    node = require_node()
+    app_js = read_youtube_upload_javascript()
+    title_functions = "\n".join(
+        extract_js_function(app_js, name)
+        for name in ("youtubeUploadFileStem", "youtubeUploadTitleFromPath", "youtubeUploadBatchTitles")
+    )
+    script = f"""
+const state = {{
+  files: [
+    {{ path: 'merged/renamed.mp4', name: '침착맨_라이브_20260906_045109.mp4' }},
+  ],
+}};
+function mergeFileName(path) {{ return path.split('/').pop(); }}
+{title_functions}
+const paths = [
+  'merged/침착맨_라이브_20260903_074555.mp4',
+  'merged/침착맨_라이브_20260903_025459.mp4',
+  'merged/renamed.mp4',
+  'split/clip-1.mp4',
+];
+console.log(JSON.stringify([...youtubeUploadBatchTitles(paths)]));
+"""
+    result = subprocess.run(
+        [node, "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+
+    assert json.loads(result.stdout) == [
+        ["merged/침착맨_라이브_20260903_074555.mp4", "침착맨_라이브_20260903_074555"],
+        ["merged/침착맨_라이브_20260903_025459.mp4", "침착맨_라이브_20260903_025459"],
+        ["merged/renamed.mp4", "침착맨_라이브_20260906"],
+        ["split/clip-1.mp4", "clip-1"],
+    ]
+
+
+def youtube_submit_script_prelude(
+    app_js: str,
+    selected_paths: list[str],
+    title_value: str,
+) -> str:
+    """제출 계약을 검사하는 node 스크립트가 공통으로 쓰는 상태·스텁. fetch는 테스트마다 정의한다."""
+    return "\n".join(
+        [
+            f"""
+const API = '';
+const YOUTUBE_MUTATION_HEADERS = Object.freeze({{ 'X-YT-Monitor-Request': '1' }});
+const state = {{
+  files: [
+    {{
+      path: 'merged/침착맨_라이브_20260826_053736.mp4',
+      name: '침착맨_라이브_20260826_053736.mp4',
+    }},
+    {{
+      path: 'merged/침착맨_라이브_20260826_101010.mp4',
+      name: '침착맨_라이브_20260826_101010.mp4',
+    }},
+    {{ path: 'split/clip-1.mp4', name: 'clip-1.mp4' }},
+    {{ path: 'uploads/busy.mp4', name: 'busy.mp4' }},
+    {{ path: 'merged/final.mp4', name: 'final.mp4' }},
+  ],
+  youtubeUploadSelectedPaths: new Set({json.dumps(selected_paths, ensure_ascii=False)}),
+  youtubeOAuthStatus: {{ configured: true, connected: true }},
+}};
+const events = [];
+const buttonLabels = [];
+const elements = {{
+  'youtube-upload-title': {{ value: {json.dumps(title_value, ensure_ascii=False)} }},
+  'youtube-upload-description': {{ value: 'Description' }},
+  'youtube-upload-tags': {{ value: 'alpha, beta, , gamma' }},
+  'youtube-upload-category': {{ value: '22' }},
+  'youtube-upload-made-for-kids': {{ checked: true }},
+  'btn-youtube-upload': {{
+    disabled: false,
+    label: '비공개로 업로드',
+    get textContent() {{ return this.label; }},
+    set textContent(value) {{ this.label = value; buttonLabels.push(value); }},
+  }},
+}};
+function $(id) {{ return elements[id]; }}
+function mergeFileName(path) {{ return path.split('/').pop(); }}
+function notify(...args) {{ events.push(['notify', ...args]); }}
+function loadYouTubeUploadJobs() {{ events.push(['loadJobs']); }}
+function renderYouTubeUploadFileList() {{ events.push(['renderList']); }}
+function renderYouTubeUploadReady() {{ events.push(['renderReady']); }}
+""",
+            extract_js_function(app_js, "youtubeUploadFileStem"),
+            extract_js_function(app_js, "youtubeUploadTitleFromPath"),
+            extract_js_function(app_js, "youtubeUploadBatchTitles"),
+            extract_js_function(app_js, "submitYouTubeUploadJob"),
+            extract_js_function(app_js, "submitYouTubeUpload"),
+        ]
+    )
 
 
 def test_youtube_upload_submit_sends_metadata_and_write_marker() -> None:
     node = require_node()
     app_js = read_youtube_upload_javascript()
-    submit_function = extract_js_function(app_js, "submitYouTubeUpload")
-    target_function = extract_js_function(app_js, "youtubeUploadTargetPath")
     script = f"""
-const API = '';
-const YOUTUBE_MUTATION_HEADERS = Object.freeze({{ 'X-YT-Monitor-Request': '1' }});
-const state = {{
-  youtubeUploadSelectedPaths: new Set(['merged/final.mp4']),
-  youtubeOAuthStatus: {{ configured: true, connected: true }}
-}};
-{target_function}
-const elements = {{
-  'youtube-upload-title': {{ value: ' Final title ' }},
-  'youtube-upload-description': {{ value: 'Description' }},
-  'youtube-upload-tags': {{ value: 'alpha, beta, , gamma' }},
-  'youtube-upload-category': {{ value: '22' }},
-  'youtube-upload-made-for-kids': {{ checked: true }},
-  'btn-youtube-upload': {{ disabled: false, textContent: '비공개로 업로드' }}
-}};
-const events = [];
-function $(id) {{ return elements[id]; }}
+{youtube_submit_script_prelude(app_js, ["merged/final.mp4"], " Final title ")}
 async function fetch(url, options) {{
   events.push(['fetch', url, options]);
   return {{ ok: true, json: async () => ({{ id: 'job-12345678' }}) }};
 }}
-function notify(...args) {{ events.push(['notify', ...args]); }}
-function loadYouTubeUploadJobs() {{ events.push(['loadJobs']); }}
-function renderYouTubeUploadReady() {{ events.push(['renderReady']); }}
-{submit_function}
 (async () => {{
   await submitYouTubeUpload({{ preventDefault() {{ events.push(['preventDefault']); }} }});
-  console.log(JSON.stringify(events));
+  console.log(JSON.stringify({{
+    events,
+    buttonLabels,
+    remaining: [...state.youtubeUploadSelectedPaths],
+  }}));
 }})();
 """
     result = subprocess.run(
@@ -445,9 +581,11 @@ function renderYouTubeUploadReady() {{ events.push(['renderReady']); }}
         text=True,
         encoding="utf-8",
     )
-    events = json.loads(result.stdout)
+    output = json.loads(result.stdout)
+    events = output["events"]
     request = events[1]
 
+    assert events[0] == ["preventDefault"]
     assert request[0:2] == ["fetch", "/api/youtube/uploads"]
     assert request[2]["method"] == "POST"
     assert request[2]["headers"] == {
@@ -462,7 +600,108 @@ function renderYouTubeUploadReady() {{ events.push(['renderReady']); }}
         "category_id": "22",
         "made_for_kids": True,
     }
-    assert events[-2:] == [["loadJobs"], ["renderReady"]]
+    assert events[2:] == [
+        ["notify", "등록됨", "YouTube 업로드 작업 job-1234을 등록했습니다.", "ok"],
+        ["loadJobs"],
+        ["renderList"],
+        ["renderReady"],
+    ]
+    assert output["buttonLabels"] == ["작업 등록 중…", "비공개로 업로드"]
+    # 등록된 파일은 체크가 풀린다.
+    assert output["remaining"] == []
+
+
+def test_youtube_upload_submit_registers_one_job_per_checked_file_with_filename_titles() -> None:
+    node = require_node()
+    app_js = read_youtube_upload_javascript()
+    selected = [
+        "merged/침착맨_라이브_20260826_053736.mp4",
+        "merged/침착맨_라이브_20260826_101010.mp4",
+        "split/clip-1.mp4",
+        "uploads/busy.mp4",
+    ]
+    script = f"""
+{youtube_submit_script_prelude(app_js, selected, "손으로 고친 제목")}
+async function fetch(url, options) {{
+  const payload = JSON.parse(options.body);
+  events.push(['fetch', url, payload]);
+  if (payload.source === 'uploads/busy.mp4') {{
+    return {{
+      ok: false,
+      json: async () => ({{ detail: '병합 또는 분할이 끝난 뒤 업로드해 주세요' }}),
+    }};
+  }}
+  return {{ ok: true, json: async () => ({{ id: `job-${{payload.source}}` }}) }};
+}}
+(async () => {{
+  await submitYouTubeUpload({{ preventDefault() {{ events.push(['preventDefault']); }} }});
+  console.log(JSON.stringify({{
+    events,
+    buttonLabels,
+    remaining: [...state.youtubeUploadSelectedPaths],
+  }}));
+}})();
+"""
+    result = subprocess.run(
+        [node, "-e", script],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    output = json.loads(result.stdout)
+    events = output["events"]
+    shared_metadata = {
+        "description": "Description",
+        "tags": ["alpha", "beta", "gamma"],
+        "category_id": "22",
+        "made_for_kids": True,
+    }
+
+    # 손으로 적은 제목은 무시하고 파일마다 파일명에서 뽑은 제목을 보낸다.
+    # 같은 날 녹화 둘은 시각을 남겨 제목이 겹치지 않게 한다.
+    assert events[1:5] == [
+        ["fetch", "/api/youtube/uploads", {
+            "source": "merged/침착맨_라이브_20260826_053736.mp4",
+            "title": "침착맨_라이브_20260826_053736",
+            **shared_metadata,
+        }],
+        ["fetch", "/api/youtube/uploads", {
+            "source": "merged/침착맨_라이브_20260826_101010.mp4",
+            "title": "침착맨_라이브_20260826_101010",
+            **shared_metadata,
+        }],
+        ["fetch", "/api/youtube/uploads", {
+            "source": "split/clip-1.mp4",
+            "title": "clip-1",
+            **shared_metadata,
+        }],
+        ["fetch", "/api/youtube/uploads", {
+            "source": "uploads/busy.mp4",
+            "title": "busy",
+            **shared_metadata,
+        }],
+    ]
+    # 성공·실패는 토스트 하나에 합쳐 알리고, 실패한 파일만 체크가 남는다.
+    assert events[5:] == [
+        [
+            "notify",
+            "오류",
+            "1개 등록 실패 (3개는 등록됨) · busy.mp4: 병합 또는 분할이 끝난 뒤 업로드해 주세요",
+            "err",
+        ],
+        ["loadJobs"],
+        ["renderList"],
+        ["renderReady"],
+    ]
+    assert output["remaining"] == ["uploads/busy.mp4"]
+    assert output["buttonLabels"] == [
+        "작업 등록 중… (1/4)",
+        "작업 등록 중… (2/4)",
+        "작업 등록 중… (3/4)",
+        "작업 등록 중… (4/4)",
+        "비공개로 업로드",
+    ]
 
 
 @pytest.mark.parametrize(

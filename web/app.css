@@ -1652,6 +1652,13 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+.youtube-selected-source-list {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  max-height: 132px;
+  overflow-y: auto;
+}
+.youtube-selected-source-list li { line-height: 1.5; }
 .youtube-upload-description {
   min-height: 94px;
   resize: vertical;

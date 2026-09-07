@@ -226,7 +226,11 @@ submit/cancel 같은 쓰기 route는 `X-YT-Monitor-Request: 1`을 요구하고, 
 
 업로드 제목의 기본값은 고른 파일명에서 확장자와 끝의 `_HHMMSS` 녹화 시각 접미사를 뺀
 값이다. 녹화 파일명이 그대로 공개 제목이 되지 않게 하려는 것이며, 입력란을 고치면 그 값이
-그대로 API payload가 된다.
+그대로 API payload가 된다. 여러 파일을 체크하면 브라우저가 파일마다 `POST /api/youtube/uploads`를
+순서대로 보내고, 제목은 각 파일명에서 같은 규칙으로 만든다(입력란은 잠기고, 파일별 제목을
+"고른 파일" 칸에 미리 보여 준다). 같은 날 녹화 둘처럼 시각을 뗀 제목이 겹치면 그 파일들만
+`_HHMMSS`를 남겨 구분한다. 설명·태그·카테고리·아동용 설정은 공통이다. manager는 job마다
+daemon thread를 하나씩 띄우므로 등록된 업로드는 병렬로 진행된다.
 
 MVP의 `privacyStatus`는 `private`로 고정한다. resumable upload는 프로세스가 살아 있는
 동안 chunk 진행률과 네트워크 재시도를 제공하지만 resumable session과 job 목록은
