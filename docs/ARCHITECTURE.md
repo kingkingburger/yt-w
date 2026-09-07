@@ -76,7 +76,7 @@ yt-w/
 │   ├── merge_output_name.js             # 기본 병합 파일명 계산
 │   └── merge_download_directory.js      # PC 저장 폴더 기억/쓰기
 ├── scripts/                             # Windows 시작/휴지통 helper와 pre-commit 도구
-├── docs/                                # 이 문서, v0 개발 이력, 실측 검증 리포트(verify/)
+├── docs/                                # 이 문서
 ├── main.py                              # 웹 서버 엔트리
 ├── monitoring.py                        # 모니터 데몬 엔트리
 ├── docker-compose.yml
@@ -376,5 +376,5 @@ uv run pytest tests/media/test_stream_download.py -k stop  # 특정
 
 ## 변경 이력
 
-초기 v0 프로토타입의 개발 기록은 `docs/history.md`를 참고한다. 현재 구조와 동작의
-권위 문서는 이 파일과 실제 `src/yt_monitor/` 소스다.
+현재 구조와 동작의 권위 문서는 이 파일과 실제 `src/yt_monitor/` 소스다.
+과거 변경 이력은 git log를 참고한다.

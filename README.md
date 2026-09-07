@@ -324,9 +324,7 @@ yt-w/
 │   ├── uninstall-windows-recycle-task.ps1 # helper Task 등록 해제
 │   └── windows-recycle-helper.ps1         # 실제 Windows 휴지통 처리
 ├── docs/
-│   ├── ARCHITECTURE.md          # 현재 구조와 운영 계약의 권위 문서
-│   ├── history.md               # v0 프로토타입 개발 이력
-│   └── verify/                  # 실측 검증 리포트와 스크린샷
+│   └── ARCHITECTURE.md          # 현재 구조와 운영 계약의 권위 문서
 ├── secrets/
 │   └── .gitkeep                 # 실제 OAuth client JSON은 Git에서 제외
 ├── docker-compose.yml
@@ -406,8 +404,6 @@ docker compose config --quiet         # Compose 문법과 env/mount interpolatio
 자동으로 실행합니다 (약 3초).
 
 - [아키텍처 문서](docs/ARCHITECTURE.md)
-- [변경 이력](docs/history.md)
-- [검증 리포트](docs/verify/) — 실제 실행으로 확인한 회귀 검증과 문서 감사 기록
 
 ## 라이선스
 
