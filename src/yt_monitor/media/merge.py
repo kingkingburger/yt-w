@@ -200,6 +200,12 @@ def merge_completed_stream_files(
         )
         if completed.returncode != 0:
             output_tail = "\n".join((completed.stdout or "").splitlines()[-5:])
+            # ffmpeg -y는 실패 전에도 출력 파일을 열어 일부를 기록한다. 잘린 산출물이
+            # 라이브러리 목록과 업로드 후보로 새지 않도록 수동 병합과 같은 방식으로 지운다.
+            try:
+                output_path.unlink(missing_ok=True)
+            except OSError:
+                pass
             raise RuntimeError(output_tail or "ffmpeg 자동 병합 실패")
 
         queue_recycle_request(root_resolved, output_path, ordered_inputs)

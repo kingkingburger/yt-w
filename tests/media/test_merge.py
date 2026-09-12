@@ -193,6 +193,37 @@ def test_completed_stream_merge_failure_keeps_live_source_files(tmp_path: Path):
     assert not (root / ".recycle-requests").exists()
 
 
+def test_completed_stream_merge_failure_removes_partial_output(tmp_path: Path):
+    root = tmp_path / "downloads"
+    channel_dir = root / "live" / "channel"
+    channel_dir.mkdir(parents=True)
+    paths = [
+        channel_dir / "channel_라이브_part001.mp4",
+        channel_dir / "channel_라이브_part002.mp4",
+    ]
+    for path in paths:
+        path.write_bytes(b"video")
+    output_path = root / "merged" / "channel_라이브.mp4"
+
+    def write_partial_output(command, **kwargs):
+        Path(command[-1]).write_bytes(b"truncated")
+        return subprocess.CompletedProcess(command, 1, stdout="ffmpeg failed")
+
+    with (
+        patch.object(video_merger, "write_concat_list"),
+        patch.object(
+            video_merger.subprocess,
+            "run",
+            side_effect=write_partial_output,
+        ),
+        pytest.raises(RuntimeError, match="ffmpeg failed"),
+    ):
+        merge_completed_stream_files(root, paths)
+
+    assert not output_path.exists()
+    assert all(path.exists() for path in paths)
+
+
 def test_completed_stream_merge_rejects_source_outside_live(tmp_path: Path):
     root = tmp_path / "downloads"
     source = root / "web_downloads" / "source.mp4"
