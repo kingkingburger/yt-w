@@ -248,6 +248,73 @@ class TestChannelMonitorThread:
 
         merge_files.assert_not_called()
 
+    def test_merge_failure_does_not_block_new_broadcast_recording(
+        self,
+        sample_channel: ChannelDTO,
+        global_settings: GlobalSettingsDTO,
+        initialized_logger,
+    ):
+        """직전 방송 병합이 실패해도 새 방송 녹화는 그대로 시작되어야 한다.
+
+        과거에는 merge_completed_stream_files의 예외가 _monitor_cycle까지 올라가
+        같은 주기의 _handle_live_stream이 실행되지 않았고, 새 방송 녹화가
+        check_interval_seconds만큼 통째로 밀렸다.
+        """
+        notifier = MagicMock()
+        youtube_client = MagicMock()
+        first_stream = LiveStreamInfo(
+            video_id="first",
+            url="https://www.youtube.com/watch?v=first",
+            title="First Stream",
+        )
+        second_stream = LiveStreamInfo(
+            video_id="second",
+            url="https://www.youtube.com/watch?v=second",
+            title="Second Stream",
+        )
+        youtube_client.check_if_live.side_effect = [
+            (True, first_stream),
+            (True, second_stream),
+        ]
+        thread = ChannelMonitorThread(
+            channel=sample_channel,
+            global_settings=global_settings,
+            youtube_client=youtube_client,
+            notifier=notifier,
+        )
+        channel_dir = (
+            Path(global_settings.download_directory) / "live" / "Test Channel"
+        )
+
+        def download_completed_file(*_args: object, **_kwargs: object) -> bool:
+            (channel_dir / "Test Channel_라이브_part001.mp4").write_bytes(b"video")
+            return True
+
+        with (
+            patch.object(
+                thread.downloader,
+                "download",
+                side_effect=download_completed_file,
+            ),
+            patch(
+                "src.yt_monitor.monitoring.worker.merge_completed_stream_files",
+                side_effect=RuntimeError("ffmpeg 자동 병합 실패"),
+            ) as merge_files,
+        ):
+            thread._monitor_cycle()
+            thread._monitor_cycle()
+
+        merge_files.assert_called_once()
+        assert youtube_client.check_if_live.call_count == 2
+        assert notifier.notify_live_detected.call_args_list[-1].kwargs == {
+            "channel_name": "Test Channel",
+            "stream_url": "https://www.youtube.com/watch?v=second",
+            "title": "Second Stream",
+        }
+        assert "자동 병합 실패" in notifier.notify_error.call_args.kwargs[
+            "error_message"
+        ]
+
     def test_handle_live_stream_resets_flag_when_notifier_raises(
         self,
         sample_channel: ChannelDTO,

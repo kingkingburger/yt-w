@@ -176,10 +176,26 @@ class ChannelMonitorThread:
             f"[{self.channel.name}] Broadcast ended; auto-merging "
             f"{len(completed_files)} completed file(s)"
         )
-        output_path = merge_completed_stream_files(
-            Path(self.global_settings.download_directory),
-            completed_files,
-        )
+        try:
+            output_path = merge_completed_stream_files(
+                Path(self.global_settings.download_directory),
+                completed_files,
+            )
+        except Exception as error:
+            # 여기서 예외가 올라가면 _monitor_cycle이 끊겨 이미 시작된 새 방송의
+            # 녹화가 다음 주기까지 밀린다. 원본은 live 폴더에 그대로 남으므로
+            # 병합 실패는 알림으로만 알리고 감시는 계속한다.
+            self.logger.error(
+                f"[{self.channel.name}] Automatic merge failed: {error}"
+            )
+            self._notifier.notify_error(
+                channel_name=self.channel.name,
+                error_message=(
+                    f"자동 병합 실패 — live 폴더에 남은 "
+                    f"{len(completed_files)}개 파일을 수동으로 병합해야 합니다: {error}"
+                ),
+            )
+            return
         self.logger.info(
             f"[{self.channel.name}] Automatic merge finished: {output_path}"
         )
