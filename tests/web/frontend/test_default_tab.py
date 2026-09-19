@@ -16,11 +16,13 @@ def test_frontend_opens_youtube_upload_tab_by_default():
     assert '<button class="nav-btn active" data-tab="youtube-upload"' in index_html
     assert '<button class="nav-btn active" data-tab="download"' not in index_html
     assert '<button class="nav-btn active" data-tab="merge"' not in index_html
-    assert index_html.index('data-tab="download"') < index_html.index(
+    assert index_html.index('data-tab="youtube-upload"') < index_html.index(
+        'data-tab="download"'
+    ) < index_html.index(
         'data-tab="monitor"'
     ) < index_html.index('data-tab="merge"') < index_html.index(
         'data-tab="split"'
-    ) < index_html.index('data-tab="youtube-upload"') < index_html.index(
+    ) < index_html.index(
         'data-tab="library"'
     )
     assert index_html.count('class="panel active"') == 1
