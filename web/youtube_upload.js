@@ -57,6 +57,7 @@ function renderYouTubeUploadFileList() {
     const topDirectory = String(file.path).split('/')[0];
     const safePathAttribute = escapeHtmlAttribute(file.path);
     const safeNameAttribute = escapeHtmlAttribute(fileName);
+    const uploadStatus = youtubeUploadFileStatus(file.path);
     return `<label class="youtube-upload-file-row ${selected ? 'selected' : ''}">
       <span class="selection-control selection-checkbox">
         <input type="checkbox" value="${safePathAttribute}"
@@ -67,6 +68,7 @@ function renderYouTubeUploadFileList() {
       <div class="youtube-upload-file-main">
         <div class="file-name" title="${safePathAttribute}">${escapeHtml(fileName)}</div>
         <div class="youtube-upload-file-path mono">${escapeHtml(file.path)}</div>
+        <span class="chip ${uploadStatus.kind}">${uploadStatus.label}</span>
       </div>
       <span class="part-chip">${escapeHtml(topDirectory)}</span>
       <span class="file-meta nowrap">${fmtBytes(file.size_bytes)}</span>
@@ -398,6 +400,7 @@ async function loadYouTubeUploadJobs() {
   } catch (error) {
     renderLoadFailure('youtube-upload-jobs', 'YouTube 업로드 작업을 불러오지 못했어요', error);
   }
+  await loadYouTubeUploadHistory();
 }
 
 function renderYouTubeUploadJobs(jobs) {

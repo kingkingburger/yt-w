@@ -431,6 +431,33 @@ def test_upload_job_reports_progress_and_completes_with_video_metadata(
     assert completed.video_id == "video-123"
     assert completed.video_url == "https://www.youtube.com/watch?v=video-123"
     assert completed.finished_at is not None
+    restarted = YouTubeUploadJobManager(tmp_path, factory)
+    assert restarted.list_uploaded_files() == [
+        {"source": "merged/clip.mp4", "video_id": "video-123"}
+    ]
+    source.write_bytes(b"replacement video")
+    assert restarted.list_uploaded_files() == []
+
+
+def test_history_write_failure_does_not_turn_successful_upload_into_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+):
+    from src.yt_monitor.youtube.history import UploadHistory
+
+    _make_source(tmp_path)
+
+    def fail_record(*args):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(UploadHistory, "record", fail_record)
+    manager = YouTubeUploadJobManager(
+        tmp_path, _FakeRequestFactory(_ScriptedUploadRequest([(None, {"id": "video"})]))
+    )
+    job = manager.submit("merged/clip.mp4", _metadata())
+    completed = _wait_for_status(manager, job.id, "done")
+    assert completed.video_id == "video"
+    assert "기록 저장 실패" in completed.message
+    assert manager.list_uploaded_files() == []
 
 
 def test_queued_cancel_prevents_google_request_creation(tmp_path: Path):

@@ -181,6 +181,11 @@ def register_youtube_upload_routes(
     async def list_youtube_uploads():
         return [asdict(job) for job in job_manager.list_jobs()]
 
+    @app.get("/api/youtube/upload-history")
+    async def list_youtube_upload_history():
+        job_manager.set_root(_root())
+        return await asyncio.to_thread(job_manager.list_uploaded_files)
+
     @app.get("/api/youtube/uploads/{job_id}")
     async def get_youtube_upload(job_id: str):
         job = job_manager.get(job_id)

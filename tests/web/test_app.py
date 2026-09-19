@@ -18,6 +18,7 @@ JS_ASSETS = (
     "merge_sequence.js",
     "merge_jobs.js",
     "split.js",
+    "youtube_history.js",
     "youtube_upload.js",
     "download.js",
     "palette.js",

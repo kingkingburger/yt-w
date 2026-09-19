@@ -20,6 +20,7 @@ const state = {
   splitGroups: [],
   youtubeUploadSelectedPaths: new Set(),
   youtubeUploadJobs: [],
+  youtubeUploadHistory: null,
   youtubeOAuthStatus: null,
   librarySelectedPaths: new Set(),
   librarySearchQuery: '',

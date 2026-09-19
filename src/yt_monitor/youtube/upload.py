@@ -26,6 +26,7 @@ from googleapiclient.http import MediaFileUpload
 
 from ..jobs import stamp_job_finished
 from ..paths import PathOutsideRootError, resolve_within_root
+from .history import UploadHistory
 
 YOUTUBE_UPLOAD_SCOPE: str = "https://www.googleapis.com/auth/youtube.upload"
 DEFAULT_YOUTUBE_REDIRECT_URI: str = "http://localhost:8088/api/youtube/oauth/callback"
@@ -514,6 +515,7 @@ class YouTubeUploadJobManager:
         self._retry_base_seconds = retry_base_seconds
         self._jobs: Dict[str, YouTubeUploadJobDTO] = {}
         self._cancel_events: Dict[str, threading.Event] = {}
+        self._source_versions: Dict[str, tuple[Path, int, int]] = {}
         self._lock = threading.Lock()
 
     def set_root(self, root: Path) -> None:
@@ -525,6 +527,11 @@ class YouTubeUploadJobManager:
             return sorted(
                 self._jobs.values(), key=lambda job: job.started_at, reverse=True
             )
+
+    def list_uploaded_files(self) -> list[dict[str, str]]:
+        with self._lock:
+            root = self._root
+        return UploadHistory(root).list_current()
 
     def get(self, job_id: str) -> Optional[YouTubeUploadJobDTO]:
         with self._lock:
@@ -540,7 +547,8 @@ class YouTubeUploadJobManager:
         with self._lock:
             root = self._root
         source_path = resolve_upload_source(root, source)
-        total_bytes = source_path.stat().st_size
+        source_stat = source_path.stat()
+        total_bytes = source_stat.st_size
         if total_bytes <= 0:
             raise ValueError("빈 영상 파일은 업로드할 수 없습니다")
 
@@ -565,6 +573,7 @@ class YouTubeUploadJobManager:
         with self._lock:
             self._jobs[job_id] = job
             self._cancel_events[job_id] = cancel_event
+            self._source_versions[job_id] = (root, total_bytes, source_stat.st_mtime_ns)
             self._evict_history_locked()
         threading.Thread(
             target=self._run,
@@ -679,6 +688,12 @@ class YouTubeUploadJobManager:
             completed.message = "비공개 업로드 완료"
             completed.video_id = video_id
             completed.video_url = f"https://www.youtube.com/watch?v={video_id}"
+            root, size, mtime_ns = self._source_versions[job_id]
+            try:
+                UploadHistory(root).record(completed.source, size, mtime_ns, video_id)
+            except Exception:
+                # Upload already succeeded: do not encourage a duplicate retry.
+                completed.message = "비공개 업로드 완료 (업로드 기록 저장 실패)"
             stamp_job_finished(completed)
 
     def _finish_cancelled(self, job_id: str) -> None:
@@ -705,3 +720,4 @@ class YouTubeUploadJobManager:
         for old_job in finished[:excess]:
             self._jobs.pop(old_job.id, None)
             self._cancel_events.pop(old_job.id, None)
+            self._source_versions.pop(old_job.id, None)

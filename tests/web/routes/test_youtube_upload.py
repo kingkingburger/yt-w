@@ -488,6 +488,15 @@ def test_submit_maps_auth_and_path_errors(
     assert response.json() == {"detail": str(error)}
 
 
+def test_upload_history_uses_current_download_root(route_harness: _RouteHarness):
+    records = [{"source": "merged/clip.mp4", "video_id": "video-123"}]
+    route_harness.jobs.list_uploaded_files.return_value = records
+    response = route_harness.client.get("/api/youtube/upload-history")
+    assert response.status_code == 200
+    assert response.json() == records
+    route_harness.jobs.set_root.assert_called_once_with(route_harness.download_root)
+
+
 def test_list_get_and_cancel_result_mapping(route_harness: _RouteHarness):
     job = _job()
     route_harness.jobs.list_jobs.return_value = [job]
