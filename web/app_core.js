@@ -13,7 +13,7 @@ const state = {
   mergeDownloadDirectory: null,
   savingMergeJobs: new Set(),
   splitSelectedPath: null,
-  splitStrategy: 'interval',
+  splitStrategy: 'parts',
   splitJobs: [],
   splitSearchQuery: '',
   splitGroupOpen: new Set(),
