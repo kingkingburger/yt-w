@@ -29,8 +29,8 @@ def test_split_tab_contains_interval_and_equal_part_controls():
     assert 'id="panel-split"' in html
     assert 'id="split-interval-hours"' in html
     assert 'id="split-parts"' in html
-    assert "2등분" in html
-    assert "3등분" in html
+    assert 'onclick="setSplitParts(2)"' in html
+    assert 'onclick="setSplitParts(3)"' in html
 
 
 def test_split_tab_contains_search_and_upload_controls():

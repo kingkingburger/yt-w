@@ -316,7 +316,6 @@
                 <button class="btn ghost sm" type="button" onclick="loadFiles(true)">새로고침</button>
               </div>
             </div>
-            <p class="youtube-auth-note">업로드 여부는 이 앱의 저장된 완료 기록 기준입니다. 기록 저장 기능 적용 전이나 다른 곳에서 올린 영상은 미업로드로 표시될 수 있습니다.</p>
             <div class="file-list youtube-upload-file-list" id="youtube-upload-file-list"></div>
           </section>
 
@@ -641,12 +640,12 @@
 
               <div class="split-strategy-panel" id="split-parts-fields">
                 <label class="label" for="split-parts">몇 등분할까요?</label>
-                <div class="toggle-group split-quick-parts" role="group" aria-label="빠른 등분 선택">
-                  <button type="button" onclick="setSplitParts(2)">2등분</button>
-                  <button type="button" onclick="setSplitParts(3)">3등분</button>
-                  <button type="button" onclick="setSplitParts(4)">4등분</button>
-                </div>
-                <div class="row-flex" style="margin-top:10px">
+                <div class="row-flex">
+                  <div class="toggle-group split-quick-parts" role="group" aria-label="빠른 등분 선택">
+                    <button type="button" onclick="setSplitParts(2)">2</button>
+                    <button type="button" onclick="setSplitParts(3)">3</button>
+                    <button type="button" onclick="setSplitParts(4)">4</button>
+                  </div>
                   <input class="input" type="number" id="split-parts" min="2" step="1" value="2" oninput="renderSplitSelection()" />
                   <span class="split-unit">개 파일</span>
                 </div>

@@ -1026,10 +1026,15 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   gap: 12px;
 }
 .merge-grid > .card { display: flex; flex-direction: column; }
-/* 나누기 설정은 늘어나는 목록이 없으므로 내용 높이만 차지한다. */
+/* 나누기 설정은 늘어나는 목록이 없으므로 내용 높이만 차지한다. 폭도 입력칸이
+   읽히는 만큼만 주고 나머지는 목록에 넘겨, 컨트롤이 길게 퍼져 비어 보이지 않게 한다. */
+#panel-split > .merge-grid { grid-template-columns: minmax(0, 1fr) minmax(340px, 420px); }
 #panel-split > .merge-grid > .card:last-child { align-self: start; }
+#panel-split > .merge-grid > .card > .card-body.stack { padding: 12px; }
+#panel-split .card-body.stack > * + * { margin-top: 8px; }
 @media (max-width: 1180px) {
-  .merge-grid { grid-template-columns: minmax(0, 1fr); }
+  .merge-grid,
+  #panel-split > .merge-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .file-list {
@@ -1530,8 +1535,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   transition: width var(--t-2) var(--ease-soft);
 }
 .split-selected-file {
-  min-height: 40px;
-  padding: 9px 12px;
+  padding: 7px 11px;
   border: 1px solid var(--rule-2);
   border-radius: var(--radius);
   background: var(--paper-2);
@@ -1541,21 +1545,21 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   word-break: break-word;
 }
 .split-strategy-panel {
-  padding: 12px;
+  padding: 9px 10px;
   border-radius: var(--radius);
   background: var(--paper-2);
   border: 1px solid var(--rule);
 }
 .split-strategy-panel .input { flex: 1; }
 .split-unit {
-  flex: 0 0 68px;
+  flex: 0 0 auto;
   color: var(--ink-3);
   font-size: 12.5px;
 }
-.split-quick-parts { display: flex; width: 100%; }
-.split-quick-parts button { flex: 1; }
+.split-quick-parts { flex-shrink: 0; }
+.split-quick-parts button { padding: 8px 13px; }
 .split-preview {
-  padding: 10px 12px;
+  padding: 7px 11px;
   border-radius: var(--radius);
   background: var(--paper-2);
   border: 1px solid var(--rule);
@@ -1590,8 +1594,19 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   align-items: stretch;
   gap: 12px;
 }
-@media (max-width: 1180px) {
+@media (max-width: 900px) {
   .youtube-upload-grid { grid-template-columns: minmax(0, 1fr); }
+}
+/* 업로드 탭은 한 화면에서 끝낸다. 페이지는 화면 높이에 고정하고, 넘치는 건
+   영상 목록·영상 정보·작업 목록이 각자 안에서 스크롤한다. 사이드바가 위로
+   쌓이는 좁은 화면은 어차피 페이지가 길어지므로 제외한다. */
+@media (min-width: 901px) {
+  .content:has(#panel-youtube-upload.active) { height: 100vh; min-height: 0; }
+  #panel-youtube-upload > .youtube-upload-grid { grid-template-rows: minmax(0, 1fr); }
+  .youtube-upload-grid > .card { min-height: 0; }
+  .youtube-upload-file-list { min-height: 0; }
+  .youtube-upload-settings form { min-height: 0; overflow-y: auto; }
+  #youtube-upload-jobs { max-height: 24vh; overflow-y: auto; }
 }
 .youtube-upload-grid > .card {
   display: flex;
@@ -1660,7 +1675,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 }
 .youtube-selected-source-list li { line-height: 1.5; }
 .youtube-upload-description {
-  min-height: 94px;
+  min-height: 64px;
   resize: vertical;
   line-height: 1.55;
 }
