@@ -71,3 +71,9 @@ class TestWebAssets:
             response = client.get(f"/static/{filename}")
             assert response.status_code == 200
             assert "javascript" in response.headers["content-type"]
+
+    def test_static_assets_require_revalidation(self, client: TestClient):
+        """배포 후 옛 CSS/JS가 새 HTML과 섞이지 않도록 매번 재검증하게 한다."""
+        for filename in CSS_ASSETS + JS_ASSETS:
+            response = client.get(f"/static/{filename}")
+            assert response.headers["cache-control"] == "no-cache"
