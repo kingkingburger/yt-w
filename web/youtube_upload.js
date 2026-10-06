@@ -168,9 +168,10 @@ function renderYouTubeUploadReady() {
     // 파일마다 붙을 제목을 미리 보여 준다. 같은 제목이 되는 파일은 없는지 여기서 확인할 수 있다.
     const batchTitles = youtubeUploadBatchTitles(selectedPaths);
     const titleItems = selectedPaths.map(path => `<li>${escapeHtml(batchTitles.get(path))}</li>`).join('');
-    selectedSource.innerHTML = `${selectedCount}개를 골랐어요. 제목은 파일마다 이렇게 붙습니다.`
-      + `<ul class="youtube-selected-source-list">${titleItems}</ul>`;
+    selectedSource.innerHTML = `<details><summary>${selectedCount}개 선택 · 파일별 제목 보기</summary>`
+      + `<ul class="youtube-selected-source-list">${titleItems}</ul></details>`;
   } else selectedSource.textContent = '영상을 먼저 골라 주세요.';
+  selectedSource.title = single ? selectedPaths[0] : '';
   // 경로일 때만 고정폭. 안내문에 mono를 씌우면 한글 사이 공백이 벌어진다.
   selectedSource.classList.toggle('mono', single);
 
@@ -188,6 +189,7 @@ function renderYouTubeUploadReady() {
   if (blockedReason) text.textContent = blockedReason;
   else if (single) text.textContent = `"${title}"을(를) 비공개로 업로드합니다.`;
   else text.textContent = `${selectedCount}개 영상을 파일명 제목으로 비공개 업로드합니다.`;
+  text.title = text.textContent;
 }
 
 function renderYouTubeOAuthStatus() {

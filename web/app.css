@@ -1597,16 +1597,22 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 @media (max-width: 900px) {
   .youtube-upload-grid { grid-template-columns: minmax(0, 1fr); }
 }
-/* 업로드 탭은 한 화면에서 끝낸다. 페이지는 화면 높이에 고정하고, 넘치는 건
-   영상 목록·영상 정보·작업 목록이 각자 안에서 스크롤한다. 사이드바가 위로
-   쌓이는 좁은 화면은 어차피 페이지가 길어지므로 제외한다. */
+/* 영상 정보는 스크롤 없이 펼친다. 긴 영상·작업 목록에만 스크롤을 둔다.
+   작은 화면에서는 페이지 높이가 늘어나도 입력칸을 잘라내지 않는다. */
 @media (min-width: 901px) {
-  .content:has(#panel-youtube-upload.active) { height: 100vh; min-height: 0; }
+  .content:has(#panel-youtube-upload.active) { height: 100vh; min-height: 720px; padding: 14px 26px 16px; }
+  #panel-youtube-upload { gap: 8px; }
+  #panel-youtube-upload .card-head { padding: 8px 12px; }
+  #panel-youtube-upload > .card { flex-shrink: 0; }
   #panel-youtube-upload > .youtube-upload-grid { grid-template-rows: minmax(0, 1fr); }
   .youtube-upload-grid > .card { min-height: 0; }
   .youtube-upload-file-list { min-height: 0; }
-  .youtube-upload-settings form { min-height: 0; overflow-y: auto; }
-  #youtube-upload-jobs { max-height: 24vh; overflow-y: auto; }
+  #youtube-upload-jobs { max-height: 80px; overflow-y: auto; }
+  #youtube-upload-jobs > .empty { padding: 8px 12px; }
+  #youtube-upload-jobs .empty-icon { display: none; }
+  #youtube-upload-jobs .empty-title { font-size: 13px; margin-bottom: 2px; }
+  #youtube-upload-jobs .empty-sub { max-width: none; font-size: 12px; }
+  .youtube-auth-body { padding: 8px 12px; gap: 4px 12px; }
 }
 .youtube-upload-grid > .card {
   display: flex;
@@ -1616,9 +1622,38 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
 .youtube-upload-settings form {
   display: flex;
   flex: 1;
+  min-height: 0;
 }
 .youtube-upload-settings .card-body {
   width: 100%;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.youtube-upload-settings .card-body > * { flex-shrink: 0; }
+.youtube-upload-description-field { display: flex; flex-direction: column; flex: 1; min-height: 68px; }
+.youtube-upload-description-field textarea { flex: 1; }
+.youtube-upload-settings .stack > * + * { margin-top: 6px; }
+.youtube-upload-settings .label { margin-bottom: 3px; }
+.youtube-upload-settings .input,
+.youtube-upload-settings .select { padding: 6px 9px; font-size: 13px; }
+.youtube-upload-metadata { grid-template-columns: minmax(0, 1fr) minmax(0, .85fr) minmax(0, 1fr); gap: 8px; }
+.youtube-upload-metadata > div { min-width: 0; }
+@media (min-width: 901px) and (max-width: 1179px) {
+  .youtube-upload-settings .card-body { padding: 8px 10px; }
+  .youtube-upload-settings .stack > * + * { margin-top: 4px; }
+  .youtube-upload-metadata { grid-template-columns: minmax(0, 1fr) minmax(0, .8fr) minmax(0, 1.2fr); }
+  .youtube-upload-metadata .label { white-space: nowrap; font-size: 11.5px; }
+  .youtube-upload-metadata .youtube-field-note { font-size: 10px; }
+  .youtube-upload-metadata .youtube-kids-control { padding: 6px; font-size: 11px; white-space: nowrap; }
+}
+.youtube-upload-submit { display: grid; gap: 6px; }
+.youtube-upload-settings .ready-bar { padding: 6px 8px; overflow-wrap: anywhere; }
+.youtube-upload-settings .btn.lg { padding: 8px 12px; font-size: 13px; }
+@media (min-width: 901px) {
+  .youtube-upload-submit { grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; }
+  .youtube-upload-submit .btn { width: auto; white-space: nowrap; }
+  #youtube-upload-ready-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
 .youtube-auth-body {
   display: flex;
@@ -1658,8 +1693,9 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 10.5px;
 }
 .youtube-selected-source {
-  min-height: 38px;
-  padding: 8px 11px;
+  position: relative;
+  min-height: 32px;
+  padding: 6px 9px;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   background: var(--paper-2);
@@ -1667,16 +1703,27 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 12px;
   overflow-wrap: anywhere;
 }
+.youtube-selected-source.mono { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.youtube-selected-source summary { cursor: pointer; }
 .youtube-selected-source-list {
-  margin: 6px 0 0;
-  padding-left: 18px;
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 0;
+  right: 0;
+  padding: 8px 12px 8px 28px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: var(--shadow-sm);
   max-height: 132px;
   overflow-y: auto;
 }
 .youtube-selected-source-list li { line-height: 1.5; }
 .youtube-upload-description {
-  min-height: 64px;
-  resize: vertical;
+  height: clamp(48px, 7vh, 96px);
+  min-height: 48px;
+  resize: none;
   line-height: 1.55;
 }
 .youtube-field-note {
@@ -1685,11 +1732,12 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   font-size: 11.5px;
 }
 .youtube-kids-control {
-  min-height: 38px;
+  min-height: 32px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
+  gap: 6px;
+  padding: 6px 8px;
+  font-size: 12px;
   border: 1px solid rgba(var(--ink-rgb),0.44);
   border-radius: var(--radius);
   color: var(--ink-2);
@@ -1712,7 +1760,7 @@ a:hover { color: var(--action-2); text-decoration: underline; text-underline-off
   display: flex;
   align-items: center;
   gap: 9px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid var(--warn-line);
   border-radius: var(--radius);
   background: var(--warn-tint);

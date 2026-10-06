@@ -415,15 +415,15 @@ console.log(JSON.stringify(outcomes));
             "go": True,
             "reason": "3개 영상을 파일명 제목으로 비공개 업로드합니다.",
             "source": (
-                "3개를 골랐어요. 제목은 파일마다 이렇게 붙습니다."
+                "3개 선택 · 파일별 제목 보기"
                 "침착맨_라이브_20260903_074555침착맨_라이브_20260903_025459clip-1"
             ),
             "sourceHtml": (
-                "3개를 골랐어요. 제목은 파일마다 이렇게 붙습니다."
+                "<details><summary>3개 선택 · 파일별 제목 보기</summary>"
                 '<ul class="youtube-selected-source-list">'
                 "<li>침착맨_라이브_20260903_074555</li>"
                 "<li>침착맨_라이브_20260903_025459</li>"
-                "<li>clip-1</li></ul>"
+                "<li>clip-1</li></ul></details>"
             ),
             "mono": False,
             "titleDisabled": True,
