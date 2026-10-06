@@ -1,14 +1,142 @@
 """Tests for video_downloader module."""
 
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Thread
 from unittest.mock import MagicMock, patch
 
+import pytest
+from yt_dlp import YoutubeDL
 
 from src.yt_monitor.media.video_download import VideoDownloader
 
 
 class TestVideoDownloader:
     """Test cases for VideoDownloader class."""
+
+    def test_download_fragments_without_forced_range_headers(self, temp_dir: Path):
+        """Exercise the real DASH downloader against a Range-rejecting server."""
+        ranges = []
+        payload = b"video-fragment"
+
+        class FragmentHandler(BaseHTTPRequestHandler):
+            def do_GET(self):
+                ranges.append(self.headers.get("Range"))
+                if self.headers.get("Range"):
+                    self.send_response(416)
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(payload)))
+                self.end_headers()
+                self.wfile.write(payload)
+
+            def log_message(self, format, *args):
+                pass
+
+        server = ThreadingHTTPServer(("127.0.0.1", 0), FragmentHandler)
+        thread = Thread(target=server.serve_forever, daemon=True)
+        thread.start()
+        output = temp_dir / "fragments.mp4"
+        try:
+            with patch(
+                "src.yt_monitor.media.video_download.get_cookie_options",
+                return_value={},
+            ):
+                opts = VideoDownloader(output_dir=str(temp_dir))._build_ydl_options(
+                    str(output)
+                )
+            opts.update(
+                quiet=True,
+                retries=0,
+                fragment_retries=0,
+                skip_unavailable_fragments=False,
+            )
+            url = f"http://127.0.0.1:{server.server_port}/fragment"
+            with YoutubeDL(opts) as ydl:
+                success, _ = ydl.dl(
+                    str(output),
+                    {
+                        "url": url,
+                        "ext": "mp4",
+                        "protocol": "http_dash_segments",
+                        "fragments": [{"url": url}, {"url": url}],
+                    },
+                )
+            assert success
+            assert output.read_bytes() == payload * 2
+            assert ranges == [None, None]
+        finally:
+            server.shutdown()
+            thread.join(timeout=5)
+            server.server_close()
+
+    @pytest.mark.parametrize("separate_streams", [True, False])
+    def test_get_video_info_accepts_split_and_combined_formats(
+        self, temp_dir: Path, separate_streams: bool
+    ):
+        """Run real yt-dlp selection against post-live and combined formats."""
+        downloader = VideoDownloader(output_dir=str(temp_dir))
+        formats = (
+            [
+                {
+                    "format_id": "299",
+                    "url": "https://example.com/video.mp4",
+                    "ext": "mp4",
+                    "height": 1080,
+                    "vcodec": "avc1",
+                    "acodec": "none",
+                },
+                {
+                    "format_id": "140",
+                    "url": "https://example.com/audio.m4a",
+                    "ext": "m4a",
+                    "vcodec": "none",
+                    "acodec": "mp4a",
+                },
+            ]
+            if separate_streams
+            else [
+                {
+                    "format_id": "22",
+                    "url": "https://example.com/combined.mp4",
+                    "ext": "mp4",
+                    "height": 720,
+                    "vcodec": "avc1",
+                    "acodec": "mp4a",
+                }
+            ]
+        )
+
+        def extract_info(ydl, url, download=False):
+            return ydl.process_ie_result(
+                {
+                    "id": "JqTSHQwUGAs",
+                    "title": "Post-live video",
+                    "live_status": "post_live",
+                    "formats": formats,
+                },
+                download=download,
+            )
+
+        with (
+            patch(
+                "src.yt_monitor.media.video_download.get_cookie_options",
+                return_value={},
+            ),
+            patch.object(
+                YoutubeDL, "extract_info", autospec=True, side_effect=extract_info
+            ),
+        ):
+            info = downloader.get_video_info(
+                "https://www.youtube.com/watch?v=JqTSHQwUGAs"
+            )
+
+        assert info["title"] == "Post-live video"
+        assert {f["format_id"] for f in info["formats"]} == {
+            f["format_id"] for f in formats
+        }
 
     def test_init_creates_output_directory(self, temp_dir: Path):
         """Test that __init__ creates the output directory."""

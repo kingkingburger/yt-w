@@ -81,7 +81,8 @@ class VideoDownloader:
             "fragment_retries": 10,
             "skip_unavailable_fragments": True,
             "buffersize": 1024 * 1024,  # 1MB buffer
-            "http_chunk_size": 10485760,  # 10MB chunks
+            # Let the extractor choose HTTP chunking. Forced Range headers can
+            # time out on post-live DASH fragments.
         }
 
         if self.audio_only:
@@ -195,7 +196,8 @@ class VideoDownloader:
             "skip_download": True,
             "no_check_certificates": True,
             "socket_timeout": 30,
-            "format": "best",  # Use fallback format to avoid "format not available" errors
+            # Post-live videos may only expose separate video and audio streams.
+            "format": "bestvideo+bestaudio/best",
             **get_cookie_options(),
         }
 
