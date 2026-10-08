@@ -164,3 +164,43 @@ def test_every_upload_job_is_reachable_and_refresh_preserves_page(browser_page):
     page.wait_for_timeout(100)
     assert page.locator("#youtube-upload-jobs .viewport-pager span").inner_text() == last_page
     assert errors == []
+
+
+@pytest.mark.parametrize("has_upload_file", [False, True])
+def test_recordings_are_visible_and_can_open_split_without_becoming_uploads(browser_page, has_upload_file):
+    page, errors = browser_page
+    recordings = [
+        {"path": f"live/channel/recording-{i:02}.mp4", "name": f"recording-{i:02}.mp4",
+         "size_bytes": 1000000, "mtime": 1700000000}
+        for i in range(18)
+    ]
+    files = [*recordings]
+    if has_upload_file:
+        files.append({"path": "merged/final.mp4", "name": "final.mp4", "size_bytes": 1000000})
+    page.route("**/api/files*", lambda route: route.fulfill(body=json.dumps(files), content_type="application/json"))
+    page.set_viewport_size({"width": 390, "height": 844})
+    page.reload()
+    page.wait_for_timeout(250)
+    assert page.locator('#youtube-upload-file-list .empty').count() == 0
+    assert page.locator('#youtube-upload-file-list input:disabled').count() == len(recordings)
+    assert page.locator('#youtube-upload-file-list input:not(:disabled)').count() == int(has_upload_file)
+    assert page.locator('#btn-youtube-select-all').is_disabled() == (not has_upload_file)
+    seen = set()
+    while True:
+        seen.update(page.locator('#youtube-upload-file-list input:visible').evaluate_all('els => els.map(el => el.value)'))
+        assert_fits(page)
+        next_button = page.locator('#youtube-upload-file-list .viewport-pager button').last
+        if next_button.is_disabled():
+            break
+        next_button.click()
+        page.wait_for_timeout(50)
+    assert seen == {file['path'] for file in files}
+    page.evaluate("viewportPages.set(document.getElementById('youtube-upload-file-list'), 0); scheduleViewport()")
+    page.wait_for_timeout(100)
+    page.locator('#youtube-upload-file-list button[data-path]:visible').first.click()
+    page.wait_for_timeout(150)
+    assert page.evaluate('state.activeTab') == 'split'
+    assert page.evaluate('state.splitSelectedPath') == recordings[0]['path']
+    assert page.evaluate('[...state.youtubeUploadSelectedPaths]') == []
+    assert page.evaluate("document.querySelector('#panel-split .viewport-current').contains(document.getElementById('split-ready'))")
+    assert errors == []

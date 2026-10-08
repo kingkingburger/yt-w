@@ -3,6 +3,15 @@ const viewportPages = new WeakMap();
 const viewportPartitions = new WeakMap();
 let viewportFrame = 0;
 
+function showViewportWorkspaceFor(element) {
+  const workspace = element?.closest('.viewport-workspace');
+  const panel = workspace?.closest('.panel');
+  const select = panel?.querySelector('.viewport-toolbar select');
+  if (!select) return;
+  select.value = String([...panel.querySelectorAll('.viewport-workspace')].indexOf(workspace));
+  select.dispatchEvent(new Event('change'));
+}
+
 function viewportPager(host) {
   let pager = host.querySelector(':scope > .viewport-pager');
   if (pager) return pager;

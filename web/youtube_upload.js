@@ -1,7 +1,7 @@
-
 /* ── YouTube upload ──────────────────────────────────────────── */
-function filterYouTubeUploadFiles(files) {
+function filterYouTubeUploadFiles(files, includeRecordings = false) {
   const allowedDirectories = new Set(['merged', 'split', 'uploads', 'web_downloads']);
+  if (includeRecordings) allowedDirectories.add('live');
   const videoExtensions = new Set([
     'avi', 'm4v', 'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'ts', 'webm',
   ]);
@@ -16,26 +16,27 @@ function filterYouTubeUploadFiles(files) {
   });
 }
 
-/* 목록 하나가 업로드 대상 고르기와 정리(삭제)를 같이 맡는다. 체크된 파일이 모두
-   업로드 대상이다. 하나면 제목 칸의 값을 쓰고, 여러 개면 파일마다 파일명에서 뽑은
-   제목으로 작업을 하나씩 등록한다. */
+/* 녹화 원본도 표시하되 업로드 선택에는 포함하지 않는다.
+   업로드 가능한 영상은 제목 설정과 삭제를 같은 목록에서 처리한다. */
 function renderYouTubeUploadFileList() {
   const host = $('youtube-upload-file-list');
   if (!host) return;
-  const files = filterYouTubeUploadFiles(state.files);
-  const allowedPaths = new Set(files.map(file => file.path));
+  const files = filterYouTubeUploadFiles(state.files, true);
+  const uploadFiles = filterYouTubeUploadFiles(state.files);
+  const allowedPaths = new Set(uploadFiles.map(file => file.path));
   state.youtubeUploadSelectedPaths = new Set(
     [...state.youtubeUploadSelectedPaths].filter(path => allowedPaths.has(path))
   );
   const selectedCount = state.youtubeUploadSelectedPaths.size;
-  $('youtube-upload-file-count').textContent = selectedCount
-    ? `${files.length}개 · ${selectedCount}개 선택`
-    : `${files.length}개`;
+  const recordingCount = files.length - uploadFiles.length;
+  $('youtube-upload-file-count').textContent = `${files.length}개`
+    + (recordingCount ? ` · 녹화 원본 ${recordingCount}개 · 업로드 가능 ${uploadFiles.length}개` : '')
+    + (selectedCount ? ` · ${selectedCount}개 선택` : '');
   const selectAllButton = $('btn-youtube-select-all');
   const deleteSelectedButton = $('btn-youtube-delete-selected');
   if (selectAllButton) {
-    selectAllButton.disabled = files.length === 0;
-    selectAllButton.textContent = selectedCount === files.length && selectedCount > 0
+    selectAllButton.disabled = uploadFiles.length === 0;
+    selectAllButton.textContent = selectedCount === uploadFiles.length && selectedCount > 0
       ? '전체 해제'
       : '전체 선택';
   }
@@ -44,8 +45,8 @@ function renderYouTubeUploadFileList() {
   if (!files.length) {
     host.innerHTML = emptyState({
       icon: '⇧',
-      title: '업로드할 서버 영상이 없어요',
-      sub: 'merged, split, uploads, web_downloads 폴더의 영상 파일만 표시됩니다. PC에서 바로 올리는 기능은 제공하지 않습니다.',
+      title: '서버에 영상이 없어요',
+      sub: '녹화 원본과 업로드 가능한 영상을 함께 표시합니다. PC에서 바로 올리는 기능은 제공하지 않습니다.',
       action: `<button class="btn primary" onclick="switchTab('download')">먼저 영상 받으러 가기</button>`,
     });
     return;
@@ -55,30 +56,43 @@ function renderYouTubeUploadFileList() {
     const selected = state.youtubeUploadSelectedPaths.has(file.path);
     const fileName = file.name || mergeFileName(file.path);
     const topDirectory = String(file.path).split('/')[0];
+    const recording = topDirectory === 'live';
     const safePathAttribute = escapeHtmlAttribute(file.path);
     const safeNameAttribute = escapeHtmlAttribute(fileName);
     const uploadStatus = youtubeUploadFileStatus(file.path);
     return `<label class="youtube-upload-file-row ${selected ? 'selected' : ''}">
       <span class="selection-control selection-checkbox">
         <input type="checkbox" value="${safePathAttribute}"
-               aria-label="${safeNameAttribute} 선택" ${selected ? 'checked' : ''}
+               aria-label="${safeNameAttribute} 선택" ${selected ? 'checked' : ''} ${recording ? 'disabled' : ''}
                onchange="toggleYouTubeUploadFile(this.value, this.checked)" />
         <span class="selection-mark" aria-hidden="true"></span>
       </span>
       <div class="youtube-upload-file-main">
         <div class="file-name" title="${safePathAttribute}">${escapeHtml(fileName)}</div>
         <div class="youtube-upload-file-path mono">${escapeHtml(file.path)}</div>
-        <span class="chip ${uploadStatus.kind}">${uploadStatus.label}</span>
+        ${recording
+          ? `<span class="chip dim">녹화 원본 · 나누기 후 업로드</span>
+             <button class="btn sm" type="button" data-path="${safePathAttribute}"
+                     onclick="openYouTubeRecordingInSplit(this.dataset.path, event)">나누기에서 열기</button>`
+          : `<span class="chip ${uploadStatus.kind}">${uploadStatus.label}</span>`}
       </div>
       <span class="part-chip">${escapeHtml(topDirectory)}</span>
       <span class="file-meta nowrap">${fmtBytes(file.size_bytes)}</span>
       <span class="file-meta nowrap">${fmtAge(file.mtime)}</span>
-      <button type="button" class="btn danger sm file-delete-btn" data-path="${safePathAttribute}"
+      ${recording ? '<span></span>' : `<button type="button" class="btn danger sm file-delete-btn" data-path="${safePathAttribute}"
               title="${safeNameAttribute} 삭제"
               aria-label="${safeNameAttribute} 삭제"
-              onclick="deleteYouTubeUploadFile(this.dataset.path, event)">✕</button>
+              onclick="deleteYouTubeUploadFile(this.dataset.path, event)">✕</button>`}
     </label>`;
   }).join('');
+}
+
+function openYouTubeRecordingInSplit(path, event) {
+  event?.preventDefault();
+  event?.stopPropagation();
+  switchTab('split');
+  selectSplitFile(path);
+  if (typeof showViewportWorkspaceFor === 'function') showViewportWorkspaceFor($('split-ready'));
 }
 
 function youtubeUploadFileStem(path) {
