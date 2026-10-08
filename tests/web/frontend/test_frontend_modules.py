@@ -20,6 +20,7 @@ RUNTIME_JS_FILES = (
     "library.js",
     "download.js",
     "palette.js",
+    "viewport.js",
     "app.js",
 )
 

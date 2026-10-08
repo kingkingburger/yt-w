@@ -13,6 +13,7 @@ function notify(title, msg, kind = 'info') {
 
 /* ── boot ──────────────────────────────────────────────────────────── */
 initializePalette();
+initializeViewport();
 systemRefresh();
 checkCookie();
 loadChannels();
